@@ -1,0 +1,14 @@
+[build]
+  # No build command needed - it's just static HTML/CSS/JS
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  # Use Node.js 18 for the serverless functions
+  node_bundler = "esbuild"
+
+# Redirect for cleaner URLs
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200

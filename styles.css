@@ -1,0 +1,616 @@
+/* PCC Trolley Color Palette
+   Green: #1B4332 (dark forest green - trolley body)
+   Cream: #F5F1E3 (vintage cream - trim)
+   Maroon: #722F37 (dark red - accents)
+   Gold: #C9A227 (accent highlights)
+*/
+
+:root {
+    --pcc-green-dark: #0D2818;
+    --pcc-green: #1B4332;
+    --pcc-green-light: #2D6A4F;
+    --pcc-cream: #F5F1E3;
+    --pcc-cream-dim: #D4CFC0;
+    --pcc-maroon: #722F37;
+    --pcc-maroon-light: #8B3A42;
+    --pcc-gold: #C9A227;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: linear-gradient(135deg, var(--pcc-green-dark) 0%, var(--pcc-green) 100%);
+    min-height: 100vh;
+    color: var(--pcc-cream);
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+header {
+    text-align: center;
+    padding: 15px 0 20px;
+}
+
+.logo {
+    width: 120px;
+    height: auto;
+    margin-bottom: 10px;
+    border-radius: 12px;
+}
+
+header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+    color: var(--pcc-cream);
+}
+
+.subtitle {
+    font-size: 1rem;
+    color: var(--pcc-gold);
+}
+
+/* Status Bar */
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    border: 1px solid rgba(245, 241, 227, 0.1);
+}
+
+.refresh-btn {
+    background: var(--pcc-maroon);
+    color: var(--pcc-cream);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.refresh-btn:hover {
+    background: var(--pcc-maroon-light);
+}
+
+.refresh-btn:disabled {
+    background: #4a4a4a;
+    cursor: not-allowed;
+}
+
+/* Live Dot */
+.live-dot {
+    width: 10px;
+    height: 10px;
+    background: #4CAF50;
+    border-radius: 50%;
+    display: inline-block;
+    animation: glow-green 2s infinite;
+}
+
+@keyframes glow-green {
+    0% { box-shadow: 0 0 4px 2px rgba(76, 175, 80, 0.6); }
+    50% { box-shadow: 0 0 8px 4px rgba(76, 175, 80, 0.3); }
+    100% { box-shadow: 0 0 4px 2px rgba(76, 175, 80, 0.6); }
+}
+
+/* No Trolleys State */
+.no-trolleys {
+    text-align: center;
+    padding: 20px;
+}
+
+.no-trolleys-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--pcc-cream);
+    margin-bottom: 8px;
+}
+
+.no-trolleys-subtitle {
+    font-size: 0.9rem;
+    color: var(--pcc-cream-dim);
+}
+
+/* Cards */
+.card {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(245, 241, 227, 0.15);
+}
+
+.card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    color: var(--pcc-cream);
+}
+
+.info-text {
+    font-size: 0.85rem;
+    color: var(--pcc-cream-dim);
+    margin-bottom: 15px;
+}
+
+.realtime-note {
+    color: var(--pcc-gold);
+    font-weight: 500;
+}
+
+/* Loading */
+.loading {
+    color: var(--pcc-cream-dim);
+    font-style: italic;
+    text-align: center;
+    padding: 15px;
+}
+
+/* Station Selector */
+.station-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Mode Selector (Metro vs Regional Rail) */
+.mode-selector {
+    display: flex;
+    gap: 8px;
+}
+
+.mode-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-btn.metro {
+    background: rgba(0, 0, 0, 0.3);
+    color: #00A3E0;
+    border-color: rgba(0, 163, 224, 0.3);
+}
+
+.mode-btn.metro.active {
+    background: #00A3E0;
+    color: white;
+    border-color: #00A3E0;
+}
+
+.mode-btn.regional {
+    background: rgba(0, 0, 0, 0.3);
+    color: #6D6E71;
+    border-color: rgba(109, 110, 113, 0.3);
+}
+
+.mode-btn.regional.active {
+    background: #4A4A4D;
+    color: white;
+    border-color: #4A4A4D;
+}
+
+/* Line Selector */
+.line-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.line-btn {
+    padding: 8px 14px;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.line-btn .line-letter {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+/* SEPTA Metro Line Colors */
+.line-btn.line-B {
+    background: rgba(0, 0, 0, 0.3);
+    color: #F37021;
+    border-color: rgba(243, 112, 33, 0.4);
+}
+.line-btn.line-B.active {
+    background: #F37021;
+    color: white;
+}
+
+.line-btn.line-L {
+    background: rgba(0, 0, 0, 0.3);
+    color: #0070C0;
+    border-color: rgba(0, 112, 192, 0.4);
+}
+.line-btn.line-L.active {
+    background: #0070C0;
+    color: white;
+}
+
+.line-btn.line-T {
+    background: rgba(0, 0, 0, 0.3);
+    color: #00A650;
+    border-color: rgba(0, 166, 80, 0.4);
+}
+.line-btn.line-T.active {
+    background: #00A650;
+    color: white;
+}
+
+.line-btn.line-M {
+    background: rgba(0, 0, 0, 0.3);
+    color: #84329B;
+    border-color: rgba(132, 50, 155, 0.4);
+}
+.line-btn.line-M.active {
+    background: #84329B;
+    color: white;
+}
+
+/* Regional Rail Line buttons */
+.line-btn.line-RR {
+    background: rgba(0, 0, 0, 0.3);
+    color: #B0B0B0;
+    border-color: rgba(109, 110, 113, 0.3);
+    font-size: 0.75rem;
+    padding: 6px 10px;
+}
+.line-btn.line-RR.active {
+    background: #4A4A4D;
+    color: white;
+    border-color: #6D6E71;
+}
+
+/* Stop Selector */
+.stop-selector select {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--pcc-cream);
+    border: 1px solid rgba(245, 241, 227, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23F5F1E3' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+
+.stop-selector select:focus {
+    outline: none;
+    border-color: var(--pcc-gold);
+}
+
+.stop-selector select optgroup {
+    background: #1B4332;
+    color: var(--pcc-gold);
+    font-weight: bold;
+}
+
+.stop-selector select option {
+    background: #0D2818;
+    color: var(--pcc-cream);
+    padding: 8px;
+}
+
+/* Connection Cards */
+.connections-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.connection-card {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    border-left: 4px solid var(--pcc-cream-dim);
+}
+
+.connection-card.good {
+    border-left-color: var(--pcc-green-light);
+    background: rgba(45, 106, 79, 0.15);
+}
+
+.connection-card.okay {
+    border-left-color: var(--pcc-gold);
+    background: rgba(201, 162, 39, 0.1);
+}
+
+.connection-card.miss {
+    border-left-color: var(--pcc-maroon);
+    background: rgba(114, 47, 55, 0.1);
+}
+
+.connection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.train-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.train-depart {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: var(--pcc-cream);
+}
+
+.train-in {
+    font-size: 0.85rem;
+    color: var(--pcc-cream-dim);
+}
+
+.connection-verdict {
+    text-align: right;
+}
+
+.verdict-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.verdict-badge.good {
+    background: var(--pcc-green-light);
+    color: var(--pcc-cream);
+}
+
+.verdict-badge.okay {
+    background: var(--pcc-gold);
+    color: #1a1a1a;
+}
+
+.verdict-badge.miss {
+    background: rgba(114, 47, 55, 0.5);
+    color: var(--pcc-cream);
+}
+
+.connection-details {
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.connection-details .arrive-time {
+    color: var(--pcc-gold);
+    margin-bottom: 8px;
+}
+
+.trolley-wait {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    margin-top: 8px;
+}
+
+.trolley-wait .trolley-id {
+    font-weight: 500;
+    color: var(--pcc-cream);
+}
+
+.trolley-wait .direction-badge {
+    font-size: 0.8rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(245, 241, 227, 0.1);
+    margin-left: 8px;
+}
+
+.trolley-wait .direction-badge.east {
+    background: rgba(45, 106, 79, 0.4);
+    color: #8FBC8F;
+}
+
+.trolley-wait .direction-badge.west {
+    background: rgba(201, 162, 39, 0.3);
+    color: var(--pcc-gold);
+}
+
+.trolley-wait .wait-time {
+    font-weight: bold;
+}
+
+.trolley-wait .wait-time.good {
+    color: #8FBC8F;
+}
+
+.trolley-wait .wait-time.long {
+    color: var(--pcc-gold);
+}
+
+.trolley-wait .wait-time.miss {
+    color: #E88892;
+}
+
+.next-trolley-note {
+    font-size: 0.85rem;
+    color: var(--pcc-cream-dim);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(245, 241, 227, 0.1);
+}
+
+/* Trolley List (detailed positions) */
+.trolley-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.trolley-item {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 15px;
+    border-left: 4px solid var(--pcc-cream-dim);
+}
+
+.trolley-item.eastbound {
+    border-left-color: var(--pcc-green-light);
+}
+
+.trolley-item.westbound {
+    border-left-color: var(--pcc-gold);
+}
+
+.trolley-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.trolley-number {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--pcc-cream);
+}
+
+.trolley-direction {
+    font-size: 0.85rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+    margin-left: auto;
+}
+
+.trolley-direction.east {
+    background: rgba(45, 106, 79, 0.4);
+    color: #8FBC8F;
+}
+
+.trolley-direction.west {
+    background: rgba(201, 162, 39, 0.3);
+    color: var(--pcc-gold);
+}
+
+.trolley-location {
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+    color: var(--pcc-cream);
+}
+
+.trolley-eta {
+    font-size: 0.95rem;
+    color: #8FBC8F;
+}
+
+.trolley-eta.passed {
+    color: #E88892;
+}
+
+.trolley-destination {
+    font-size: 0.85rem;
+    color: var(--pcc-cream-dim);
+    margin-top: 8px;
+}
+
+/* Error State */
+.error-message {
+    background: rgba(114, 47, 55, 0.3);
+    border: 1px solid var(--pcc-maroon);
+    padding: 15px;
+    border-radius: 8px;
+    color: #E88892;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 25px 0 15px;
+    color: rgba(245, 241, 227, 0.4);
+    font-size: 0.8rem;
+}
+
+footer p {
+    margin-bottom: 5px;
+}
+
+.pcc-info {
+    color: rgba(245, 241, 227, 0.5);
+}
+
+/* Auto-refresh indicator */
+.auto-refresh {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--pcc-cream-dim);
+}
+
+.pulse {
+    width: 8px;
+    height: 8px;
+    background: var(--pcc-green-light);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+    .container {
+        padding: 15px;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    .card {
+        padding: 15px;
+    }
+
+    .connection-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .connection-verdict {
+        text-align: left;
+    }
+}

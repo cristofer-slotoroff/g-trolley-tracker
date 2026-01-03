@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G Trolley Tracker - SEPTA Route G</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚋</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="logo.png" alt="G Trolley Tracker" class="logo">
+            <h1>G Trolley Tracker</h1>
+            <p class="subtitle">SEPTA Route G - Girard Line</p>
+        </header>
+
+        <div id="status-bar" class="status-bar">
+            <span id="last-update">Loading...</span>
+            <button id="refresh-btn" class="refresh-btn" onclick="refreshData()">↻ Refresh</button>
+        </div>
+
+        <!-- Live Trolley Positions - TOP -->
+        <section class="card" id="trolley-details">
+            <div id="trolley-list" class="trolley-list">
+                <div class="loading">Checking for PCC trolleys...</div>
+            </div>
+        </section>
+
+        <!-- Station Selector -->
+        <section class="card" id="station-section">
+            <div class="station-selector">
+                <div class="mode-selector">
+                    <button class="mode-btn metro active" onclick="setMode('metro')">SEPTA Metro</button>
+                    <button class="mode-btn regional" onclick="setMode('regional')">Regional Rail</button>
+                </div>
+                <div class="line-selector" id="line-selector">
+                    <!-- Line buttons populated by JS -->
+                </div>
+                <div class="stop-selector">
+                    <select id="station-select" onchange="changeStation()">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Train Connection Options -->
+        <section class="card" id="connections-section" style="display: none;">
+            <h2 id="connections-title">🚆 Your Options</h2>
+            <div id="connections-list" class="connections-list"></div>
+        </section>
+
+        <footer>
+            <p>Real-time data from SEPTA TransitView API</p>
+            <p class="pcc-info">PCC cars are #2301-2399 (1940s vintage streetcars)</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

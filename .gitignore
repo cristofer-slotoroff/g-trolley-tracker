@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Netlify
+.netlify/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Reference files (optional - keep for development reference)
+# Reference/
