@@ -552,6 +552,21 @@ header h1 {
     color: #E88892;
 }
 
+/* Intro Card */
+.intro-card {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--pcc-cream-dim);
+}
+
+.intro-card p {
+    margin-bottom: 10px;
+}
+
+.intro-card p:last-child {
+    margin-bottom: 0;
+}
+
 /* Footer */
 footer {
     text-align: center;
@@ -562,6 +577,34 @@ footer {
 
 footer p {
     margin-bottom: 5px;
+}
+
+.support-section {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    color: var(--pcc-cream-dim);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.support-section p {
+    margin-bottom: 8px;
+}
+
+.support-section p:last-child {
+    margin-bottom: 0;
+}
+
+.support-section a {
+    color: var(--pcc-gold);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.support-section a:hover {
+    text-decoration: underline;
 }
 
 .pcc-info {
