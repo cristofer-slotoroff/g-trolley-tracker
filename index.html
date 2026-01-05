@@ -16,7 +16,7 @@
         </header>
 
         <section class="card intro-card">
-            <p>The SEPTA Metro "G" Line, formerly Route 15, is a trolley/bus line making stops (mostly) along Girard Avenue. Sometimes riders get a normal SEPTA bus, but other times, they get a glorious, vintage PCC trolley car!</p>
+            <p>The SEPTA Metro "G" Line, formerly Route 15, is a trolley/bus line making stops (mostly) along Girard Avenue. Sometimes riders get a normal SEPTA bus, but other times they get a vintage PCC trolley car!</p>
             <p>This app tracks the PCC trolleys only so that you can easily make a plan to ride one. Simply select your origin SEPTA metro or regional rail stop and have fun, fellow trolley rider!</p>
         </section>
 
@@ -27,6 +27,7 @@
 
         <!-- Live Trolley Positions - TOP -->
         <section class="card" id="trolley-details">
+            <h2 class="section-title">Trolley Cars Running Now</h2>
             <div id="trolley-list" class="trolley-list">
                 <div class="loading">Checking for PCC trolleys...</div>
             </div>
@@ -34,10 +35,11 @@
 
         <!-- Station Selector -->
         <section class="card" id="station-section">
+            <h2 class="section-title">SEPTA Origin Point</h2>
             <div class="station-selector">
                 <div class="mode-selector">
-                    <button class="mode-btn metro active" onclick="setMode('metro')">SEPTA Metro</button>
-                    <button class="mode-btn regional" onclick="setMode('regional')">Regional Rail</button>
+                    <button class="mode-btn metro active" onclick="setMode('metro')">Metro Lines</button>
+                    <button class="mode-btn regional" onclick="setMode('regional')">Regional Rail Lines</button>
                 </div>
                 <div class="line-selector" id="line-selector">
                     <!-- Line buttons populated by JS -->
@@ -50,9 +52,9 @@
             </div>
         </section>
 
-        <!-- Train Connection Options -->
+        <!-- Route Options -->
         <section class="card" id="connections-section" style="display: none;">
-            <h2 id="connections-title">🚆 Your Options</h2>
+            <h2 id="connections-title" class="section-title">Route Options</h2>
             <div id="connections-list" class="connections-list"></div>
         </section>
 
