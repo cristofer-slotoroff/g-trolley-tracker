@@ -567,13 +567,15 @@ header h1 {
 }
 
 .step-time-box {
-    padding: 6px 10px;
+    padding: 4px 8px;
     background: var(--pcc-gold);
     color: #1a1a1a;
     font-weight: bold;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     border-radius: 4px;
     text-align: center;
+    white-space: nowrap;
+    min-width: fit-content;
 }
 
 .step-time-box.empty {
@@ -715,9 +717,21 @@ header h1 {
     animation: pulse-live 1.5s ease-in-out infinite;
 }
 
+/* Schedule indicator for schedule API data (not real-time GPS but actual SEPTA schedules) */
+.schedule-indicator {
+    color: #8BC34A;  /* Lighter green - schedule data, not live GPS */
+    font-size: 0.9rem;
+    animation: pulse-schedule 2s ease-in-out infinite;
+}
+
 @keyframes pulse-live {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
+}
+
+@keyframes pulse-schedule {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 0.5; }
 }
 
 .route-step.delayed .step-content {
@@ -828,8 +842,17 @@ header h1 {
     border-radius: 4px;
     border-left: 3px solid #64b5f6;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
+}
+
+.loop-eta {
+    font-size: 0.9em;
+    color: #90caf9;
+    font-weight: 500;
+    margin-top: 4px;
+    width: 100%;
 }
 
 .wrong-dir-icon {

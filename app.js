@@ -226,7 +226,10 @@ const G_TRANSFER_POINTS = {
 function getStopIndexFromId(stopId) {
     // Convert to string since G_STOPS_BY_ID keys are strings but API returns numbers
     const stopInfo = G_STOPS_BY_ID[String(stopId)];
-    if (!stopInfo) return -1;
+    if (!stopInfo) {
+        console.log('[STOP-INDEX DEBUG] Stop ID not found in G_STOPS_BY_ID:', stopId);
+        return -1;
+    }
 
     const shortName = stopInfo.shortName;
     // Find matching stop in simplified list
@@ -235,6 +238,7 @@ function getStopIndexFromId(stopId) {
             return i;
         }
     }
+    console.log('[STOP-INDEX DEBUG] Short name not found in G_LINE_STOPS_SIMPLE:', shortName);
     return -1;
 }
 
@@ -334,7 +338,7 @@ const METRO_LINES = {
             { name: 'Tioga', travelTimeToGirard: 5, direction: 'westbound' },
             { name: 'Erie-Torresdale', travelTimeToGirard: 3, direction: 'westbound' },
             { name: 'Berks', travelTimeToGirard: 1, direction: 'westbound' },
-            { name: 'Girard (MFL)', travelTimeToGirard: 0, direction: null, gPickup: 'Front-Girard', walkTime: 5 },
+            { name: 'Front-Girard', travelTimeToGirard: 0, direction: null, gPickup: 'Front-Girard', walkTime: 5 },
             { name: 'Spring Garden (MFL)', travelTimeToGirard: 1, direction: 'eastbound' },
             { name: '8th Street', travelTimeToGirard: 3, direction: 'eastbound' },
             { name: '11th Street', travelTimeToGirard: 4, direction: 'eastbound' },
@@ -666,15 +670,21 @@ const EXIT_STATION_INFO = {
     },
     'North Broad': {
         gPickup: 'Broad-Girard',
-        walkTime: 8,
-        transferVia: null,
-        description: 'Walk to Broad-Girard'
+        walkTime: 3,  // Walk from Girard BSL to Broad-Girard
+        transferVia: 'B',
+        metroDirection: 'southbound',
+        metroTime: 5,  // North Philadelphia B to Girard B is ~5 min
+        walkToMetro: 7,  // Walk from North Broad RR to North Philadelphia B station
+        description: 'Walk to North Philadelphia (BSL), take B southbound to Broad-Girard'
     },
     'North Philadelphia': {
         gPickup: 'Broad-Girard',
-        walkTime: 10,
-        transferVia: null,
-        description: 'Walk to Broad-Girard'
+        walkTime: 3,  // Walk from Girard BSL to Broad-Girard
+        transferVia: 'B',
+        metroDirection: 'southbound',
+        metroTime: 5,  // North Philadelphia B to Girard B is ~5 min
+        walkToMetro: 5,  // Walk from North Philadelphia RR to North Philadelphia B station
+        description: 'Walk to North Philadelphia (BSL), take B southbound to Broad-Girard'
     },
     'Fern Rock TC': {
         gPickup: 'Broad-Girard',
@@ -682,7 +692,7 @@ const EXIT_STATION_INFO = {
         transferVia: 'B',
         metroDirection: 'southbound',
         metroTime: 12,
-        description: 'Transfer to B southbound to Girard'
+        description: 'Transfer to B southbound to Broad-Girard'
     },
     'Wayne Junction': {
         gPickup: 'Broad-Girard',
@@ -697,7 +707,7 @@ const EXIT_STATION_INFO = {
         transferVia: 'B',
         metroDirection: 'northbound',
         metroTime: 10,
-        description: 'Transfer to B northbound to Girard'
+        description: 'Transfer to B northbound to Broad-Girard'
     },
     'Suburban': {
         gPickup: 'Broad-Girard',
@@ -705,7 +715,7 @@ const EXIT_STATION_INFO = {
         transferVia: 'B',
         metroDirection: 'northbound',
         metroTime: 12,
-        description: 'Transfer to B northbound to Girard'
+        description: 'Transfer to B northbound to Broad-Girard'
     },
     '30th Street': {
         gPickup: 'Front-Girard',
@@ -713,7 +723,7 @@ const EXIT_STATION_INFO = {
         transferVia: 'L',
         metroDirection: 'eastbound',
         metroTime: 15,
-        description: 'Transfer to L eastbound to Girard'
+        description: 'Transfer to L eastbound to Front-Girard'
     }
 };
 
@@ -1257,15 +1267,15 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         type: 'metro',
                         line: 'B',
                         direction: directionText,
-                        description: `Take B ${directionText} to Girard`,
+                        description: `Take B ${directionText} to Broad-Girard (B1 local or B3 express)`,
                         departTime: '~' + departTimeFormatted,
                         time: waitTime + travelTime,
                         fromStation: originStation,
-                        toStation: 'Girard',
+                        toStation: 'Broad-Girard',
                         travelTimeMin: travelTime,
-                        isScheduled: true  // Using actual SEPTA schedule times
+                        isScheduled: false  // B line has no public real-time API
                     },
-                    { type: 'exit', description: 'Exit at Girard', station: 'Girard', time: 0 },
+                    { type: 'exit', description: 'Exit at Broad-Girard', station: 'Broad-Girard', exitLine: 'B', time: 0 },
                     { type: 'walk', description: 'Walk to Broad-Girard', time: walkTime }
                 ],
                 travelTime: waitTime + travelTime,
@@ -1288,13 +1298,14 @@ async function calculateRouteOptions(originStation, trolleyData) {
         // L line -> Multiple routes possible
         const stationData = station.stationData;
         const direction = stationData?.direction;
+        console.log('[L-LINE DEBUG] Station:', originStation, 'stationData:', stationData, 'direction:', direction);
         // Use ACTUAL travel time from SEPTA schedule data (not estimated)
         const travelTime = stationData?.travelTimeToGirard ?? 10;
         const frequency = getMetroFrequency('L');
         const walkTime = stationData?.walkTime || 5;
 
         // Check if this station can transfer to B at City Hall
-        // Stations with direction 'eastbound' are south/west of Girard and pass through City Hall
+        // Stations southwest of Girard (direction 'eastbound' to reach Girard) can also reach City Hall going westbound
         const canTransferToB = direction === 'eastbound';
 
         // L line stations and their stops to City Hall (MFL)
@@ -1339,7 +1350,11 @@ async function calculateRouteOptions(originStation, trolleyData) {
             }
 
             const totalTime = totalTravelTime + trolleyWait;
-            const directionText = direction === 'eastbound' ? 'eastbound' : 'westbound';
+            // Direction to Front-Girard which connects to Front-Girard:
+            // - Stations northeast of Girard (Berks, Erie, etc.) have direction 'westbound'
+            // - Stations southwest of Girard (13th St, City Hall, etc.) have direction 'eastbound'
+            const directionText = direction === 'westbound' ? 'westbound' : 'eastbound';
+            console.log('[L-LINE DEBUG] Route 1 (Front-Girard): direction=', direction, '-> directionText=', directionText);
 
             const option = {
                 gPickup: 'Front-Girard',
@@ -1348,16 +1363,16 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         type: 'metro',
                         line: 'L',
                         direction: directionText,
-                        description: `Take L ${directionText} to Girard`,
+                        description: `Take L ${directionText} to Front-Girard`,
                         departTime: '~' + departTimeFormatted,
                         time: waitTime + travelTime,
                         fromStation: originStation,
-                        toStation: 'Girard (MFL)',
+                        toStation: 'Front-Girard',
                         travelTimeMin: travelTime,
-                        isScheduled: true  // Using actual SEPTA schedule times
+                        isScheduled: false  // L line has no public real-time API
                     },
-                    { type: 'exit', description: 'Exit at Girard (MFL)', station: 'Girard (MFL)', time: 0 },
-                    { type: 'walk', description: 'Walk to Front-Girard', time: walkTime }
+                    { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
+                    { type: 'walk', description: 'Walk to Front-Girard on G line', time: walkTime }
                 ],
                 travelTime: waitTime + travelTime,
                 walkTime: walkTime,
@@ -1434,17 +1449,178 @@ async function calculateRouteOptions(originStation, trolleyData) {
                             time: waitTime + lToCityHall,
                             fromStation: originStation,
                             toStation: 'City Hall',
-                            numStops: stopsToCH,
+                            numStops: stopsToCityHall[stationName] || 0,
                             isScheduled: false
                         },
-                        { type: 'exit', description: 'Exit at City Hall', station: 'City Hall (MFL)', time: 0 },
+                        { type: 'exit', description: 'Exit at City Hall', station: 'City Hall (MFL)', exitLine: 'L', time: 0 },
                         { type: 'transfer', description: 'Transfer to B line (Broad Street Line)' },
-                        { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Girard', time: bWait + bToGirard, fromStation: 'City Hall', toStation: 'Girard', numStops: 4 },
-                        { type: 'exit', description: 'Exit at Girard', station: 'Girard', time: 0 },
+                        { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWait + bToGirard, fromStation: 'City Hall', toStation: 'Broad-Girard', numStops: 4 },
+                        { type: 'exit', description: 'Exit at Broad-Girard', station: 'Broad-Girard', exitLine: 'B', time: 0 },
                         { type: 'walk', description: 'Walk to Broad-Girard', time: bWalkTime }
                     ],
                     travelTime: waitTime + lToCityHall + bWait + bToGirard,
                     walkTime: bWalkTime,
+                    trolleyWait: trolleyWait,
+                    totalTime: totalTime,
+                    minutesToPickup: totalTravelTime,
+                    metroDepartTime: '~' + departTimeFormatted
+                };
+
+                if (bestTrolley) {
+                    option.trolleyVehicle = bestTrolley.vehicle;
+                    option.trolleyDirection = bestTrolley.direction;
+                    option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                }
+
+                options.push(option);
+            }
+        }
+
+        // Route 3: Transfer to T1 at 30th Street → Lancaster-Girard (west side option)
+        // This gives users the option to catch trolleys on the west end of the G line
+        const stationName = stationData?.name || originStation;
+
+        // L line travel times to 30th Street MFL (from SEPTA schedule data)
+        const lTimesTo30th = {
+            'Frankford TC': 22, 'Arrott TC': 21, 'Church': 20, 'Margaret-Orthodox': 19,
+            'Huntingdon': 18, 'Somerset': 17, 'Allegheny': 16, 'Tioga': 15,
+            'Erie-Torresdale': 13, 'Berks': 11, 'Front-Girard': 10,
+            'Spring Garden (MFL)': 9, '8th Street': 7, '11th Street': 6,
+            '13th Street': 5, '15th Street': 4, 'City Hall (MFL)': 3,
+            '30th Street (MFL)': 0, '40th Street': 3, '46th Street': 4,
+            '52nd Street': 6, '56th Street': 7, '60th Street': 8,
+            '63rd Street': 9, 'Millbourne': 10, '69th Street TC': 11
+        };
+
+        const lTo30th = lTimesTo30th[stationName];
+
+        // Only add this route if we have travel time data for this station
+        if (lTo30th !== undefined) {
+            const t1Wait = getMetroFrequency('T');
+            const t1ToLancaster = 12; // 30th St to Lancaster-Girard on T1 (5 stops × ~2.5 min)
+            const t1WalkTime = 2;
+
+            // Determine direction to 30th St based on station position
+            // Stations east of 30th St go westbound, stations west go eastbound
+            const eastOf30th = ['Spring Garden (MFL)', '8th Street', '11th Street', '13th Street',
+                               '15th Street', 'City Hall (MFL)', 'Front-Girard', 'Berks',
+                               'Erie-Torresdale', 'Tioga', 'Allegheny', 'Somerset', 'Huntingdon',
+                               'Margaret-Orthodox', 'Church', 'Arrott TC', 'Frankford TC'];
+            const directionTo30th = eastOf30th.includes(stationName) ? 'westbound' : 'eastbound';
+
+            for (let departureNum = 0; departureNum < 2; departureNum++) {
+                const waitTime = departureNum * frequency;
+                const departureTime = new Date(now.getTime() + waitTime * 60000);
+                const departTimeFormatted = formatTime(departureTime);
+                const totalTravelTime = waitTime + lTo30th + t1Wait + t1ToLancaster + t1WalkTime;
+
+                const pickupTrolleys = await getTrolleysForPickup('Lancaster-Girard', trolleyData);
+
+                let bestTrolley = null;
+                let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                for (const trolley of pickupTrolleys) {
+                    const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                    if (waitForThisTrolley >= -2) {
+                        if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                            bestTrolley = trolley;
+                            trolleyWait = Math.max(0, waitForThisTrolley);
+                        }
+                    }
+                }
+
+                const totalTime = totalTravelTime + trolleyWait;
+
+                const option = {
+                    gPickup: 'Lancaster-Girard',
+                    steps: [
+                        {
+                            type: 'metro',
+                            line: 'L',
+                            direction: directionTo30th,
+                            description: `Take L ${directionTo30th} to 30th Street`,
+                            departTime: '~' + departTimeFormatted,
+                            time: waitTime + lTo30th,
+                            fromStation: originStation,
+                            toStation: '30th Street',
+                            isScheduled: false
+                        },
+                        { type: 'exit', description: 'Exit at 30th Street', station: '30th Street (MFL)', exitLine: 'L', time: 0 },
+                        { type: 'transfer', description: 'Transfer to T1 trolley (Route 10)' },
+                        { type: 'metro', line: 'T', direction: 'outbound', description: 'Take T1 toward 63rd-Malvern', time: t1Wait + t1ToLancaster, fromStation: '30th Street', toStation: 'Lancaster-Girard' },
+                        { type: 'exit', description: 'Exit at Lancaster-Girard', station: 'Lancaster-Girard', exitLine: 'T', time: 0 },
+                        { type: 'walk', description: 'Walk to G line stop', time: t1WalkTime }
+                    ],
+                    travelTime: waitTime + lTo30th + t1Wait + t1ToLancaster,
+                    walkTime: t1WalkTime,
+                    trolleyWait: trolleyWait,
+                    totalTime: totalTime,
+                    minutesToPickup: totalTravelTime,
+                    metroDepartTime: '~' + departTimeFormatted
+                };
+
+                if (bestTrolley) {
+                    option.trolleyVehicle = bestTrolley.vehicle;
+                    option.trolleyDirection = bestTrolley.direction;
+                    option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                }
+
+                options.push(option);
+            }
+        }
+
+        // Route 4: Direct T1 access from 40th Street (walk to 40th & Lancaster T1 stop)
+        // 40th St Portal (L) is adjacent to 40th & Lancaster (T1) - much faster than going to 30th St first
+        if (stationName === '40th Street') {
+            const walkToT1 = 5;  // Walk from 40th St Portal to 40th & Lancaster T1 stop
+            const t1Wait = getMetroFrequency('T');
+            const t1ToLancaster = 5;  // 40th & Lancaster to Lancaster-Girard = 2 stops * 2.5 min
+            const t1WalkTime = 2;
+
+            for (let departureNum = 0; departureNum < 2; departureNum++) {
+                const waitAtStop = departureNum * t1Wait;
+                const departureTime = new Date(now.getTime() + (walkToT1 + waitAtStop) * 60000);
+                const departTimeFormatted = formatTime(departureTime);
+                const totalTravelTime = walkToT1 + waitAtStop + t1ToLancaster + t1WalkTime;
+
+                const pickupTrolleys = await getTrolleysForPickup('Lancaster-Girard', trolleyData);
+
+                let bestTrolley = null;
+                let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                for (const trolley of pickupTrolleys) {
+                    const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                    if (waitForThisTrolley >= -2) {
+                        if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                            bestTrolley = trolley;
+                            trolleyWait = Math.max(0, waitForThisTrolley);
+                        }
+                    }
+                }
+
+                const totalTime = totalTravelTime + trolleyWait;
+
+                const option = {
+                    gPickup: 'Lancaster-Girard',
+                    steps: [
+                        { type: 'walk', description: 'Walk to 40th & Lancaster (T1 stop)', time: walkToT1 },
+                        {
+                            type: 'metro',
+                            line: 'T',
+                            direction: 'outbound',
+                            description: 'Take T1 toward 63rd-Malvern',
+                            departTime: '~' + departTimeFormatted,
+                            time: waitAtStop + t1ToLancaster,
+                            fromStation: '40th & Lancaster',
+                            toStation: 'Lancaster-Girard',
+                            numStops: 2,
+                            isScheduled: false
+                        },
+                        { type: 'exit', description: 'Exit at Lancaster-Girard', station: 'Lancaster-Girard', exitLine: 'T', time: 0 },
+                        { type: 'walk', description: 'Walk to G line stop', time: t1WalkTime }
+                    ],
+                    travelTime: walkToT1 + waitAtStop + t1ToLancaster,
+                    walkTime: walkToT1 + t1WalkTime,
                     trolleyWait: trolleyWait,
                     totalTime: totalTime,
                     minutesToPickup: totalTravelTime,
@@ -1507,11 +1683,11 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         numStops: stopsTo69th,
                         isScheduled: false
                     },
-                    { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', time: 0 },
+                    { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', exitLine: 'M', time: 0 },
                     { type: 'transfer', description: 'Transfer to L line at 69th Street TC' },
-                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Girard', time: lWait + lTravelTime, fromStation: '69th St TC', toStation: 'Girard', numStops: 15 },
-                    { type: 'exit', description: 'Exit at Girard (MFL)', station: 'Girard (MFL)', time: 0 },
-                    { type: 'walk', description: 'Walk to Front-Girard', time: walkTime }
+                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lTravelTime, fromStation: '69th St TC', toStation: 'Front-Girard', numStops: 15 },
+                    { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
+                    { type: 'walk', description: 'Walk to Front-Girard on G line', time: walkTime }
                 ],
                 travelTime: mWait + mTravelTime + lWait + lTravelTime,
                 walkTime: walkTime,
@@ -1606,11 +1782,11 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         numStops: stopsTo69th,
                         isScheduled: useScheduledTimes
                     },
-                    { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', time: 0 },
+                    { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', exitLine: 'D', time: 0 },
                     { type: 'transfer', description: 'Transfer to L line at 69th Street TC' },
-                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Girard', time: lWait + lTravelTime, fromStation: '69th St TC', toStation: 'Girard', numStops: 15 },
-                    { type: 'exit', description: 'Exit at Girard (MFL)', station: 'Girard (MFL)', time: 0 },
-                    { type: 'walk', description: 'Walk to Front-Girard', time: walkTime }
+                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lTravelTime, fromStation: '69th St TC', toStation: 'Front-Girard', numStops: 15 },
+                    { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
+                    { type: 'walk', description: 'Walk to Front-Girard on G line', time: walkTime }
                 ],
                 travelTime: dWait + dTravelTime + lWait + lTravelTime,
                 walkTime: walkTime,
@@ -1632,90 +1808,308 @@ async function calculateRouteOptions(originStation, trolleyData) {
         // T line - check if T1 (connects to Lancaster-Girard)
         if (station.route === 'T1') {
             const stationData = station.stationData;
-            const stopsToLancaster = stationData?.stopsToLancaster || 5;
-            const travelTime = Math.round(stopsToLancaster * 3);
             const walkTime = stationData?.walkTime || 2;
-
-            // Try to get actual scheduled departures
             const stopId = stationData?.stopId;
-            let departures = [];
 
-            if (stopId) {
-                departures = await fetchMetroSchedule(stopId, 'T1');
-                // For T1 toward Lancaster-Girard, we want outbound (toward 63rd/Malvern)
-                // unless user is already past Lancaster-Girard on the line
-            }
+            // Get real-time T line vehicle ETAs using GTFS + TransitView
+            // Direction: Outbound = toward 63rd-Malvern/Lancaster-Girard (west)
+            const tLineVehicles = stopId ? getTLineVehicleETAs(stopId, 'T1', 'Outbound') : [];
+            const hasRealTimeData = tLineVehicles.length > 0;
 
-            // Use actual departures if available, otherwise fall back to estimates
-            const useScheduledTimes = departures.length > 0;
-            const numOptions = useScheduledTimes ? Math.min(departures.length, 5) : 5;
-            const frequency = getMetroFrequency('T');
+            console.log(`[T1 ROUTING] Stop ${stopId}, found ${tLineVehicles.length} approaching vehicles`);
 
-            for (let departureNum = 0; departureNum < numOptions; departureNum++) {
-                let departureTime, departTimeFormatted, waitTime;
+            if (hasRealTimeData) {
+                // Use real-time vehicle data with GTFS-calculated ETAs
+                for (let i = 0; i < Math.min(tLineVehicles.length, 5); i++) {
+                    const vehicle = tLineVehicles[i];
 
-                if (useScheduledTimes) {
-                    const dep = departures[departureNum];
-                    departureTime = dep.departureTime;
-                    departTimeFormatted = dep.time.toUpperCase();
-                    waitTime = dep.minutesUntil;
-                } else {
-                    waitTime = departureNum * frequency;
-                    departureTime = new Date(now.getTime() + waitTime * 60000);
-                    departTimeFormatted = '~' + formatTime(departureTime);
-                }
+                    // Vehicle arrives at user's stop in etaMinutes
+                    const waitTime = vehicle.etaMinutes;
 
-                const totalTravelTime = waitTime + travelTime + walkTime;
+                    // Calculate travel time from user's stop to Lancaster-Girard using GTFS
+                    // Look up Lancaster-Girard in GTFS for T1 outbound
+                    const lancasterStopId = '20624';  // Lancaster-Girard stop ID
+                    const lancasterKey = `T1_${lancasterStopId}`;
+                    const lancasterData = T_LINE_STOP_LOOKUP[lancasterKey];
+                    const userKey = `T1_${stopId}`;
+                    const userData = T_LINE_STOP_LOOKUP[userKey];
 
-                const pickupTrolleys = await getTrolleysForPickup('Lancaster-Girard', trolleyData);
+                    let travelTimeToLancaster = stationData?.stopsToLancaster ? stationData.stopsToLancaster * 2 : 10;
 
-                let bestTrolley = null;
-                let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+                    if (lancasterData?.outbound && userData?.outbound) {
+                        // Calculate actual scheduled travel time from GTFS
+                        const travelSec = lancasterData.outbound.cumulative_sec - userData.outbound.cumulative_sec;
+                        travelTimeToLancaster = Math.round(travelSec / 60);
+                    }
 
-                for (const trolley of pickupTrolleys) {
-                    const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
-                    if (waitForThisTrolley >= -2) {
-                        if (!bestTrolley || waitForThisTrolley < trolleyWait) {
-                            bestTrolley = trolley;
-                            trolleyWait = Math.max(0, waitForThisTrolley);
+                    const travelTime = travelTimeToLancaster;
+                    const totalTravelTime = waitTime + travelTime + walkTime;
+
+                    const pickupTrolleys = await getTrolleysForPickup('Lancaster-Girard', trolleyData);
+
+                    let bestTrolley = null;
+                    let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                    for (const trolley of pickupTrolleys) {
+                        const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                        if (waitForThisTrolley >= -2) {
+                            if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                                bestTrolley = trolley;
+                                trolleyWait = Math.max(0, waitForThisTrolley);
+                            }
                         }
                     }
+
+                    const totalTime = totalTravelTime + trolleyWait;
+
+                    // Format departure time (when trolley arrives at user's stop)
+                    const departureTime = new Date(now.getTime() + waitTime * 60000);
+                    const lateInfo = vehicle.lateMinutes > 0 ? ` (${vehicle.lateMinutes} min late)` :
+                                    vehicle.lateMinutes < 0 ? ` (${Math.abs(vehicle.lateMinutes)} min early)` : '';
+
+                    const option = {
+                        gPickup: 'Lancaster-Girard',
+                        steps: [
+                            {
+                                type: 'metro',
+                                line: 'T1',
+                                description: `Take T1 #${vehicle.vehicle} toward Lancaster-Girard`,
+                                departTime: formatTime(departureTime),
+                                time: waitTime + travelTime,
+                                fromStation: originStation,
+                                toStation: 'Lancaster-Girard',
+                                numStops: vehicle.stopsAway,
+                                isRealTime: true,  // Real-time data from TransitView + GTFS
+                                vehicleId: vehicle.vehicle,
+                                lateMinutes: vehicle.lateMinutes,
+                                lateInfo: lateInfo
+                            },
+                            { type: 'exit', description: 'Exit at Lancaster-Girard', station: 'Lancaster-Girard', exitLine: 'T', time: 0 },
+                            { type: 'walk', description: 'Walk to G stop', time: walkTime }
+                        ],
+                        travelTime: waitTime + travelTime,
+                        walkTime: walkTime,
+                        trolleyWait: trolleyWait,
+                        totalTime: totalTime,
+                        minutesToPickup: totalTravelTime,
+                        metroDepartTime: formatTime(departureTime)
+                    };
+
+                    if (bestTrolley) {
+                        option.trolleyVehicle = bestTrolley.vehicle;
+                        option.trolleyDirection = bestTrolley.direction;
+                        option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    }
+
+                    options.push(option);
                 }
+            } else {
+                // No real-time data - fall back to frequency-based estimates
+                const frequency = getMetroFrequency('T');
+                const stopsToLancaster = stationData?.stopsToLancaster || 5;
+                const travelTime = Math.round(stopsToLancaster * 2);  // ~2 min per stop from GTFS average
 
-                const totalTime = totalTravelTime + trolleyWait;
+                for (let departureNum = 0; departureNum < 3; departureNum++) {
+                    const waitTime = departureNum * frequency;
+                    const departureTime = new Date(now.getTime() + waitTime * 60000);
+                    const departTimeFormatted = '~' + formatTime(departureTime);
 
-                const option = {
-                    gPickup: 'Lancaster-Girard',
-                    steps: [
-                        {
-                            type: 'metro',
-                            line: 'T1',
-                            description: 'Take Route 10 toward Lancaster & Girard',
-                            departTime: departTimeFormatted,
-                            time: waitTime + travelTime,
-                            fromStation: originStation,
-                            toStation: 'Lancaster & Girard',
-                            numStops: stopsToLancaster,
-                            isScheduled: useScheduledTimes
-                        },
-                        { type: 'exit', description: 'Exit at Lancaster & Girard', station: 'Lancaster & Girard', time: 0 },
-                        { type: 'walk', description: 'Walk to G stop', time: walkTime }
-                    ],
-                    travelTime: waitTime + travelTime,
-                    walkTime: walkTime,
-                    trolleyWait: trolleyWait,
-                    totalTime: totalTime,
-                    minutesToPickup: totalTravelTime,
-                    metroDepartTime: departTimeFormatted
+                    const totalTravelTime = waitTime + travelTime + walkTime;
+
+                    const pickupTrolleys = await getTrolleysForPickup('Lancaster-Girard', trolleyData);
+
+                    let bestTrolley = null;
+                    let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                    for (const trolley of pickupTrolleys) {
+                        const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                        if (waitForThisTrolley >= -2) {
+                            if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                                bestTrolley = trolley;
+                                trolleyWait = Math.max(0, waitForThisTrolley);
+                            }
+                        }
+                    }
+
+                    const totalTime = totalTravelTime + trolleyWait;
+
+                    const option = {
+                        gPickup: 'Lancaster-Girard',
+                        steps: [
+                            {
+                                type: 'metro',
+                                line: 'T1',
+                                description: 'Take T1 toward Lancaster-Girard',
+                                departTime: departTimeFormatted,
+                                time: waitTime + travelTime,
+                                fromStation: originStation,
+                                toStation: 'Lancaster-Girard',
+                                numStops: stopsToLancaster,
+                                isScheduled: false  // No real-time data available
+                            },
+                            { type: 'exit', description: 'Exit at Lancaster-Girard', station: 'Lancaster-Girard', exitLine: 'T', time: 0 },
+                            { type: 'walk', description: 'Walk to G stop', time: walkTime }
+                        ],
+                        travelTime: waitTime + travelTime,
+                        walkTime: walkTime,
+                        trolleyWait: trolleyWait,
+                        totalTime: totalTime,
+                        minutesToPickup: totalTravelTime,
+                        metroDepartTime: departTimeFormatted
+                    };
+
+                    if (bestTrolley) {
+                        option.trolleyVehicle = bestTrolley.vehicle;
+                        option.trolleyDirection = bestTrolley.direction;
+                        option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    }
+
+                    options.push(option);
+                }
+            }
+
+            // For T1 stations IN THE SHARED TUNNEL, also offer transfer options to L and B lines
+            // Shared tunnel stations: 13th, 19th, 22nd, 30th, 33rd (before 36th St Portal)
+            const tunnelStations = ['13th & Market (T1)', '19th & Market', '22nd & Market', '30th & Market', '33rd & Market'];
+            const stationName = stationData?.name || originStation;
+
+            if (tunnelStations.includes(stationName)) {
+                // Travel times from T1 tunnel stations to 15th St (eastbound)
+                const stopsTo15th = {
+                    '13th & Market (T1)': 1,  // 13th → 15th is 1 stop (goes through loop)
+                    '19th & Market': 2,        // 19th → 15th is 2 stops
+                    '22nd & Market': 3,
+                    '30th & Market': 5,
+                    '33rd & Market': 6
                 };
+                const t1To15th = (stopsTo15th[stationName] || 3) * 2.5;  // ~2.5 min per stop
+                const bWait = getMetroFrequency('B');
+                const lWait = getMetroFrequency('L');
+                const tFrequency = getMetroFrequency('T');
+                const bToGirard = 7;  // 15th St to Girard on B
+                const lToGirard = 10; // 15th St to Girard on L (eastbound)
 
-                if (bestTrolley) {
-                    option.trolleyVehicle = bestTrolley.vehicle;
-                    option.trolleyDirection = bestTrolley.direction;
-                    option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                // Option: T1 eastbound → 15th St → B northbound → Broad-Girard
+                for (let departureNum = 0; departureNum < 2; departureNum++) {
+                    const tWait = departureNum * tFrequency;
+                    const departureTime = new Date(now.getTime() + tWait * 60000);
+                    const departTimeFormatted = '~' + formatTime(departureTime);
+                    const totalTravelTime = tWait + t1To15th + bWait + bToGirard + 3;
+
+                    const pickupTrolleys = await getTrolleysForPickup('Broad-Girard', trolleyData);
+
+                    let bestTrolley = null;
+                    let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                    for (const trolley of pickupTrolleys) {
+                        const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                        if (waitForThisTrolley >= -2) {
+                            if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                                bestTrolley = trolley;
+                                trolleyWait = Math.max(0, waitForThisTrolley);
+                            }
+                        }
+                    }
+
+                    const totalTime = totalTravelTime + trolleyWait;
+
+                    const option = {
+                        gPickup: 'Broad-Girard',
+                        steps: [
+                            {
+                                type: 'metro',
+                                line: 'T',
+                                description: 'Take T1 eastbound to 15th Street',
+                                departTime: departTimeFormatted,
+                                time: tWait + t1To15th,
+                                fromStation: stationName,
+                                toStation: '15th Street',
+                                numStops: stopsTo15th[stationName] || 3,
+                                isScheduled: false
+                            },
+                            { type: 'exit', description: 'Exit at 15th Street', station: '15th Street', exitLine: 'T', time: 0 },
+                            { type: 'transfer', description: 'Transfer to B line (Broad Street Line)' },
+                            { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWait + bToGirard, fromStation: '15th Street', toStation: 'Broad-Girard', numStops: 4 },
+                            { type: 'exit', description: 'Exit at Broad-Girard', station: 'Broad-Girard', exitLine: 'B', time: 0 },
+                            { type: 'walk', description: 'Walk to Broad-Girard on G line', time: 3 }
+                        ],
+                        travelTime: tWait + t1To15th + bWait + bToGirard,
+                        walkTime: 3,
+                        trolleyWait: trolleyWait,
+                        totalTime: totalTime,
+                        minutesToPickup: totalTravelTime,
+                        metroDepartTime: departTimeFormatted
+                    };
+
+                    if (bestTrolley) {
+                        option.trolleyVehicle = bestTrolley.vehicle;
+                        option.trolleyDirection = bestTrolley.direction;
+                        option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    }
+
+                    options.push(option);
                 }
 
-                options.push(option);
+                // Option: T1 eastbound → 15th St → L eastbound → Front-Girard
+                for (let departureNum = 0; departureNum < 2; departureNum++) {
+                    const tWait = departureNum * tFrequency;
+                    const departureTime = new Date(now.getTime() + tWait * 60000);
+                    const departTimeFormatted = '~' + formatTime(departureTime);
+                    const totalTravelTime = tWait + t1To15th + lWait + lToGirard + 5;
+
+                    const pickupTrolleys = await getTrolleysForPickup('Front-Girard', trolleyData);
+
+                    let bestTrolley = null;
+                    let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                    for (const trolley of pickupTrolleys) {
+                        const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                        if (waitForThisTrolley >= -2) {
+                            if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                                bestTrolley = trolley;
+                                trolleyWait = Math.max(0, waitForThisTrolley);
+                            }
+                        }
+                    }
+
+                    const totalTime = totalTravelTime + trolleyWait;
+
+                    const option = {
+                        gPickup: 'Front-Girard',
+                        steps: [
+                            {
+                                type: 'metro',
+                                line: 'T',
+                                description: 'Take T1 eastbound to 15th Street',
+                                departTime: departTimeFormatted,
+                                time: tWait + t1To15th,
+                                fromStation: stationName,
+                                toStation: '15th Street',
+                                numStops: stopsTo15th[stationName] || 3,
+                                isScheduled: false
+                            },
+                            { type: 'exit', description: 'Exit at 15th Street', station: '15th Street', exitLine: 'T', time: 0 },
+                            { type: 'transfer', description: 'Transfer to L line (Market-Frankford Line)' },
+                            { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lToGirard, fromStation: '15th Street', toStation: 'Front-Girard', numStops: 6 },
+                            { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
+                            { type: 'walk', description: 'Walk to Front-Girard on G line', time: 5 }
+                        ],
+                        travelTime: tWait + t1To15th + lWait + lToGirard,
+                        walkTime: 5,
+                        trolleyWait: trolleyWait,
+                        totalTime: totalTime,
+                        minutesToPickup: totalTravelTime,
+                        metroDepartTime: departTimeFormatted
+                    };
+
+                    if (bestTrolley) {
+                        option.trolleyVehicle = bestTrolley.vehicle;
+                        option.trolleyDirection = bestTrolley.direction;
+                        option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    }
+
+                    options.push(option);
+                }
             }
         } else {
             // Other T lines (T2-T5) - go via subway portal to B line
@@ -1786,14 +2180,89 @@ async function calculateRouteOptions(originStation, trolleyData) {
                             numStops: 8,
                             isScheduled: useScheduledTimes
                         },
-                        { type: 'exit', description: 'Exit at 15th St / City Hall', station: '15th St', time: 0 },
+                        { type: 'exit', description: 'Exit at 15th St / City Hall', station: '15th St', exitLine: 'T', time: 0 },
                         { type: 'transfer', description: 'Transfer to B line (Broad Street Line)' },
-                        { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Girard', time: bWait + bToGirard, fromStation: 'City Hall', toStation: 'Girard', numStops: 4 },
-                        { type: 'exit', description: 'Exit at Girard', station: 'Girard', time: 0 },
+                        { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWait + bToGirard, fromStation: 'City Hall', toStation: 'Broad-Girard', numStops: 4 },
+                        { type: 'exit', description: 'Exit at Broad-Girard', station: 'Broad-Girard', exitLine: 'B', time: 0 },
                         { type: 'walk', description: 'Walk to Broad-Girard', time: 3 }
                     ],
                     travelTime: tWait + tToCity + bWait + bToGirard,
                     walkTime: 3,
+                    trolleyWait: trolleyWait,
+                    totalTime: totalTime,
+                    minutesToPickup: totalTravelTime,
+                    metroDepartTime: departTimeFormatted
+                };
+
+                if (bestTrolley) {
+                    option.trolleyVehicle = bestTrolley.vehicle;
+                    option.trolleyDirection = bestTrolley.direction;
+                    option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                }
+
+                options.push(option);
+            }
+
+            // Also add L line transfer option for T2-T5: → 15th St → L eastbound → Front-Girard
+            const lWait = getMetroFrequency('L');
+            const lToGirard = 10; // 15th St to Front-Girard on L
+
+            for (let departureNum = 0; departureNum < 2; departureNum++) {
+                let departureTime, departTimeFormatted, tWait;
+
+                if (useScheduledTimes && departureNum < departures.length) {
+                    const dep = departures[departureNum];
+                    departureTime = dep.departureTime;
+                    departTimeFormatted = dep.time.toUpperCase();
+                    tWait = dep.minutesUntil;
+                } else {
+                    tWait = departureNum * frequency;
+                    departureTime = new Date(now.getTime() + tWait * 60000);
+                    departTimeFormatted = '~' + formatTime(departureTime);
+                }
+
+                const totalTravelTime = tWait + tToCity + lWait + lToGirard + 5;
+
+                const pickupTrolleys = await getTrolleysForPickup('Front-Girard', trolleyData);
+
+                let bestTrolley = null;
+                let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                for (const trolley of pickupTrolleys) {
+                    const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                    if (waitForThisTrolley >= -2) {
+                        if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                            bestTrolley = trolley;
+                            trolleyWait = Math.max(0, waitForThisTrolley);
+                        }
+                    }
+                }
+
+                const totalTime = totalTravelTime + trolleyWait;
+                const routeName = station.routeName || station.route;
+
+                const option = {
+                    gPickup: 'Front-Girard',
+                    steps: [
+                        {
+                            type: 'metro',
+                            line: station.route,
+                            description: `Take ${routeName} toward City Hall`,
+                            departTime: departTimeFormatted,
+                            time: tWait + tToCity,
+                            fromStation: originStation,
+                            toStation: '15th St',
+                            numStops: 8,
+                            isScheduled: useScheduledTimes && departureNum < departures.length
+                        },
+                        { type: 'exit', description: 'Exit at 15th Street', station: '15th Street', exitLine: 'T', time: 0 },
+                        { type: 'transfer', description: 'Transfer to L line (Market-Frankford Line)' },
+                        { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lToGirard, fromStation: '15th Street', toStation: 'Front-Girard', numStops: 6 },
+                        { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
+                        { type: 'walk', description: 'Walk to Front-Girard on G line', time: 5 }
+                    ],
+                    travelTime: tWait + tToCity + lWait + lToGirard,
+                    walkTime: 5,
                     trolleyWait: trolleyWait,
                     totalTime: totalTime,
                     minutesToPickup: totalTravelTime,
@@ -1821,9 +2290,10 @@ async function calculateRouteOptions(originStation, trolleyData) {
         // They don't need to take a train - just walk to the G pickup
         if (EXIT_STATION_INFO[originStation]) {
             const exitInfo = EXIT_STATION_INFO[originStation];
+            const walkToMetro = exitInfo.walkToMetro || 0;  // Walk from RR station to metro station
             const metroTime = exitInfo.transferVia ? exitInfo.metroTime : 0;
             const walkTime = exitInfo.walkTime;
-            const totalTravelTime = metroTime + walkTime;
+            const totalTravelTime = walkToMetro + metroTime + walkTime;
 
             const pickupTrolleys = await getTrolleysForPickup(exitInfo.gPickup, trolleyData);
 
@@ -1842,22 +2312,38 @@ async function calculateRouteOptions(originStation, trolleyData) {
             const steps = [];
 
             if (exitInfo.transferVia) {
-                steps.push({
-                    type: 'transfer',
-                    description: `Transfer to ${exitInfo.transferVia} line`
-                });
+                // If there's a walk to the metro station, add that step first
+                if (walkToMetro > 0) {
+                    // Determine the B line station name for North Broad/North Philadelphia
+                    const bStationName = originStation === 'North Broad' || originStation === 'North Philadelphia'
+                        ? 'North Philadelphia (BSL)'
+                        : originStation;
+                    steps.push({
+                        type: 'walk',
+                        description: `Walk to ${bStationName}`,
+                        time: walkToMetro
+                    });
+                }
+                const girardName = exitInfo.transferVia === 'B' ? 'Broad-Girard' : 'Front-Girard';
                 steps.push({
                     type: 'metro',
                     line: exitInfo.transferVia,
                     direction: exitInfo.metroDirection,
-                    description: `Take ${exitInfo.transferVia} ${exitInfo.metroDirection} to Girard`,
+                    description: `Take ${exitInfo.transferVia} ${exitInfo.metroDirection} to ${girardName}${exitInfo.transferVia === 'B' ? ' (B1 local or B3 express)' : ''}`,
                     time: metroTime
+                });
+                steps.push({
+                    type: 'exit',
+                    description: `Exit at ${girardName}`,
+                    station: girardName,
+                    exitLine: exitInfo.transferVia,
+                    time: 0
                 });
             }
 
             steps.push({
                 type: 'walk',
-                description: `Walk to ${exitInfo.gPickup}`,
+                description: `Walk to ${exitInfo.gPickup} on G line`,
                 time: walkTime
             });
 
@@ -1865,7 +2351,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                 gPickup: exitInfo.gPickup,
                 exitStation: originStation,
                 steps: steps,
-                travelTime: metroTime,
+                travelTime: walkToMetro + metroTime,
                 walkTime: walkTime,
                 trolleyWait: trolleyWait,
                 totalTime: totalTravelTime + trolleyWait,
@@ -1942,15 +2428,16 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     }
 
                     // Calculate total travel time to G pickup
+                    const walkToMetro = exitInfo.walkToMetro || 0;  // Walk from RR to metro station
                     const metroTime = exitInfo.transferVia ? exitInfo.metroTime : 0;
                     const walkTime = exitInfo.walkTime;
-                    const totalTravelTime = trainTravelTime + metroTime + walkTime;
+                    const totalTravelTime = trainTravelTime + walkToMetro + metroTime + walkTime;
 
                     // Calculate arrival time at exit station (use real data if available)
                     const arriveAtExit = realArrivalTime || new Date(departTime.getTime() + trainTravelTime * 60000);
 
-                    // Calculate arrival time at G pickup (exit + metro + walk)
-                    const arriveAtPickup = new Date(arriveAtExit.getTime() + (metroTime + walkTime) * 60000);
+                    // Calculate arrival time at G pickup (exit + walkToMetro + metro + walk)
+                    const arriveAtPickup = new Date(arriveAtExit.getTime() + (walkToMetro + metroTime + walkTime) * 60000);
                     const minutesToPickup = Math.round((arriveAtPickup - now) / 60000);
 
                     // Check for trolleys at this pickup
@@ -2017,21 +2504,30 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                     // Step 3: Transfer to metro (if needed) or walk
                     if (exitInfo.transferVia) {
-                        steps.push({
-                            type: 'transfer',
-                            description: `Transfer to ${exitInfo.transferVia} line at ${exitStation}`
-                        });
+                        // If walk to metro is needed (e.g., North Broad RR to North Philadelphia BSL)
+                        if (walkToMetro > 0) {
+                            const metroStationName = exitStation === 'North Broad' || exitStation === 'North Philadelphia'
+                                ? 'North Philadelphia (BSL)'
+                                : exitStation;
+                            steps.push({
+                                type: 'walk',
+                                description: `Walk to ${metroStationName}`,
+                                time: walkToMetro
+                            });
+                        }
+                        const girardStationName = exitInfo.transferVia === 'B' ? 'Broad-Girard' : 'Front-Girard';
                         steps.push({
                             type: 'metro',
                             line: exitInfo.transferVia,
                             direction: exitInfo.metroDirection,
-                            description: `Take ${exitInfo.transferVia} ${exitInfo.metroDirection} to Girard`,
+                            description: `Take ${exitInfo.transferVia} ${exitInfo.metroDirection} to ${girardStationName}${exitInfo.transferVia === 'B' ? ' (B1 local or B3 express)' : ''}`,
                             time: metroTime
                         });
                         steps.push({
                             type: 'exit',
-                            description: 'Exit at Girard',
-                            station: 'Girard',
+                            description: `Exit at ${girardStationName}`,
+                            station: girardStationName,
+                            exitLine: exitInfo.transferVia,
                             time: 0
                         });
                         steps.push({
@@ -2052,7 +2548,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         gPickup: exitInfo.gPickup,
                         exitStation: exitStation,
                         steps: steps,
-                        travelTime: trainTravelTime + metroTime,
+                        travelTime: trainTravelTime + walkToMetro + metroTime,
                         walkTime: walkTime,
                         trolleyWait: trolleyWait,
                         totalTime: journeyTime,  // Journey duration (not including wait for train)
@@ -2083,9 +2579,10 @@ async function calculateRouteOptions(originStation, trolleyData) {
             const defaultExit = lineConfig?.transferStations?.[0] || 'Temple University';
             const exitInfo = EXIT_STATION_INFO[defaultExit] || EXIT_STATION_INFO['Temple University'];
 
+            const walkToMetro = exitInfo.walkToMetro || 0;
             const metroTime = exitInfo.transferVia ? exitInfo.metroTime : 0;
             const walkTime = exitInfo.walkTime;
-            const totalTravelTime = 15 + metroTime + walkTime;
+            const totalTravelTime = 15 + walkToMetro + metroTime + walkTime;
 
             const pickupTrolleys = await getTrolleysForPickup(exitInfo.gPickup, trolleyData);
             const trolleyWait = pickupTrolleys.length > 0
@@ -2098,23 +2595,31 @@ async function calculateRouteOptions(originStation, trolleyData) {
             ];
 
             if (exitInfo.transferVia) {
-                steps.push({ type: 'transfer', description: `Transfer to ${exitInfo.transferVia} line` });
+                // If walk to metro is needed (e.g., North Broad RR to North Philadelphia BSL)
+                if (walkToMetro > 0) {
+                    const metroStationName = defaultExit === 'North Broad' || defaultExit === 'North Philadelphia'
+                        ? 'North Philadelphia (BSL)'
+                        : defaultExit;
+                    steps.push({ type: 'walk', description: `Walk to ${metroStationName}`, time: walkToMetro });
+                }
+                const girardName = exitInfo.transferVia === 'B' ? 'Broad-Girard' : 'Front-Girard';
                 steps.push({
                     type: 'metro',
                     line: exitInfo.transferVia,
                     direction: exitInfo.metroDirection,
-                    description: `Take ${exitInfo.transferVia} ${exitInfo.metroDirection} to Girard`,
+                    description: `Take ${exitInfo.transferVia} ${exitInfo.metroDirection} to ${girardName}${exitInfo.transferVia === 'B' ? ' (B1 local or B3 express)' : ''}`,
                     time: metroTime
                 });
+                steps.push({ type: 'exit', description: `Exit at ${girardName}`, station: girardName, exitLine: exitInfo.transferVia, time: 0 });
             }
 
-            steps.push({ type: 'walk', description: `Walk to ${exitInfo.gPickup}`, time: walkTime });
+            steps.push({ type: 'walk', description: `Walk to ${exitInfo.gPickup} on G line`, time: walkTime });
 
             const option = {
                 gPickup: exitInfo.gPickup,
                 exitStation: defaultExit,
                 steps: steps,
-                travelTime: 15 + metroTime,
+                travelTime: 15 + walkToMetro + metroTime,
                 walkTime: walkTime,
                 trolleyWait: trolleyWait,
                 totalTime: totalTravelTime + trolleyWait,
@@ -2144,6 +2649,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
 // State
 let trolleyData = [];
+let tLineData = [];  // Real-time T line (T1-T5) vehicle positions
 let trainData = [];
 let refreshTimer = null;
 
@@ -2268,9 +2774,11 @@ async function fetchTrolleyData() {
 
         const data = await response.json();
         const trolleys = [];
+        const tLines = [];  // T1-T5 real-time positions
 
         for (const route of (data.routes || [])) {
             for (const [routeId, vehicles] of Object.entries(route)) {
+                // Process G1 (Girard Ave trolley)
                 if (routeId === 'G1') {
                     for (const vehicle of vehicles) {
                         const label = String(vehicle.label || '');
@@ -2327,14 +2835,211 @@ async function fetchTrolleyData() {
                         }
                     }
                 }
+
+                // Process T1-T5 (Subway-Surface Trolleys) for real-time tracking
+                if (['T1', 'T2', 'T3', 'T4', 'T5'].includes(routeId)) {
+                    for (const vehicle of vehicles) {
+                        const label = String(vehicle.label || '');
+                        // Skip invalid entries (label = 'None', '0', empty, or very late = 998/999)
+                        if (!label || label === 'None' || label === '0' || label === '' ||
+                            vehicle.late >= 998 || vehicle.next_stop_sequence == null) {
+                            continue;
+                        }
+
+                        const destination = (vehicle.destination || '').toUpperCase();
+
+                        // Determine direction based on destination
+                        // Inbound = toward 13th St/City Hall (east)
+                        // Outbound = toward terminals (west)
+                        // IMPORTANT: Check outbound terminals FIRST because "40th-Market" contains "MARKET"
+                        let direction = 'Unknown';
+                        if (destination.includes('MALVERN') || destination.includes('BALTIMORE') ||
+                            destination.includes('YEADON') || destination.includes('DARBY') ||
+                            destination.includes('EASTWICK') || destination.includes('63RD') ||
+                            destination.includes('61ST') || destination.includes('40TH-MARKET') ||
+                            destination.includes('40TH ST')) {
+                            direction = 'Outbound';  // Toward terminals (west)
+                        } else if (destination.includes('CITY HALL') || destination.includes('13TH') ||
+                                   destination.includes('15TH') || destination.includes('JUNIPER')) {
+                            direction = 'Inbound';  // Toward Center City (east)
+                        }
+
+                        tLines.push({
+                            route: routeId,
+                            vehicle: label,
+                            destination: vehicle.destination || '',
+                            direction,
+                            lat: parseFloat(vehicle.lat),
+                            lng: parseFloat(vehicle.lng),
+                            nextStopId: vehicle.next_stop_id,
+                            nextStopSequence: vehicle.next_stop_sequence,
+                            nextStopName: vehicle.next_stop_name,
+                            late: vehicle.late || 0,
+                            tripId: vehicle.trip,
+                            timestamp: vehicle.timestamp
+                        });
+                    }
+                }
             }
         }
+
+        // Store T line data globally for use in routing
+        tLineData = tLines;
+        console.log(`[T-LINE] Fetched ${tLines.length} T line vehicles:`, tLines.map(t => `${t.route} #${t.vehicle} → ${t.destination}`));
 
         return trolleys;
     } catch (error) {
         console.error('Trolley fetch error:', error);
         return [];
     }
+}
+
+/**
+ * Get real-time T line vehicle data for a specific route
+ * @param {string} routeFilter - Route filter (T1, T2, etc.)
+ * @returns {Array} Array of vehicles currently active on the route
+ */
+function getTLineVehicles(routeFilter = null) {
+    if (!tLineData || tLineData.length === 0) {
+        return [];
+    }
+
+    let vehicles = tLineData;
+    if (routeFilter) {
+        vehicles = vehicles.filter(v => v.route === routeFilter);
+    }
+
+    return vehicles;
+}
+
+/**
+ * Check if real-time T line data is available for a route
+ * @param {string} routeFilter - Route filter (T1, T2, etc.)
+ * @returns {boolean} True if real-time data is available
+ */
+function hasTLineRealTimeData(routeFilter = null) {
+    const vehicles = getTLineVehicles(routeFilter);
+    return vehicles.length > 0;
+}
+
+/**
+ * Calculate T line vehicle ETAs using actual GTFS schedule data + real-time positions
+ * @param {string} userStopId - The user's stop ID
+ * @param {string} route - Route (T1, T2, T3, T4, T5)
+ * @param {string} direction - Direction ('Inbound' or 'Outbound')
+ * @returns {Array} Array of vehicles with calculated ETAs, sorted by ETA
+ */
+function getTLineVehicleETAs(userStopId, route, direction) {
+    // Check if GTFS data is loaded
+    if (typeof T_LINE_GTFS_DATA === 'undefined' || typeof T_LINE_STOP_LOOKUP === 'undefined') {
+        console.warn('[T-LINE ETA] GTFS data not loaded');
+        return [];
+    }
+
+    const vehicles = getTLineVehicles(route);
+    if (vehicles.length === 0) {
+        console.log(`[T-LINE ETA] No vehicles on ${route}`);
+        return [];
+    }
+
+    // Map app direction to GTFS direction
+    // App: 'Inbound' = toward Center City (east) = GTFS 'inbound'
+    // App: 'Outbound' = toward terminals (west) = GTFS 'outbound'
+    const gtfsDirection = direction === 'Inbound' ? 'inbound' : 'outbound';
+
+    // Look up user's stop in GTFS
+    const userStopKey = `${route}_${userStopId}`;
+    const userStopData = T_LINE_STOP_LOOKUP[userStopKey];
+    if (!userStopData || !userStopData[gtfsDirection]) {
+        console.log(`[T-LINE ETA] User stop ${userStopId} not found in GTFS for ${route} ${gtfsDirection}`);
+        return [];
+    }
+
+    const userSeq = userStopData[gtfsDirection].seq;
+    const userCumulativeSec = userStopData[gtfsDirection].cumulative_sec;
+
+    console.log(`[T-LINE ETA] User at stop ${userStopId} (${userStopData[gtfsDirection].name}), seq=${userSeq}, cumulative=${userCumulativeSec}s`);
+
+    // Calculate ETA for each vehicle heading in the right direction
+    const vehiclesWithETA = [];
+
+    for (const vehicle of vehicles) {
+        // Only consider vehicles going in the requested direction
+        if (vehicle.direction !== direction) {
+            continue;
+        }
+
+        // Look up vehicle's current position in GTFS
+        const vehicleStopKey = `${route}_${vehicle.nextStopId}`;
+        const vehicleStopData = T_LINE_STOP_LOOKUP[vehicleStopKey];
+
+        if (!vehicleStopData || !vehicleStopData[gtfsDirection]) {
+            console.log(`[T-LINE ETA] Vehicle ${vehicle.vehicle} nextStopId ${vehicle.nextStopId} not found in GTFS`);
+            continue;
+        }
+
+        const vehicleSeq = vehicleStopData[gtfsDirection].seq;
+        const vehicleCumulativeSec = vehicleStopData[gtfsDirection].cumulative_sec;
+
+        // Check if vehicle is approaching (has lower sequence than user)
+        // In GTFS, lower sequence = earlier in trip = approaching
+        if (vehicleSeq >= userSeq) {
+            console.log(`[T-LINE ETA] Vehicle ${vehicle.vehicle} at seq ${vehicleSeq} has passed user at seq ${userSeq}`);
+            continue;
+        }
+
+        // Calculate scheduled travel time from vehicle to user (in seconds)
+        const scheduledTravelSec = userCumulativeSec - vehicleCumulativeSec;
+        const scheduledTravelMin = scheduledTravelSec / 60;
+
+        // Adjust by late/early status from TransitView (late is positive, early is negative)
+        const adjustedETAMin = Math.round(scheduledTravelMin + (vehicle.late || 0));
+
+        // Calculate stops away
+        const stopsAway = userSeq - vehicleSeq;
+
+        vehiclesWithETA.push({
+            ...vehicle,
+            stopsAway,
+            scheduledTravelSec,
+            scheduledTravelMin: Math.round(scheduledTravelMin),
+            etaMinutes: Math.max(0, adjustedETAMin),
+            lateMinutes: vehicle.late || 0,
+            currentStopName: vehicleStopData[gtfsDirection].name,
+            userStopName: userStopData[gtfsDirection].name,
+            isRealTime: true  // This is calculated from real-time data + GTFS
+        });
+    }
+
+    // Sort by ETA (soonest first)
+    vehiclesWithETA.sort((a, b) => a.etaMinutes - b.etaMinutes);
+
+    console.log(`[T-LINE ETA] Found ${vehiclesWithETA.length} approaching vehicles:`,
+        vehiclesWithETA.map(v => `#${v.vehicle} ${v.stopsAway} stops, ${v.etaMinutes} min (${v.lateMinutes > 0 ? v.lateMinutes + ' late' : v.lateMinutes < 0 ? Math.abs(v.lateMinutes) + ' early' : 'on time'})`));
+
+    return vehiclesWithETA;
+}
+
+/**
+ * Get the next T line vehicle approaching a station using GTFS + real-time data
+ * @param {string} stopId - The stop ID to check
+ * @param {string} routeFilter - Route filter (T1, T2, etc.)
+ * @param {string} directionFilter - Direction filter (Outbound, Inbound)
+ * @returns {Object|null} Next approaching vehicle with ETA or null
+ */
+function getNextTLineVehicle(stopId, routeFilter = null, directionFilter = null) {
+    if (!routeFilter || !directionFilter) {
+        console.log('[T-LINE] getNextTLineVehicle requires route and direction');
+        return null;
+    }
+
+    const vehiclesWithETA = getTLineVehicleETAs(stopId, routeFilter, directionFilter);
+
+    if (vehiclesWithETA.length > 0) {
+        return vehiclesWithETA[0];  // Return soonest arriving vehicle
+    }
+
+    return null;
 }
 
 function getApproximateLocation(sequence, direction) {
@@ -3007,9 +3712,10 @@ async function updateConnections() {
             if (firstStep.departTimeObj) {
                 runningTime = new Date(firstStep.departTimeObj);
             } else {
-                // Try to parse from string
+                // Try to parse from string (handle "~" prefix for estimated times)
                 const now = new Date();
-                const timeMatch = firstStep.departTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                const timeStr = firstStep.departTime.replace(/^~\s*/, ''); // Remove leading tilde
+                const timeMatch = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
                 if (timeMatch) {
                     let hours = parseInt(timeMatch[1]);
                     const minutes = parseInt(timeMatch[2]);
@@ -3034,6 +3740,10 @@ async function updateConnections() {
             } else if (step.type === 'rr') {
                 lineLetter = rrAbbrev;
                 lineColor = lineColors['RR'];
+            } else if (step.type === 'exit' && step.exitLine) {
+                // Exit steps can optionally show a line badge
+                lineLetter = step.exitLine;
+                lineColor = lineColors[step.exitLine] || '#666';
             } else if (step.type === 'walk') {
                 lineLetter = '';
             } else if (step.type === 'transfer') {
@@ -3047,19 +3757,32 @@ async function updateConnections() {
                 // Add step duration to running time for next step
                 if (step.time) {
                     runningTime = new Date(runningTime.getTime() + step.time * 60000);
+                } else if (step.type === 'transfer') {
+                    // Add 2 minutes for transfer time
+                    runningTime = new Date(runningTime.getTime() + 2 * 60000);
+                } else if (step.type === 'exit') {
+                    // Add 1 minute to exit platform
+                    runningTime = new Date(runningTime.getTime() + 1 * 60000);
                 }
             } else if (step.departTime) {
                 timeBoxContent = step.departTime;
             }
 
-            // Add live indicator and delay info for RR steps
+            // Add live indicator and delay info for steps with real-time or schedule data
             let liveIndicator = '';
             let delayInfo = '';
             if (step.type === 'rr' && step.isLive) {
-                liveIndicator = ' <span class="live-indicator" title="Live data">●</span>';
+                // Regional Rail with live GPS tracking
+                liveIndicator = ' <span class="live-indicator" title="Live real-time data">●</span>';
                 if (step.isDelayed && step.status) {
                     delayInfo = ` <span class="delay-info">${step.status}</span>`;
                 }
+            } else if (step.type === 'metro' && step.isScheduled) {
+                // Metro with actual schedule data from API (T lines, D lines)
+                liveIndicator = ' <span class="schedule-indicator" title="SEPTA schedule data">●</span>';
+            } else if (step.type === 'metro' && step.isRealTime) {
+                // Metro with real-time GPS data (future: T line TransitView)
+                liveIndicator = ' <span class="live-indicator" title="Live real-time data">●</span>';
             }
 
             // Generate stops indicator if we have from/to info
@@ -3131,6 +3854,17 @@ async function updateConnections() {
                     const waitTime = Math.max(0, t.etaToPickup - userArrival);
                     const arrivalTime = new Date(now.getTime() + t.etaToPickup * 60000);
 
+                    // Check if this trolley needs to loop around
+                    if (t.needsLoop) {
+                        const dirText = t.direction === 'Eastbound' ? 'East →' : '← West';
+                        return `
+                            <div class="trolley-arrival-row wrong-direction">
+                                <strong>Trolley #${t.vehicle}</strong> heading ${dirText} — needs to loop back
+                                <div class="loop-eta">${t.stopsToPickup} stops away (~${waitTime} min wait after you arrive)</div>
+                            </div>
+                        `;
+                    }
+
                     // Show real scheduled time if available, otherwise show estimate
                     let timeDisplay = '';
                     let sourceIndicator = '';
@@ -3189,9 +3923,38 @@ async function updateConnections() {
                     if (wrongDirTrolleys.length > 0) {
                         const t = wrongDirTrolleys[0];
                         const dirText = t.direction === 'Eastbound' ? 'East →' : '← West';
+
+                        // Calculate loop-around ETA
+                        const pickupIndex = G_TRANSFER_POINTS[option.gPickup]?.stopIndex ?? 33;
+                        const trolleyIndex = getStopIndexFromId(t.nextStopId);
+                        const WEST_TERMINUS = 0;  // 63rd-Girard
+                        const EAST_TERMINUS = G_LINE_STOPS_SIMPLE.length - 1;  // Richmond-Westmoreland
+                        const TURNAROUND_TIME = 5;  // minutes at terminus
+
+                        let loopETA = null;
+                        let stopsAway = null;
+                        if (trolleyIndex >= 0) {
+                            if (t.direction === 'Westbound') {
+                                // Heading west, needs to loop at west terminus and come back east
+                                const stopsToWestTerminus = trolleyIndex - WEST_TERMINUS;
+                                const stopsFromWestToPickup = pickupIndex - WEST_TERMINUS;
+                                stopsAway = stopsToWestTerminus + stopsFromWestToPickup;
+                            } else {
+                                // Heading east, needs to loop at east terminus and come back west
+                                const stopsToEastTerminus = EAST_TERMINUS - trolleyIndex;
+                                const stopsFromEastToPickup = EAST_TERMINUS - pickupIndex;
+                                stopsAway = stopsToEastTerminus + stopsFromEastToPickup;
+                            }
+                            // Calculate ETA: stops × time per stop + turnaround + current delay
+                            const lateOffset = t.late || 0;  // Real-time delay from API
+                            loopETA = Math.round(stopsAway * CONFIG.MINUTES_PER_STOP + TURNAROUND_TIME + lateOffset);
+                        }
+
+                        const loopInfo = loopETA !== null
+                            ? `<div class="loop-eta">${stopsAway} stops away (~${loopETA} min, includes turnaround)</div>`
+                            : '';
                         trolleyInfoHtml = `<div class="trolley-arrival-row wrong-direction">
-                            <span class="wrong-dir-icon">↺</span>
-                            Trolley #${t.vehicle} is heading ${dirText} (away from this stop)
+                            <strong>Trolley #${t.vehicle}</strong> heading ${dirText} — needs to loop back${loopInfo}
                         </div>`;
                     } else {
                         trolleyInfoHtml = `<div class="trolley-arrival-row no-trolleys">No trolleys heading to this stop</div>`;
@@ -3287,8 +4050,8 @@ async function getTrolleysForPickup(pickupName, trolleys) {
         }
         console.log('  Stops to pickup:', stopsToPickup, '(pickup index:', pickupIndex, ', current index:', currentIndex, ')');
 
-        // Only include trolleys approaching the pickup (not past it)
-        if (stopsToPickup > 0) {
+        // Only include trolleys approaching the pickup or at the pickup (not past it)
+        if (stopsToPickup >= 0) {
             // Try to get real ETA from schedule + late offset
             const realETA = calculateRealTrolleyETA(trolley, schedules, now);
 
@@ -3316,10 +4079,41 @@ async function getTrolleysForPickup(pickupName, trolleys) {
                 etaToPickup,
                 scheduledTime,
                 isRealTime,
+                needsLoop: false,
                 lateMinutes: trolley.late || 0
             });
         } else {
-            console.log('  Skipping - already passed or at pickup');
+            // Trolley is heading away - calculate loop-around ETA
+            const WEST_TERMINUS = 0;  // 63rd-Girard
+            const EAST_TERMINUS = G_LINE_STOPS_SIMPLE.length - 1;  // Richmond-Westmoreland
+            const TURNAROUND_TIME = 5;  // minutes at terminus
+
+            let loopStops = 0;
+            if (trolley.direction === 'Westbound') {
+                // Heading west, will loop at west terminus and come back east
+                const stopsToWestTerminus = currentIndex - WEST_TERMINUS;
+                const stopsFromWestToPickup = pickupIndex - WEST_TERMINUS;
+                loopStops = stopsToWestTerminus + stopsFromWestToPickup;
+            } else {
+                // Heading east, will loop at east terminus and come back west
+                const stopsToEastTerminus = EAST_TERMINUS - currentIndex;
+                const stopsFromEastToPickup = EAST_TERMINUS - pickupIndex;
+                loopStops = stopsToEastTerminus + stopsFromEastToPickup;
+            }
+
+            const lateOffset = trolley.late || 0;
+            const loopETA = Math.round(loopStops * CONFIG.MINUTES_PER_STOP + TURNAROUND_TIME + lateOffset);
+            console.log('  ADDING with LOOP ETA:', loopETA, 'min (', loopStops, 'stops + turnaround + late:', lateOffset, ')');
+
+            results.push({
+                ...trolley,
+                stopsToPickup: loopStops,  // Total stops including loop
+                etaToPickup: loopETA,
+                scheduledTime: null,
+                isRealTime: false,
+                needsLoop: true,
+                lateMinutes: lateOffset
+            });
         }
     }
 
