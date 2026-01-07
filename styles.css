@@ -1285,6 +1285,12 @@ footer p {
         padding: 12px;
     }
 
+    .section-title {
+        font-size: 0.9rem;
+        padding: 10px 12px;
+        margin: -12px -12px 12px -12px;
+    }
+
     /* Trolley timeline - more compact on mobile */
     .trolley-timeline {
         gap: 1px;
@@ -1333,48 +1339,107 @@ footer p {
         padding: 1px 2px;
     }
 
+    /* Route option cards - more compact */
+    .route-option {
+        padding: 10px;
+        margin-bottom: 8px;
+    }
+
+    .option-header {
+        margin: -10px -10px 8px -10px;
+        padding: 6px 10px;
+        gap: 6px;
+    }
+
+    .option-number {
+        font-size: 0.85rem;
+    }
+
+    .fastest-badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+    }
+
+    .depart-info {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+    }
+
+    .total-time {
+        font-size: 0.75rem;
+    }
+
     /* Route steps - compact single-line layout */
     .route-steps {
-        grid-template-columns: 58px 40px 1fr;
+        grid-template-columns: 52px 38px 1fr;
         gap: 2px 4px;
+        margin-bottom: 8px;
     }
 
     .step-time-box {
-        padding: 2px 4px;
-        font-size: 0.7rem;
+        padding: 2px 3px;
+        font-size: 0.65rem;
         border-radius: 3px;
     }
 
     .step-number {
-        font-size: 0.7rem;
-    }
-
-    .step-content {
-        font-size: 0.75rem;
-        gap: 4px;
-        padding: 4px 0;
-    }
-
-    .line-badge {
-        min-width: 20px;
-        height: 20px;
-        padding: 0 4px;
-        line-height: 20px;
-        font-size: 0.7rem;
-    }
-
-    .transfer-step .step-content {
         font-size: 0.65rem;
     }
 
-    .route-option-header {
-        padding: 8px 10px;
-    }
-
-    .pickup-name {
+    .step-content {
         font-size: 0.7rem;
+        gap: 3px;
+        padding: 3px 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
+    .line-badge {
+        min-width: 18px;
+        height: 18px;
+        padding: 0 3px;
+        line-height: 18px;
+        font-size: 0.65rem;
+        flex-shrink: 0;
+    }
+
+    .transfer-step .step-content {
+        font-size: 0.6rem;
+    }
+
+    .exit-step .step-content {
+        padding-left: 6px;
+    }
+
+    /* Stops indicator - more compact */
+    .stops-indicator {
+        padding: 4px 6px;
+        margin: 2px 0 6px 0;
+        gap: 3px;
+        font-size: 0.6rem;
+    }
+
+    .stops-line {
+        min-width: 50px;
+    }
+
+    .stop-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    .stop-dot.origin,
+    .stop-dot.destination {
+        width: 8px;
+        height: 8px;
+    }
+
+    .stop-label {
+        font-size: 0.6rem;
+    }
+
+    /* Destination info - compact */
     .destination-info {
         padding: 6px;
     }
@@ -1382,14 +1447,73 @@ footer p {
     .destination-pickup {
         flex-wrap: nowrap;
         gap: 3px;
+        margin-bottom: 4px;
     }
 
     .destination-label {
+        font-size: 0.6rem;
+    }
+
+    .pickup-name {
+        font-size: 0.7rem;
+    }
+
+    /* Trolley arrival rows - more compact */
+    .trolley-arrival-row {
+        gap: 8px;
+        padding: 6px 0;
+    }
+
+    .trolley-dir-badge {
+        padding: 4px 6px;
+        font-size: 0.7rem;
+        min-width: 70px;
+    }
+
+    .trolley-details {
+        gap: 4px;
+        font-size: 0.7rem;
+        flex-wrap: nowrap;
+        overflow: hidden;
+    }
+
+    .trolley-details .trolley-id {
+        font-size: 0.8rem;
+    }
+
+    .trolley-details .trolley-eta {
+        font-size: 0.7rem;
+    }
+
+    .trolley-details .trolley-time {
         font-size: 0.65rem;
     }
 
-    .destination-eta {
+    .schedule-source {
+        font-size: 0.6rem;
+        padding: 1px 4px;
+    }
+
+    .trolley-arrival-row.no-trolleys,
+    .trolley-arrival-row.wrong-direction {
+        padding: 6px 8px;
+        font-size: 0.7rem;
+    }
+
+    .loop-eta {
         font-size: 0.65rem;
+        margin-top: 2px;
+    }
+
+    /* Live/schedule indicators */
+    .live-indicator,
+    .schedule-indicator {
+        font-size: 0.7rem;
+    }
+
+    .delay-info {
+        font-size: 0.6rem;
+        padding: 1px 4px;
     }
 
     .route-summary {
@@ -1417,15 +1541,40 @@ footer p {
 
 @media (max-width: 360px) {
     .route-steps {
-        grid-template-columns: 50px 35px 1fr;
+        grid-template-columns: 46px 32px 1fr;
+        gap: 1px 3px;
     }
 
     .step-time-box {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
+        padding: 2px 2px;
+    }
+
+    .step-number {
+        font-size: 0.6rem;
     }
 
     .step-content {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
+        gap: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .line-badge {
+        min-width: 16px;
+        height: 16px;
+        line-height: 16px;
+        font-size: 0.6rem;
+        padding: 0 2px;
+        flex-shrink: 0;
+    }
+
+    .trolley-dir-badge {
+        padding: 3px 5px;
+        font-size: 0.6rem;
+        min-width: 60px;
     }
 
     .timeline-stop {
@@ -1433,6 +1582,14 @@ footer p {
     }
 
     .timeline-stop .stop-name {
+        font-size: 0.55rem;
+    }
+
+    .stops-indicator {
+        padding: 3px 4px;
+    }
+
+    .stop-label {
         font-size: 0.55rem;
     }
 }
