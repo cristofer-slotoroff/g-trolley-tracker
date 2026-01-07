@@ -2837,7 +2837,18 @@ async function fetchTrolleyData() {
                 }
 
                 // Process T1-T5 (Subway-Surface Trolleys) for real-time tracking
-                if (['T1', 'T2', 'T3', 'T4', 'T5'].includes(routeId)) {
+                // API returns route numbers: 10, 11, 13, 34, 36
+                // Map to SEPTA Metro naming: T1, T2, T3, T4, T5
+                const tLineMapping = {
+                    '10': 'T1',
+                    '11': 'T2',
+                    '13': 'T3',
+                    '34': 'T4',
+                    '36': 'T5'
+                };
+
+                if (tLineMapping[routeId]) {
+                    const tLineRoute = tLineMapping[routeId];
                     for (const vehicle of vehicles) {
                         const label = String(vehicle.label || '');
                         // Skip invalid entries (label = 'None', '0', empty, or very late = 998/999)
@@ -2865,7 +2876,7 @@ async function fetchTrolleyData() {
                         }
 
                         tLines.push({
-                            route: routeId,
+                            route: tLineRoute,  // Use mapped T1-T5 name
                             vehicle: label,
                             destination: vehicle.destination || '',
                             direction,
