@@ -1372,20 +1372,24 @@ footer p {
     }
 
     .pickup-name {
-        font-size: 0.8rem;
+        font-size: 0.7rem;
     }
 
     .destination-info {
-        padding: 8px;
+        padding: 6px;
     }
 
     .destination-pickup {
         flex-wrap: nowrap;
-        gap: 4px;
+        gap: 3px;
     }
 
     .destination-label {
-        font-size: 0.75rem;
+        font-size: 0.65rem;
+    }
+
+    .destination-eta {
+        font-size: 0.65rem;
     }
 
     .route-summary {
