@@ -12,5 +12,23 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Reference files (optional - keep for development reference)
-# Reference/
+# Reference files
+Reference/
+
+# GTFS data files (too large for GitHub)
+agency.txt
+calendar.txt
+calendar_dates.txt
+directions.txt
+feed_info.txt
+route_stops.txt
+routes.txt
+shapes.txt
+stop_times.txt
+stops.txt
+trips.txt
+*.zip
+
+# Development docs
+CLAUDE.md
+SEPTA_METRO_REFERENCE.md

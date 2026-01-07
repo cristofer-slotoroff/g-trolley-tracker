@@ -1056,7 +1056,13 @@ header h1 {
 
 .trolley-icon {
     font-size: 1.2rem;
-    margin-bottom: 2px;
+    margin-bottom: 0;
+    line-height: 1;
+}
+
+.trolley-icon img {
+    display: block;
+    margin: 0 auto;
 }
 
 .direction-arrow {
@@ -1244,6 +1250,12 @@ footer p {
     text-decoration: underline;
 }
 
+.support-section .made-by {
+    margin-top: 10px;
+    font-style: italic;
+    color: var(--pcc-cream-dim);
+}
+
 .pcc-info {
     color: rgba(245, 241, 227, 0.5);
 }
@@ -1302,19 +1314,20 @@ footer p {
     }
 
     .line-selector {
-        gap: 6px;
+        gap: 5px;
         justify-content: center;
     }
 
     .line-btn {
-        padding: 6px 10px;
-        font-size: 0.75rem;
-        border-radius: 16px;
-        flex: 0 1 auto;
+        padding: 5px 8px;
+        font-size: 0.7rem;
+        border-radius: 14px;
+        flex: 0 1 calc(33% - 5px);
+        justify-content: center;
     }
 
     .line-btn .line-letter {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
     }
 
     /* Trolley info - more compact */
@@ -1389,12 +1402,21 @@ footer p {
         width: 8px;
     }
 
+    .trolley-icon {
+        margin-bottom: -2px;
+    }
+
     .trolley-icon img, img.trolley-icon {
-        width: 22px;
+        width: 20px;
     }
 
     .direction-arrow {
-        font-size: 0.8rem;
+        font-size: 0.7rem;
+        margin-top: 0;
+    }
+
+    .timeline-stop.current {
+        gap: 1px;
     }
 
     .transfer-badges {
