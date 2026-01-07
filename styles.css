@@ -1271,25 +1271,147 @@ footer p {
 }
 
 /* Responsive */
-@media (max-width: 400px) {
+@media (max-width: 500px) {
     .container {
-        padding: 15px;
+        padding: 10px;
     }
 
     header h1 {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
 
     .card {
-        padding: 15px;
+        padding: 12px;
+    }
+
+    /* Trolley timeline - more compact on mobile */
+    .trolley-timeline {
+        gap: 2px;
+        padding: 8px 4px;
+    }
+
+    .timeline-stop {
+        min-width: 38px;
+    }
+
+    .timeline-stop .stop-name {
+        font-size: 0.6rem;
+    }
+
+    .timeline-terminal {
+        font-size: 0.55rem;
+        padding: 0 2px;
+    }
+
+    .timeline-divider {
+        margin: 0 3px;
+        height: 18px;
+    }
+
+    .timeline-connector {
+        width: 8px;
+    }
+
+    .trolley-icon img, img.trolley-icon {
+        width: 22px;
+    }
+
+    .direction-arrow {
+        font-size: 0.8rem;
+    }
+
+    .transfer-badges {
+        gap: 1px;
+    }
+
+    .transfer-badge {
+        font-size: 0.45rem;
+        padding: 1px 2px;
+    }
+
+    /* Route steps - compact single-line layout */
+    .route-steps {
+        grid-template-columns: 58px 40px 1fr;
+        gap: 2px 4px;
+    }
+
+    .step-time-box {
+        padding: 2px 4px;
+        font-size: 0.7rem;
+        border-radius: 3px;
+    }
+
+    .step-number {
+        font-size: 0.7rem;
+    }
+
+    .step-content {
+        font-size: 0.75rem;
+        gap: 4px;
+        padding: 4px 0;
+    }
+
+    .line-badge {
+        min-width: 20px;
+        height: 20px;
+        padding: 0 4px;
+        line-height: 20px;
+        font-size: 0.7rem;
+    }
+
+    .transfer-step .step-content {
+        font-size: 0.65rem;
+    }
+
+    .route-option-header {
+        padding: 8px 10px;
+    }
+
+    .pickup-name {
+        font-size: 0.85rem;
+    }
+
+    .route-summary {
+        font-size: 0.7rem;
+        gap: 8px;
     }
 
     .connection-header {
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
     }
 
     .connection-verdict {
         text-align: left;
+    }
+
+    .trolley-stop-info {
+        font-size: 0.85rem;
+    }
+
+    .trolley-number {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .route-steps {
+        grid-template-columns: 50px 35px 1fr;
+    }
+
+    .step-time-box {
+        font-size: 0.65rem;
+    }
+
+    .step-content {
+        font-size: 0.7rem;
+    }
+
+    .timeline-stop {
+        min-width: 32px;
+    }
+
+    .timeline-stop .stop-name {
+        font-size: 0.55rem;
     }
 }
