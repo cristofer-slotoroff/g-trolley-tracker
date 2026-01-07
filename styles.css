@@ -1093,6 +1093,52 @@ header h1 {
     opacity: 0.4;
 }
 
+/* Terminal stops at ends of timeline */
+.timeline-terminal {
+    font-size: 0.65rem;
+    color: var(--pcc-cream-dim);
+    opacity: 0.7;
+    white-space: nowrap;
+    padding: 0 4px;
+}
+
+.timeline-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--pcc-cream-dim);
+    opacity: 0.4;
+    margin: 0 6px;
+}
+
+/* Transfer line badges */
+.transfer-badges {
+    display: flex;
+    gap: 2px;
+    margin-top: 2px;
+    justify-content: center;
+}
+
+.transfer-badge {
+    font-size: 0.5rem;
+    font-weight: bold;
+    color: white;
+    padding: 1px 3px;
+    border-radius: 2px;
+    line-height: 1;
+}
+
+.transfer-badge.badge-T {
+    background: #4CAF50; /* Green for T line */
+}
+
+.transfer-badge.badge-B {
+    background: #F37021; /* Orange for B line */
+}
+
+.transfer-badge.badge-L {
+    background: #0077C0; /* Blue for L line */
+}
+
 /* Legacy styles (kept for backwards compatibility) */
 .trolley-direction {
     font-size: 0.85rem;

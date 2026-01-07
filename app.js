@@ -176,7 +176,7 @@ const G_LINE_STOPS_SIMPLE = [
     { name: 'Ridge Av', shortName: 'Ridge' },
     { name: '17th St', shortName: '17th' },
     { name: '16th St', shortName: '16th' },
-    { name: 'Broad-Girard', shortName: 'Broad', isTransfer: true, transferLines: ['B'] },
+    { name: 'Broad-Girard', shortName: 'Broad', isTransfer: true, transferLines: ['B1', 'B3'] },
     { name: '12th St', shortName: '12th' },
     { name: '11th St', shortName: '11th' },
     { name: '8th St', shortName: '8th' },
@@ -4284,22 +4284,37 @@ function updateTrolleyDetails() {
                 timeline = timeline.slice().reverse();
             }
 
+            // Terminal stops (63rd is west/index 0, Westmoreland is east/index 57)
+            const westTerminal = '63rd';
+            const eastTerminal = 'Westmoreland';
+            // For display: Westbound shows east on left, Eastbound shows west on left
+            const leftTerminal = trolley.direction === 'Westbound' ? eastTerminal : westTerminal;
+            const rightTerminal = trolley.direction === 'Westbound' ? westTerminal : eastTerminal;
+
             timelineHtml = `
                 <div class="trolley-timeline">
+                    <span class="timeline-terminal">${leftTerminal}</span>
+                    <span class="timeline-divider"></span>
                     ${timeline.map((stop, i) => {
                         if (!stop) return `<span class="timeline-stop empty"></span>`;
                         const isCurrent = stop.position === 'current';
                         const isNextImmediate = stop.position === 'next' && stop.offset === 1;
                         const isTransfer = stop.isTransfer;
+                        const transferBadges = isTransfer && stop.transferLines
+                            ? `<span class="transfer-badges">${stop.transferLines.map(line => `<span class="transfer-badge badge-${line[0]}">${line}</span>`).join('')}</span>`
+                            : '';
                         return `
                             <span class="timeline-stop ${stop.position}${isNextImmediate ? ' next-immediate' : ''}${isTransfer ? ' transfer' : ''}">
-                                ${isCurrent ? '<span class="trolley-icon">&#x1F68B;</span>' : ''}
+                                ${isCurrent ? `<span class="trolley-icon"><img src="${trolley.direction === 'Eastbound' ? 'Graphics/EB_PCC_App_Logo.svg' : 'Graphics/WB PCC App Logo.svg'}" alt="🚋" style="width:28px;height:auto;"></span>` : ''}
                                 <span class="stop-name">${stop.shortName}</span>
                                 ${isCurrent ? `<span class="direction-arrow ${dirClass}">${dirArrow}</span>` : ''}
+                                ${transferBadges}
                             </span>
                             ${i < 4 ? '<span class="timeline-connector"></span>' : ''}
                         `;
                     }).join('')}
+                    <span class="timeline-divider"></span>
+                    <span class="timeline-terminal">${rightTerminal}</span>
                 </div>
             `;
         }
