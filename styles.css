@@ -1017,12 +1017,12 @@ header h1 {
 .trolley-timeline {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 4px;
     padding: 10px 5px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 6px;
-    overflow-x: auto;
+    overflow: hidden;
 }
 
 .timeline-stop {
@@ -1100,6 +1100,7 @@ header h1 {
     opacity: 0.7;
     white-space: nowrap;
     padding: 0 4px;
+    flex-shrink: 0;
 }
 
 .timeline-divider {
@@ -1286,23 +1287,24 @@ footer p {
 
     /* Trolley timeline - more compact on mobile */
     .trolley-timeline {
-        gap: 2px;
-        padding: 8px 4px;
-        justify-content: flex-start;
-        overflow-x: visible;
+        gap: 1px;
+        padding: 6px 4px;
     }
 
     .timeline-stop {
-        min-width: 38px;
+        min-width: 32px;
+        flex-shrink: 1;
     }
 
     .timeline-stop .stop-name {
-        font-size: 0.6rem;
+        font-size: 0.55rem;
     }
 
     .timeline-terminal {
-        font-size: 0.55rem;
+        font-size: 0.5rem;
         padding: 0 2px;
+        flex-shrink: 0;
+        white-space: nowrap;
     }
 
     .timeline-divider {
