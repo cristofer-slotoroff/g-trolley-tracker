@@ -4286,8 +4286,9 @@ function updateTrolleyDetails() {
 
             // Terminal stops - always show 63rd (west) on left, Westmoreland (east) on right
             // The trolley's direction arrow shows which way it's heading
+            // Use abbreviated "W'land" to fit on mobile screens
             const leftTerminal = '63rd';
-            const rightTerminal = 'Westmoreland';
+            const rightTerminal = "W'land";
 
             timelineHtml = `
                 <div class="trolley-timeline">

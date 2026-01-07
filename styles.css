@@ -1288,6 +1288,8 @@ footer p {
     .trolley-timeline {
         gap: 2px;
         padding: 8px 4px;
+        justify-content: flex-start;
+        overflow-x: visible;
     }
 
     .timeline-stop {
@@ -1368,7 +1370,20 @@ footer p {
     }
 
     .pickup-name {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
+    }
+
+    .destination-info {
+        padding: 8px;
+    }
+
+    .destination-pickup {
+        flex-wrap: nowrap;
+        gap: 4px;
+    }
+
+    .destination-label {
+        font-size: 0.75rem;
     }
 
     .route-summary {
