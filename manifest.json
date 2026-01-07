@@ -1,0 +1,26 @@
+{
+  "name": "G Trolley Tracker",
+  "short_name": "G Trolley",
+  "description": "Track PCC trolleys on SEPTA Route G - Girard Line",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a2e1a",
+  "theme_color": "#C4A82B",
+  "icons": [
+    {
+      "src": "Graphics/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "Graphics/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "Graphics/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -4284,12 +4284,10 @@ function updateTrolleyDetails() {
                 timeline = timeline.slice().reverse();
             }
 
-            // Terminal stops (63rd is west/index 0, Westmoreland is east/index 57)
-            const westTerminal = '63rd';
-            const eastTerminal = 'Westmoreland';
-            // For display: Westbound shows east on left, Eastbound shows west on left
-            const leftTerminal = trolley.direction === 'Westbound' ? eastTerminal : westTerminal;
-            const rightTerminal = trolley.direction === 'Westbound' ? westTerminal : eastTerminal;
+            // Terminal stops - always show 63rd (west) on left, Westmoreland (east) on right
+            // The trolley's direction arrow shows which way it's heading
+            const leftTerminal = '63rd';
+            const rightTerminal = 'Westmoreland';
 
             timelineHtml = `
                 <div class="trolley-timeline">
