@@ -1104,10 +1104,19 @@ header h1 {
     min-width: 50px;
 }
 
-.stop-name-group {
+.stop-top {
+    height: 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.stop-bottom {
+    height: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
     gap: 1px;
 }
 
@@ -1481,19 +1490,27 @@ footer p {
         width: 8px;
     }
 
+    .stop-top {
+        height: 20px;
+    }
+
+    .stop-bottom {
+        height: 14px;
+    }
+
     .trolley-icon {
         margin-bottom: 0;
         line-height: 1;
     }
 
     .trolley-icon img, img.trolley-icon {
-        width: 24px;
+        width: 22px;
         height: auto;
     }
 
     .direction-arrow {
-        font-size: 0.6rem;
-        margin-top: -1px;
+        font-size: 0.55rem;
+        margin-top: 0;
     }
 
     .timeline-stop.current {
@@ -1501,11 +1518,7 @@ footer p {
     }
 
     .timeline-stop.current .stop-name {
-        font-size: 0.6rem;
-    }
-
-    .stop-name-group {
-        gap: 0;
+        font-size: 0.55rem;
     }
 
     .transfer-badges {
