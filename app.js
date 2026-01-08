@@ -1454,7 +1454,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         },
                         { type: 'exit', description: 'Exit at City Hall', station: 'City Hall (MFL)', exitLine: 'L', time: 0 },
                         { type: 'transfer', description: 'Transfer to B line (Broad Street Line)' },
-                        { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWait + bToGirard, fromStation: 'City Hall', toStation: 'Broad-Girard', numStops: 4 },
+                        { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWait + bToGirard, fromStation: 'City Hall', toStation: 'Broad-Girard', numStops: 4, isScheduled: false },
                         { type: 'exit', description: 'Exit at Broad-Girard', station: 'Broad-Girard', exitLine: 'B', time: 0 },
                         { type: 'walk', description: 'Walk to Broad-Girard', time: bWalkTime }
                     ],
@@ -1685,7 +1685,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     },
                     { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', exitLine: 'M', time: 0 },
                     { type: 'transfer', description: 'Transfer to L line at 69th Street TC' },
-                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lTravelTime, fromStation: '69th St TC', toStation: 'Front-Girard', numStops: 15 },
+                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lTravelTime, fromStation: '69th St TC', toStation: 'Front-Girard', numStops: 15, isScheduled: false },
                     { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
                     { type: 'walk', description: 'Walk to Front-Girard on G line', time: walkTime }
                 ],
@@ -1713,6 +1713,16 @@ async function calculateRouteOptions(originStation, trolleyData) {
         const lTravelTime = 30; // 69th St to Girard on L
         const lWait = getMetroFrequency('L');
         const walkTime = 5;
+
+        // Get the D line route (D1 or D2) based on station
+        const dLineRoute = station.route || (originStation.includes('Media') ? 'D1' : 'D2');
+
+        // Check for real-time D line vehicle data
+        const dLineVehicles = getDLineVehicles(dLineRoute);
+        const inboundVehicles = dLineVehicles.filter(v => v.direction === 'Inbound');
+        const hasRealTimeData = inboundVehicles.length > 0;
+
+        console.log(`[D-LINE ROUTING] Route ${dLineRoute}, found ${inboundVehicles.length} inbound vehicles`);
 
         // Try to get actual scheduled departures
         const stopId = stationData?.stopId;
@@ -1768,23 +1778,37 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
             const totalTime = totalTravelTime + trolleyWait;
 
+            // Check if we have a real-time vehicle approaching
+            // Match by approximate departure time if possible
+            let matchedVehicle = null;
+            if (hasRealTimeData && inboundVehicles.length > departureNum) {
+                matchedVehicle = inboundVehicles[departureNum];
+            }
+
+            // Build description with vehicle number if real-time data available
+            const routeLabel = station.routeName || dLineRoute;
+            const vehicleInfo = matchedVehicle ? ` #${matchedVehicle.vehicle}` : '';
+            const stepDescription = `Take ${routeLabel}${vehicleInfo} toward 69th St`;
+
             const option = {
                 gPickup: 'Front-Girard',
                 steps: [
                     {
                         type: 'metro',
                         line: 'D',
-                        description: `Take ${station.routeName || 'D'} toward 69th St`,
+                        description: stepDescription,
                         departTime: departTimeFormatted,
                         time: dWait + dTravelTime,
                         fromStation: originStation,
                         toStation: '69th St TC',
                         numStops: stopsTo69th,
-                        isScheduled: useScheduledTimes
+                        isScheduled: useScheduledTimes && !matchedVehicle,
+                        isRealTime: !!matchedVehicle,
+                        vehicleId: matchedVehicle?.vehicle
                     },
                     { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', exitLine: 'D', time: 0 },
                     { type: 'transfer', description: 'Transfer to L line at 69th Street TC' },
-                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lTravelTime, fromStation: '69th St TC', toStation: 'Front-Girard', numStops: 15 },
+                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lTravelTime, fromStation: '69th St TC', toStation: 'Front-Girard', numStops: 15, isScheduled: false },
                     { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
                     { type: 'walk', description: 'Walk to Front-Girard on G line', time: walkTime }
                 ],
@@ -2029,7 +2053,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                             },
                             { type: 'exit', description: 'Exit at 15th Street', station: '15th Street', exitLine: 'T', time: 0 },
                             { type: 'transfer', description: 'Transfer to B line (Broad Street Line)' },
-                            { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWait + bToGirard, fromStation: '15th Street', toStation: 'Broad-Girard', numStops: 4 },
+                            { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWait + bToGirard, fromStation: '15th Street', toStation: 'Broad-Girard', numStops: 4, isScheduled: false },
                             { type: 'exit', description: 'Exit at Broad-Girard', station: 'Broad-Girard', exitLine: 'B', time: 0 },
                             { type: 'walk', description: 'Walk to Broad-Girard on G line', time: 3 }
                         ],
@@ -2090,7 +2114,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                             },
                             { type: 'exit', description: 'Exit at 15th Street', station: '15th Street', exitLine: 'T', time: 0 },
                             { type: 'transfer', description: 'Transfer to L line (Market-Frankford Line)' },
-                            { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lToGirard, fromStation: '15th Street', toStation: 'Front-Girard', numStops: 6 },
+                            { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lToGirard, fromStation: '15th Street', toStation: 'Front-Girard', numStops: 6, isScheduled: false },
                             { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
                             { type: 'walk', description: 'Walk to Front-Girard on G line', time: 5 }
                         ],
@@ -2182,7 +2206,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         },
                         { type: 'exit', description: 'Exit at 15th St / City Hall', station: '15th St', exitLine: 'T', time: 0 },
                         { type: 'transfer', description: 'Transfer to B line (Broad Street Line)' },
-                        { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWait + bToGirard, fromStation: 'City Hall', toStation: 'Broad-Girard', numStops: 4 },
+                        { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWait + bToGirard, fromStation: 'City Hall', toStation: 'Broad-Girard', numStops: 4, isScheduled: false },
                         { type: 'exit', description: 'Exit at Broad-Girard', station: 'Broad-Girard', exitLine: 'B', time: 0 },
                         { type: 'walk', description: 'Walk to Broad-Girard', time: 3 }
                     ],
@@ -2257,7 +2281,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         },
                         { type: 'exit', description: 'Exit at 15th Street', station: '15th Street', exitLine: 'T', time: 0 },
                         { type: 'transfer', description: 'Transfer to L line (Market-Frankford Line)' },
-                        { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lToGirard, fromStation: '15th Street', toStation: 'Front-Girard', numStops: 6 },
+                        { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWait + lToGirard, fromStation: '15th Street', toStation: 'Front-Girard', numStops: 6, isScheduled: false },
                         { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
                         { type: 'walk', description: 'Walk to Front-Girard on G line', time: 5 }
                     ],
@@ -2650,6 +2674,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 // State
 let trolleyData = [];
 let tLineData = [];  // Real-time T line (T1-T5) vehicle positions
+let dLineData = [];  // Real-time D line (D1/D2 = 101/102) vehicle positions
 let trainData = [];
 let refreshTimer = null;
 
@@ -2775,6 +2800,7 @@ async function fetchTrolleyData() {
         const data = await response.json();
         const trolleys = [];
         const tLines = [];  // T1-T5 real-time positions
+        const dLines = [];  // D1-D2 real-time positions
 
         for (const route of (data.routes || [])) {
             for (const [routeId, vehicles] of Object.entries(route)) {
@@ -2891,12 +2917,65 @@ async function fetchTrolleyData() {
                         });
                     }
                 }
+
+                // Process D1-D2 (Media/Sharon Hill Lines) for real-time tracking
+                // API returns route numbers: 101, 102
+                // Map to SEPTA Metro naming: D1, D2
+                const dLineMapping = {
+                    '101': 'D1',
+                    '102': 'D2'
+                };
+
+                if (dLineMapping[routeId]) {
+                    const dLineRoute = dLineMapping[routeId];
+                    for (const vehicle of vehicles) {
+                        const label = String(vehicle.label || '');
+                        // Skip invalid entries (label = 'None', '0', empty, or very late = 998/999)
+                        if (!label || label === 'None' || label === '0' || label === '' ||
+                            vehicle.late >= 998 || vehicle.next_stop_sequence == null) {
+                            continue;
+                        }
+
+                        const destination = (vehicle.destination || '').toUpperCase();
+
+                        // Determine direction based on destination
+                        // Inbound = toward 69th Street Terminal (northeast)
+                        // Outbound = toward Media or Sharon Hill (southwest)
+                        let direction = 'Unknown';
+                        if (destination.includes('MEDIA') || destination.includes('SHARON HILL') ||
+                            destination.includes('PRIMOS') || destination.includes('SPRINGFIELD')) {
+                            direction = 'Outbound';  // Toward terminals (southwest)
+                        } else if (destination.includes('69TH') || destination.includes('69') ||
+                                   destination.includes('TERMINAL')) {
+                            direction = 'Inbound';  // Toward 69th St Terminal (northeast)
+                        }
+
+                        dLines.push({
+                            route: dLineRoute,  // Use mapped D1-D2 name
+                            vehicle: label,
+                            destination: vehicle.destination || '',
+                            direction,
+                            lat: parseFloat(vehicle.lat),
+                            lng: parseFloat(vehicle.lng),
+                            nextStopId: vehicle.next_stop_id,
+                            nextStopSequence: vehicle.next_stop_sequence,
+                            nextStopName: vehicle.next_stop_name,
+                            late: vehicle.late || 0,
+                            tripId: vehicle.trip,
+                            timestamp: vehicle.timestamp
+                        });
+                    }
+                }
             }
         }
 
         // Store T line data globally for use in routing
         tLineData = tLines;
         console.log(`[T-LINE] Fetched ${tLines.length} T line vehicles:`, tLines.map(t => `${t.route} #${t.vehicle} → ${t.destination}`));
+
+        // Store D line data globally for use in routing
+        dLineData = dLines;
+        console.log(`[D-LINE] Fetched ${dLines.length} D line vehicles:`, dLines.map(d => `${d.route} #${d.vehicle} → ${d.destination}`));
 
         return trolleys;
     } catch (error) {
@@ -2930,6 +3009,34 @@ function getTLineVehicles(routeFilter = null) {
  */
 function hasTLineRealTimeData(routeFilter = null) {
     const vehicles = getTLineVehicles(routeFilter);
+    return vehicles.length > 0;
+}
+
+/**
+ * Get real-time D line vehicle data for a specific route
+ * @param {string} routeFilter - Route filter (D1, D2, etc.)
+ * @returns {Array} Array of vehicles currently active on the route
+ */
+function getDLineVehicles(routeFilter = null) {
+    if (!dLineData || dLineData.length === 0) {
+        return [];
+    }
+
+    let vehicles = dLineData;
+    if (routeFilter) {
+        vehicles = vehicles.filter(v => v.route === routeFilter);
+    }
+
+    return vehicles;
+}
+
+/**
+ * Check if real-time D line data is available for a route
+ * @param {string} routeFilter - Route filter (D1, D2, etc.)
+ * @returns {boolean} True if real-time data is available
+ */
+function hasDLineRealTimeData(routeFilter = null) {
+    const vehicles = getDLineVehicles(routeFilter);
     return vehicles.length > 0;
 }
 
