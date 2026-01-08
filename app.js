@@ -1217,7 +1217,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     totalTime: trolley.etaToPickup,
                     minutesToPickup: 0,
                     trolleyVehicle: trolley.vehicle,
-                    trolleyDirection: trolley.direction,
+                    trolleyDirection: trolley.arrivalDirection || trolley.direction,
                     trolleyArrivalTime: arrivalTime
                 });
             }
@@ -1297,7 +1297,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
             if (bestTrolley) {
                 option.trolleyVehicle = bestTrolley.vehicle;
-                option.trolleyDirection = bestTrolley.direction;
+                option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
             }
 
@@ -1393,7 +1393,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
             if (bestTrolley) {
                 option.trolleyVehicle = bestTrolley.vehicle;
-                option.trolleyDirection = bestTrolley.direction;
+                option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
             }
 
@@ -1477,7 +1477,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                 if (bestTrolley) {
                     option.trolleyVehicle = bestTrolley.vehicle;
-                    option.trolleyDirection = bestTrolley.direction;
+                    option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                     option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
                 }
 
@@ -1570,7 +1570,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                 if (bestTrolley) {
                     option.trolleyVehicle = bestTrolley.vehicle;
-                    option.trolleyDirection = bestTrolley.direction;
+                    option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                     option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
                 }
 
@@ -1638,7 +1638,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                 if (bestTrolley) {
                     option.trolleyVehicle = bestTrolley.vehicle;
-                    option.trolleyDirection = bestTrolley.direction;
+                    option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                     option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
                 }
 
@@ -1708,7 +1708,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
             if (bestTrolley) {
                 option.trolleyVehicle = bestTrolley.vehicle;
-                option.trolleyDirection = bestTrolley.direction;
+                option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
             }
 
@@ -1831,7 +1831,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
             if (bestTrolley) {
                 option.trolleyVehicle = bestTrolley.vehicle;
-                option.trolleyDirection = bestTrolley.direction;
+                option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
             }
 
@@ -1930,7 +1930,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                     if (bestTrolley) {
                         option.trolleyVehicle = bestTrolley.vehicle;
-                        option.trolleyDirection = bestTrolley.direction;
+                        option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                         option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
                     }
 
@@ -1993,7 +1993,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                     if (bestTrolley) {
                         option.trolleyVehicle = bestTrolley.vehicle;
-                        option.trolleyDirection = bestTrolley.direction;
+                        option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                         option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
                     }
 
@@ -2076,7 +2076,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                     if (bestTrolley) {
                         option.trolleyVehicle = bestTrolley.vehicle;
-                        option.trolleyDirection = bestTrolley.direction;
+                        option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                         option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
                     }
 
@@ -2137,7 +2137,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                     if (bestTrolley) {
                         option.trolleyVehicle = bestTrolley.vehicle;
-                        option.trolleyDirection = bestTrolley.direction;
+                        option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                         option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
                     }
 
@@ -2229,7 +2229,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                 if (bestTrolley) {
                     option.trolleyVehicle = bestTrolley.vehicle;
-                    option.trolleyDirection = bestTrolley.direction;
+                    option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                     option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
                 }
 
@@ -2304,7 +2304,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                 if (bestTrolley) {
                     option.trolleyVehicle = bestTrolley.vehicle;
-                    option.trolleyDirection = bestTrolley.direction;
+                    option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                     option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
                 }
 
@@ -2393,7 +2393,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
             if (bestTrolley) {
                 option.trolleyVehicle = bestTrolley.vehicle;
-                option.trolleyDirection = bestTrolley.direction;
+                option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
             }
 
@@ -2594,7 +2594,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
                     if (bestTrolley) {
                         option.trolleyVehicle = bestTrolley.vehicle;
-                        option.trolleyDirection = bestTrolley.direction;
+                        option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                         option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
                     }
 
@@ -2661,7 +2661,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 
             if (pickupTrolleys.length > 0) {
                 option.trolleyVehicle = pickupTrolleys[0].vehicle;
-                option.trolleyDirection = pickupTrolleys[0].direction;
+                option.trolleyDirection = pickupTrolleys[0].arrivalDirection || pickupTrolleys[0].direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + pickupTrolleys[0].etaToPickup * 60000);
             }
 
@@ -3948,22 +3948,17 @@ async function updateConnections() {
         let trolleyInfoHtml = '';
         const now = new Date();
 
-        // Determine direction for destination text
-        const trolleyDir = option.trolleyDirection || '';
-        const directionText = trolleyDir ? trolleyDir.toUpperCase() + ' ' : '';
+        // Direction text no longer needed in destination label
 
         if (option.trolleyVehicle && option.trolleyDirection) {
             // This option has a specific trolley (e.g., from G line selection)
             const dirClass = option.trolleyDirection === 'Eastbound' ? 'east' : 'west';
             const arrivalTimeStr = option.trolleyArrivalTime ? formatTime(option.trolleyArrivalTime) : '';
+            const dirAbbrev = option.trolleyDirection === 'Eastbound' ? 'EB' : 'WB';
             trolleyInfoHtml = `
-                <div class="trolley-arrival-row">
-                    <div class="trolley-dir-badge ${dirClass}">${option.trolleyDirection}</div>
-                    <div class="trolley-details">
-                        <span class="trolley-id">Trolley #${option.trolleyVehicle}</span>
-                        <span class="trolley-eta">arrives in ${option.trolleyWait} min</span>
-                        ${arrivalTimeStr ? `<span class="trolley-time">(${arrivalTimeStr})</span>` : ''}
-                    </div>
+                <div class="trolley-arrival-row compact">
+                    <span class="trolley-dir-badge-sm ${dirClass}">${dirAbbrev}</span>
+                    <span class="trolley-info-line">#${option.trolleyVehicle} arrives in ${option.trolleyWait} min${arrivalTimeStr ? ` (${arrivalTimeStr})` : ''}</span>
                 </div>
             `;
         } else {
@@ -3977,49 +3972,37 @@ async function updateConnections() {
 
             if (catchableTrolleys.length > 0) {
                 trolleyInfoHtml = catchableTrolleys.slice(0, 3).map(t => {
-                    const dirClass = t.direction === 'Eastbound' ? 'east' : 'west';
+                    // Use arrival direction (opposite direction if looping)
+                    const displayDir = t.arrivalDirection || t.direction;
+                    const dirClass = displayDir === 'Eastbound' ? 'east' : 'west';
+                    const dirAbbrev = displayDir === 'Eastbound' ? 'EB' : 'WB';
                     const waitTime = Math.max(0, t.etaToPickup - userArrival);
                     const arrivalTime = new Date(now.getTime() + t.etaToPickup * 60000);
 
                     // Check if this trolley needs to loop around
                     if (t.needsLoop) {
-                        const dirText = t.direction === 'Eastbound' ? 'East →' : '← West';
                         return `
-                            <div class="trolley-arrival-row wrong-direction">
-                                <strong>Trolley #${t.vehicle}</strong> heading ${dirText} — needs to loop back
-                                <div class="loop-eta">${t.stopsToPickup} stops away (~${waitTime} min wait after you arrive)</div>
+                            <div class="trolley-arrival-row compact loop">
+                                <span class="trolley-dir-badge-sm ${dirClass}">${dirAbbrev}</span>
+                                <span class="trolley-info-line">#${t.vehicle} loops back in ~${waitTime} min (${t.stopsToPickup} stops)</span>
                             </div>
                         `;
                     }
 
                     // Show real scheduled time if available, otherwise show estimate
                     let timeDisplay = '';
-                    let sourceIndicator = '';
-
                     if (t.isRealTime && t.scheduledTime) {
-                        // Real schedule data available
-                        const scheduledStr = formatTime(t.scheduledTime);
-                        const lateInfo = t.lateMinutes > 0 ? `${t.lateMinutes} min late` :
-                                        t.lateMinutes < 0 ? `${Math.abs(t.lateMinutes)} min early` : 'on time';
-                        timeDisplay = `arrives ${formatTime(arrivalTime)}`;
-                        sourceIndicator = `<span class="schedule-source real">Sched: ${scheduledStr} (${lateInfo})</span>`;
+                        timeDisplay = formatTime(arrivalTime);
                     } else {
-                        // Estimated time
-                        timeDisplay = `~${t.etaToPickup} min to stop`;
-                        sourceIndicator = `<span class="schedule-source estimate">estimated</span>`;
+                        timeDisplay = `~${formatTime(arrivalTime)}`;
                     }
 
-                    const waitText = waitTime === 0 ? 'waiting for you' : `${waitTime} min wait`;
+                    const waitText = waitTime === 0 ? 'waiting' : `${waitTime} min wait`;
 
                     return `
-                        <div class="trolley-arrival-row">
-                            <div class="trolley-dir-badge ${dirClass}">${t.direction}</div>
-                            <div class="trolley-details">
-                                <span class="trolley-id">Trolley #${t.vehicle}</span>
-                                <span class="trolley-eta">${waitText}</span>
-                                <span class="trolley-time">${timeDisplay}</span>
-                                ${sourceIndicator}
-                            </div>
+                        <div class="trolley-arrival-row compact">
+                            <span class="trolley-dir-badge-sm ${dirClass}">${dirAbbrev}</span>
+                            <span class="trolley-info-line">#${t.vehicle} ${waitText} (${timeDisplay})</span>
                         </div>
                     `;
                 }).join('');
@@ -4106,8 +4089,7 @@ async function updateConnections() {
                 </div>
                 <div class="destination-info">
                     <div class="destination-pickup">
-                        <span class="destination-label">Destination:</span>
-                        <span class="pickup-name">Catch ${directionText}G at ${option.gPickup}</span>
+                        <span class="pickup-name">Catch Trolley at ${option.gPickup}</span>
                     </div>
                     <div class="trolley-arrivals">${trolleyInfoHtml}</div>
                 </div>
@@ -4207,7 +4189,8 @@ async function getTrolleysForPickup(pickupName, trolleys) {
                 scheduledTime,
                 isRealTime,
                 needsLoop: false,
-                lateMinutes: trolley.late || 0
+                lateMinutes: trolley.late || 0,
+                arrivalDirection: trolley.direction  // Same direction - approaching directly
             });
         } else {
             // Trolley is heading away - calculate loop-around ETA
@@ -4216,21 +4199,24 @@ async function getTrolleysForPickup(pickupName, trolleys) {
             const TURNAROUND_TIME = 5;  // minutes at terminus
 
             let loopStops = 0;
+            let arrivalDirection;
             if (trolley.direction === 'Westbound') {
                 // Heading west, will loop at west terminus and come back east
                 const stopsToWestTerminus = currentIndex - WEST_TERMINUS;
                 const stopsFromWestToPickup = pickupIndex - WEST_TERMINUS;
                 loopStops = stopsToWestTerminus + stopsFromWestToPickup;
+                arrivalDirection = 'Eastbound';  // Will arrive going east after loop
             } else {
                 // Heading east, will loop at east terminus and come back west
                 const stopsToEastTerminus = EAST_TERMINUS - currentIndex;
                 const stopsFromEastToPickup = EAST_TERMINUS - pickupIndex;
                 loopStops = stopsToEastTerminus + stopsFromEastToPickup;
+                arrivalDirection = 'Westbound';  // Will arrive going west after loop
             }
 
             const lateOffset = trolley.late || 0;
             const loopETA = Math.round(loopStops * CONFIG.MINUTES_PER_STOP + TURNAROUND_TIME + lateOffset);
-            console.log('  ADDING with LOOP ETA:', loopETA, 'min (', loopStops, 'stops + turnaround + late:', lateOffset, ')');
+            console.log('  ADDING with LOOP ETA:', loopETA, 'min (', loopStops, 'stops + turnaround + late:', lateOffset, '), arrival direction:', arrivalDirection);
 
             results.push({
                 ...trolley,
@@ -4239,7 +4225,8 @@ async function getTrolleysForPickup(pickupName, trolleys) {
                 scheduledTime: null,
                 isRealTime: false,
                 needsLoop: true,
-                lateMinutes: lateOffset
+                lateMinutes: lateOffset,
+                arrivalDirection: arrivalDirection  // Opposite direction after loop
             });
         }
     }

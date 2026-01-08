@@ -927,6 +927,44 @@ header h1 {
     font-style: italic;
 }
 
+/* Compact trolley arrival row - fits on one line */
+.trolley-arrival-row.compact {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.trolley-dir-badge-sm {
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #FFFFFF;
+    min-width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.trolley-dir-badge-sm.east {
+    background: rgba(45, 106, 79, 0.7);
+}
+
+.trolley-dir-badge-sm.west {
+    background: rgba(201, 162, 39, 0.6);
+}
+
+.trolley-info-line {
+    font-size: 0.8rem;
+    color: var(--pcc-cream);
+    white-space: nowrap;
+}
+
+.trolley-arrival-row.compact.loop .trolley-info-line {
+    color: #90caf9;
+    font-style: italic;
+}
+
 /* Trolley List (detailed positions) */
 .trolley-list {
     display: flex;
