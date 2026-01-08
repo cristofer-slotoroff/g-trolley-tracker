@@ -1178,8 +1178,9 @@ header h1 {
 }
 
 .timeline-connector {
-    width: 15px;
-    height: 2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
     background: var(--pcc-cream-dim);
     opacity: 0.4;
 }
@@ -1489,7 +1490,8 @@ footer p {
     }
 
     .timeline-connector {
-        width: 8px;
+        width: 4px;
+        height: 4px;
     }
 
     .stop-top {
