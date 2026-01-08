@@ -34,7 +34,11 @@
 
         <!-- Live Trolley Positions - TOP -->
         <section class="card" id="trolley-details">
-            <h2 class="section-title">Trolley Cars Running Now</h2>
+            <h2 class="section-title" id="trolley-section-title">PCC Trolleys Running Now</h2>
+            <label id="show-buses-toggle" class="show-buses-label" style="display: none;">
+                <input type="checkbox" id="show-buses-checkbox" onchange="toggleBusVisibility()">
+                <span>See buses on the G Line too?</span>
+            </label>
             <div id="trolley-list" class="trolley-list">
                 <div class="loading">Checking for PCC trolleys...</div>
             </div>

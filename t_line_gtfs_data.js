@@ -1752,7 +1752,53 @@ const T_LINE_GTFS_DATA = {
 };
 
 // Quick lookup: T_LINE_STOP_LOOKUP[route + '_' + stop_id][direction] = {seq, cumulative_sec, name}
+// NOTE: Tunnel stops (13th-33rd St) are not in GTFS, so times are calculated based on ~2 min/stop
 const T_LINE_STOP_LOOKUP = {
+  // T1 TUNNEL STOPS (not in GTFS - manually added with calculated times)
+  // Outbound sequence goes: 15th → 19th → 22nd → 30th → 33rd → 40th (surface)
+  // cumulative_sec is relative to 40th St (negative = before reaching 40th St portal)
+  "T1_20659": {
+    "outbound": {
+      "seq": -6,
+      "cumulative_sec": -720,
+      "name": "15th St/City Hall"
+    }
+  },
+  "T1_20646": {
+    "outbound": {
+      "seq": -5,
+      "cumulative_sec": -600,
+      "name": "19th St"
+    }
+  },
+  "T1_20645": {
+    "outbound": {
+      "seq": -4,
+      "cumulative_sec": -480,
+      "name": "22nd St"
+    }
+  },
+  "T1_20643": {
+    "outbound": {
+      "seq": -3,
+      "cumulative_sec": -360,
+      "name": "30th St"
+    }
+  },
+  "T1_20642": {
+    "outbound": {
+      "seq": -2,
+      "cumulative_sec": -240,
+      "name": "33rd St"
+    }
+  },
+  "T1_20639": {
+    "outbound": {
+      "seq": -1,
+      "cumulative_sec": -120,
+      "name": "36th St Portal"
+    }
+  },
   "T1_31294": {
     "inbound": {
       "seq": 1,

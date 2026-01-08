@@ -12,6 +12,17 @@ const CONFIG = {
 // This helps test routing when no PCC cars are running
 const TEST_MODE = new URLSearchParams(window.location.search).get('test') === '1';
 
+// State: whether to show buses in the trolley list (only when PCC trolleys are running)
+let showBusesWithTrolleys = false;
+
+// Toggle bus visibility when checkbox is clicked
+function toggleBusVisibility() {
+    const checkbox = document.getElementById('show-buses-checkbox');
+    showBusesWithTrolleys = checkbox?.checked || false;
+    // Re-render the trolley list with current data
+    updateTrolleyDetails();
+}
+
 // ============================================
 // G LINE STOPS (West to East) - Complete list from SEPTA API
 // Sorted by longitude, organized for timeline display
@@ -1299,9 +1310,304 @@ async function calculateRouteOptions(originStation, trolleyData) {
                 option.trolleyVehicle = bestTrolley.vehicle;
                 option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                option.trolleyIsPCC = bestTrolley.isPCC;
             }
 
             options.push(option);
+        }
+
+        // Route 2: B → City Hall → L → Front-Girard
+        // Route 3: B → City Hall → T1 → Lancaster-Girard
+        // These routes use City Hall as transfer point
+        // B line travel times from stations to City Hall (from SEPTA schedule)
+        const bTimesToCityHallNorth = {
+            // Southbound stations (north of City Hall, going south)
+            'Fern Rock TC': 18, 'Olney TC': 15, 'Logan TC': 13,
+            'Wyoming': 11, 'Hunting Park': 10, 'Erie': 8,
+            'North Philadelphia (BSL)': 6, 'Susquehanna-Dauphin': 5,
+            'Cecil B. Moore': 3, 'Broad-Girard (BSL)': 2
+        };
+        const bTimesToCityHallSouth = {
+            // Northbound stations (south of City Hall, going north)
+            'AT&T (BSL)': 15, 'NRG (BSL)': 14, 'Pattison': 13, 'Oregon': 11,
+            'Snyder': 9, 'Tasker-Morris': 8, 'Ellsworth-Federal': 7,
+            'Lombard-South': 5, 'Walnut-Locust': 3, 'City Hall (BSL)': 0
+        };
+        const stationName = stationData?.name || originStation;
+
+        // For southbound stations (north of Broad-Girard), City Hall is BEFORE Broad-Girard
+        // so these transfer routes are natural alternatives
+        if (direction === 'southbound') {
+            const bToCityHall = bTimesToCityHallNorth[stationName] ?? 8;
+            const lWaitB = getMetroFrequency('L');
+            const lToGirardB = 10; // City Hall to Front-Girard on L eastbound
+            const lWalkTimeB = 5;
+
+            for (let departureNum = 0; departureNum < 2; departureNum++) {
+                const waitTime = departureNum * frequency;
+                const departureTime = new Date(now.getTime() + waitTime * 60000);
+                const departTimeFormatted = formatTime(departureTime);
+                const totalTravelTime = waitTime + bToCityHall + lWaitB + lToGirardB + lWalkTimeB;
+
+                const pickupTrolleys = await getTrolleysForPickup('Front-Girard', trolleyData);
+
+                let bestTrolley = null;
+                let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                for (const trolley of pickupTrolleys) {
+                    const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                    if (waitForThisTrolley >= -2) {
+                        if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                            bestTrolley = trolley;
+                            trolleyWait = Math.max(0, waitForThisTrolley);
+                        }
+                    }
+                }
+
+                const totalTime = totalTravelTime + trolleyWait;
+
+                const option = {
+                    gPickup: 'Front-Girard',
+                    steps: [
+                        {
+                            type: 'metro',
+                            line: 'B',
+                            direction: 'southbound',
+                            description: 'Take B southbound to City Hall (B1 local or B3 express)',
+                            departTime: '~' + departTimeFormatted,
+                            time: waitTime + bToCityHall,
+                            fromStation: originStation,
+                            toStation: 'City Hall',
+                            isScheduled: false
+                        },
+                        { type: 'exit', description: 'Exit at City Hall', station: 'City Hall (BSL)', exitLine: 'B', time: 0 },
+                        { type: 'transfer', description: 'Transfer to L line (Market-Frankford Line)' },
+                        { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWaitB + lToGirardB, fromStation: 'City Hall', toStation: 'Front-Girard', numStops: 6, isScheduled: false },
+                        { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
+                        { type: 'walk', description: 'Walk to Front-Girard on G line', time: lWalkTimeB }
+                    ],
+                    travelTime: waitTime + bToCityHall + lWaitB + lToGirardB,
+                    walkTime: lWalkTimeB,
+                    trolleyWait: trolleyWait,
+                    totalTime: totalTime,
+                    minutesToPickup: totalTravelTime,
+                    metroDepartTime: '~' + departTimeFormatted
+                };
+
+                if (bestTrolley) {
+                    option.trolleyVehicle = bestTrolley.vehicle;
+                    option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
+                    option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    option.trolleyIsPCC = bestTrolley.isPCC;
+                }
+
+                options.push(option);
+            }
+
+            // Route 3: B → City Hall → T1 → Lancaster-Girard
+            const t1WaitB = getMetroFrequency('T');
+            const t1ToLancasterB = 12; // City Hall area to Lancaster-Girard on T1
+            const t1WalkTimeB = 2;
+
+            for (let departureNum = 0; departureNum < 2; departureNum++) {
+                const waitTime = departureNum * frequency;
+                const departureTime = new Date(now.getTime() + waitTime * 60000);
+                const departTimeFormatted = formatTime(departureTime);
+                const totalTravelTime = waitTime + bToCityHall + t1WaitB + t1ToLancasterB + t1WalkTimeB;
+
+                const pickupTrolleys = await getTrolleysForPickup('Lancaster-Girard', trolleyData);
+
+                let bestTrolley = null;
+                let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                for (const trolley of pickupTrolleys) {
+                    const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                    if (waitForThisTrolley >= -2) {
+                        if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                            bestTrolley = trolley;
+                            trolleyWait = Math.max(0, waitForThisTrolley);
+                        }
+                    }
+                }
+
+                const totalTime = totalTravelTime + trolleyWait;
+
+                const option = {
+                    gPickup: 'Lancaster-Girard',
+                    steps: [
+                        {
+                            type: 'metro',
+                            line: 'B',
+                            direction: 'southbound',
+                            description: 'Take B southbound to City Hall (B1 local or B3 express)',
+                            departTime: '~' + departTimeFormatted,
+                            time: waitTime + bToCityHall,
+                            fromStation: originStation,
+                            toStation: 'City Hall',
+                            isScheduled: false
+                        },
+                        { type: 'exit', description: 'Exit at City Hall', station: 'City Hall (BSL)', exitLine: 'B', time: 0 },
+                        { type: 'transfer', description: 'Transfer to T1 trolley (Route 10)' },
+                        { type: 'metro', line: 'T', direction: 'outbound', description: 'Take T1 toward 63rd-Malvern', time: t1WaitB + t1ToLancasterB, fromStation: 'City Hall', toStation: 'Lancaster-Girard' },
+                        { type: 'exit', description: 'Exit at Lancaster-Girard', station: 'Lancaster-Girard', exitLine: 'T', time: 0 },
+                        { type: 'walk', description: 'Walk to G line stop', time: t1WalkTimeB }
+                    ],
+                    travelTime: waitTime + bToCityHall + t1WaitB + t1ToLancasterB,
+                    walkTime: t1WalkTimeB,
+                    trolleyWait: trolleyWait,
+                    totalTime: totalTime,
+                    minutesToPickup: totalTravelTime,
+                    metroDepartTime: '~' + departTimeFormatted
+                };
+
+                if (bestTrolley) {
+                    option.trolleyVehicle = bestTrolley.vehicle;
+                    option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
+                    option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    option.trolleyIsPCC = bestTrolley.isPCC;
+                }
+
+                options.push(option);
+            }
+        }
+
+        // For northbound stations (south of Broad-Girard), they pass Broad-Girard to reach City Hall
+        // Only useful if trolleys at Front-Girard or Lancaster-Girard are coming much sooner
+        if (direction === 'northbound') {
+            const bToCityHallNorthbound = bTimesToCityHallSouth[stationName] ?? 8;
+            const travelTimeToGirard = stationData?.travelTimeToGirard ?? 10;
+            // Time from station to City Hall = time to Broad-Girard + 2 min (Girard to City Hall)
+            const bToCityHall = travelTimeToGirard + 2;
+            const lWaitB = getMetroFrequency('L');
+            const lToGirardB = 10; // City Hall to Front-Girard on L eastbound
+            const lWalkTimeB = 5;
+
+            for (let departureNum = 0; departureNum < 2; departureNum++) {
+                const waitTime = departureNum * frequency;
+                const departureTime = new Date(now.getTime() + waitTime * 60000);
+                const departTimeFormatted = formatTime(departureTime);
+                const totalTravelTime = waitTime + bToCityHall + lWaitB + lToGirardB + lWalkTimeB;
+
+                const pickupTrolleys = await getTrolleysForPickup('Front-Girard', trolleyData);
+
+                let bestTrolley = null;
+                let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                for (const trolley of pickupTrolleys) {
+                    const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                    if (waitForThisTrolley >= -2) {
+                        if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                            bestTrolley = trolley;
+                            trolleyWait = Math.max(0, waitForThisTrolley);
+                        }
+                    }
+                }
+
+                const totalTime = totalTravelTime + trolleyWait;
+
+                const option = {
+                    gPickup: 'Front-Girard',
+                    steps: [
+                        {
+                            type: 'metro',
+                            line: 'B',
+                            direction: 'northbound',
+                            description: 'Take B northbound to City Hall (B1 local or B3 express)',
+                            departTime: '~' + departTimeFormatted,
+                            time: waitTime + bToCityHall,
+                            fromStation: originStation,
+                            toStation: 'City Hall',
+                            isScheduled: false
+                        },
+                        { type: 'exit', description: 'Exit at City Hall', station: 'City Hall (BSL)', exitLine: 'B', time: 0 },
+                        { type: 'transfer', description: 'Transfer to L line (Market-Frankford Line)' },
+                        { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to Front-Girard', time: lWaitB + lToGirardB, fromStation: 'City Hall', toStation: 'Front-Girard', numStops: 6, isScheduled: false },
+                        { type: 'exit', description: 'Exit at Front-Girard', station: 'Front-Girard', exitLine: 'L', time: 0 },
+                        { type: 'walk', description: 'Walk to Front-Girard on G line', time: lWalkTimeB }
+                    ],
+                    travelTime: waitTime + bToCityHall + lWaitB + lToGirardB,
+                    walkTime: lWalkTimeB,
+                    trolleyWait: trolleyWait,
+                    totalTime: totalTime,
+                    minutesToPickup: totalTravelTime,
+                    metroDepartTime: '~' + departTimeFormatted
+                };
+
+                if (bestTrolley) {
+                    option.trolleyVehicle = bestTrolley.vehicle;
+                    option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
+                    option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    option.trolleyIsPCC = bestTrolley.isPCC;
+                }
+
+                options.push(option);
+            }
+
+            // Route 3: B → City Hall → T1 → Lancaster-Girard
+            const t1WaitB = getMetroFrequency('T');
+            const t1ToLancasterB = 12; // City Hall area to Lancaster-Girard on T1
+            const t1WalkTimeB = 2;
+
+            for (let departureNum = 0; departureNum < 2; departureNum++) {
+                const waitTime = departureNum * frequency;
+                const departureTime = new Date(now.getTime() + waitTime * 60000);
+                const departTimeFormatted = formatTime(departureTime);
+                const totalTravelTime = waitTime + bToCityHall + t1WaitB + t1ToLancasterB + t1WalkTimeB;
+
+                const pickupTrolleys = await getTrolleysForPickup('Lancaster-Girard', trolleyData);
+
+                let bestTrolley = null;
+                let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+                for (const trolley of pickupTrolleys) {
+                    const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                    if (waitForThisTrolley >= -2) {
+                        if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                            bestTrolley = trolley;
+                            trolleyWait = Math.max(0, waitForThisTrolley);
+                        }
+                    }
+                }
+
+                const totalTime = totalTravelTime + trolleyWait;
+
+                const option = {
+                    gPickup: 'Lancaster-Girard',
+                    steps: [
+                        {
+                            type: 'metro',
+                            line: 'B',
+                            direction: 'northbound',
+                            description: 'Take B northbound to City Hall (B1 local or B3 express)',
+                            departTime: '~' + departTimeFormatted,
+                            time: waitTime + bToCityHall,
+                            fromStation: originStation,
+                            toStation: 'City Hall',
+                            isScheduled: false
+                        },
+                        { type: 'exit', description: 'Exit at City Hall', station: 'City Hall (BSL)', exitLine: 'B', time: 0 },
+                        { type: 'transfer', description: 'Transfer to T1 trolley (Route 10)' },
+                        { type: 'metro', line: 'T', direction: 'outbound', description: 'Take T1 toward 63rd-Malvern', time: t1WaitB + t1ToLancasterB, fromStation: 'City Hall', toStation: 'Lancaster-Girard' },
+                        { type: 'exit', description: 'Exit at Lancaster-Girard', station: 'Lancaster-Girard', exitLine: 'T', time: 0 },
+                        { type: 'walk', description: 'Walk to G line stop', time: t1WalkTimeB }
+                    ],
+                    travelTime: waitTime + bToCityHall + t1WaitB + t1ToLancasterB,
+                    walkTime: t1WalkTimeB,
+                    trolleyWait: trolleyWait,
+                    totalTime: totalTime,
+                    minutesToPickup: totalTravelTime,
+                    metroDepartTime: '~' + departTimeFormatted
+                };
+
+                if (bestTrolley) {
+                    option.trolleyVehicle = bestTrolley.vehicle;
+                    option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
+                    option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    option.trolleyIsPCC = bestTrolley.isPCC;
+                }
+
+                options.push(option);
+            }
         }
     } else if (station.type === 'metro_L') {
         // L line -> Multiple routes possible
@@ -1395,6 +1701,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                 option.trolleyVehicle = bestTrolley.vehicle;
                 option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                option.trolleyIsPCC = bestTrolley.isPCC;
             }
 
             options.push(option);
@@ -1479,6 +1786,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     option.trolleyVehicle = bestTrolley.vehicle;
                     option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                     option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    option.trolleyIsPCC = bestTrolley.isPCC;
                 }
 
                 options.push(option);
@@ -1572,6 +1880,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     option.trolleyVehicle = bestTrolley.vehicle;
                     option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                     option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    option.trolleyIsPCC = bestTrolley.isPCC;
                 }
 
                 options.push(option);
@@ -1640,6 +1949,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     option.trolleyVehicle = bestTrolley.vehicle;
                     option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                     option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    option.trolleyIsPCC = bestTrolley.isPCC;
                 }
 
                 options.push(option);
@@ -1710,6 +2020,147 @@ async function calculateRouteOptions(originStation, trolleyData) {
                 option.trolleyVehicle = bestTrolley.vehicle;
                 option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                option.trolleyIsPCC = bestTrolley.isPCC;
+            }
+
+            options.push(option);
+        }
+
+        // Route 2: M → 69th → L → City Hall → B → Broad-Girard
+        const lToCityHall = 14; // 69th St to City Hall on L
+        const bWaitForM = getMetroFrequency('B');
+        const bToGirardFromM = 7; // City Hall to Girard on B
+        const bWalkTimeM = 3;
+
+        for (let departureNum = 0; departureNum < 2; departureNum++) {
+            const mWait = departureNum * mFrequency;
+            const departureTime = new Date(now.getTime() + mWait * 60000);
+            const departTimeFormatted = formatTime(departureTime);
+            const totalTravelTime = mWait + mTravelTime + lWait + lToCityHall + bWaitForM + bToGirardFromM + bWalkTimeM;
+
+            const pickupTrolleys = await getTrolleysForPickup('Broad-Girard', trolleyData);
+
+            let bestTrolley = null;
+            let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+            for (const trolley of pickupTrolleys) {
+                const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                if (waitForThisTrolley >= -2) {
+                    if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                        bestTrolley = trolley;
+                        trolleyWait = Math.max(0, waitForThisTrolley);
+                    }
+                }
+            }
+
+            const totalTime = totalTravelTime + trolleyWait;
+
+            const option = {
+                gPickup: 'Broad-Girard',
+                steps: [
+                    {
+                        type: 'metro',
+                        line: 'M',
+                        description: 'Take M toward 69th St',
+                        departTime: '~' + departTimeFormatted,
+                        time: mWait + mTravelTime,
+                        fromStation: originStation,
+                        toStation: '69th St TC',
+                        numStops: stopsTo69th,
+                        isScheduled: false
+                    },
+                    { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', exitLine: 'M', time: 0 },
+                    { type: 'transfer', description: 'Transfer to L line at 69th Street TC' },
+                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to City Hall', time: lWait + lToCityHall, fromStation: '69th St TC', toStation: 'City Hall', numStops: 9, isScheduled: false },
+                    { type: 'exit', description: 'Exit at City Hall', station: 'City Hall (MFL)', exitLine: 'L', time: 0 },
+                    { type: 'transfer', description: 'Transfer to B line (Broad Street Line)' },
+                    { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWaitForM + bToGirardFromM, fromStation: 'City Hall', toStation: 'Broad-Girard', numStops: 4, isScheduled: false },
+                    { type: 'exit', description: 'Exit at Broad-Girard', station: 'Broad-Girard', exitLine: 'B', time: 0 },
+                    { type: 'walk', description: 'Walk to Broad-Girard on G line', time: bWalkTimeM }
+                ],
+                travelTime: mWait + mTravelTime + lWait + lToCityHall + bWaitForM + bToGirardFromM,
+                walkTime: bWalkTimeM,
+                trolleyWait: trolleyWait,
+                totalTime: totalTime,
+                minutesToPickup: totalTravelTime,
+                metroDepartTime: '~' + departTimeFormatted
+            };
+
+            if (bestTrolley) {
+                option.trolleyVehicle = bestTrolley.vehicle;
+                option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
+                option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                option.trolleyIsPCC = bestTrolley.isPCC;
+            }
+
+            options.push(option);
+        }
+
+        // Route 3: M → 69th → L → 30th St → T1 → Lancaster-Girard
+        const lTo30thFromM = 11; // 69th St to 30th St on L
+        const t1WaitM = getMetroFrequency('T');
+        const t1ToLancasterM = 12; // 30th St to Lancaster-Girard on T1
+        const t1WalkTimeM = 2;
+
+        for (let departureNum = 0; departureNum < 2; departureNum++) {
+            const mWait = departureNum * mFrequency;
+            const departureTime = new Date(now.getTime() + mWait * 60000);
+            const departTimeFormatted = formatTime(departureTime);
+            const totalTravelTime = mWait + mTravelTime + lWait + lTo30thFromM + t1WaitM + t1ToLancasterM + t1WalkTimeM;
+
+            const pickupTrolleys = await getTrolleysForPickup('Lancaster-Girard', trolleyData);
+
+            let bestTrolley = null;
+            let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+            for (const trolley of pickupTrolleys) {
+                const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                if (waitForThisTrolley >= -2) {
+                    if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                        bestTrolley = trolley;
+                        trolleyWait = Math.max(0, waitForThisTrolley);
+                    }
+                }
+            }
+
+            const totalTime = totalTravelTime + trolleyWait;
+
+            const option = {
+                gPickup: 'Lancaster-Girard',
+                steps: [
+                    {
+                        type: 'metro',
+                        line: 'M',
+                        description: 'Take M toward 69th St',
+                        departTime: '~' + departTimeFormatted,
+                        time: mWait + mTravelTime,
+                        fromStation: originStation,
+                        toStation: '69th St TC',
+                        numStops: stopsTo69th,
+                        isScheduled: false
+                    },
+                    { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', exitLine: 'M', time: 0 },
+                    { type: 'transfer', description: 'Transfer to L line at 69th Street TC' },
+                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to 30th Street', time: lWait + lTo30thFromM, fromStation: '69th St TC', toStation: '30th Street', numStops: 8, isScheduled: false },
+                    { type: 'exit', description: 'Exit at 30th Street', station: '30th Street (MFL)', exitLine: 'L', time: 0 },
+                    { type: 'transfer', description: 'Transfer to T1 trolley (Route 10)' },
+                    { type: 'metro', line: 'T', direction: 'outbound', description: 'Take T1 toward 63rd-Malvern', time: t1WaitM + t1ToLancasterM, fromStation: '30th Street', toStation: 'Lancaster-Girard' },
+                    { type: 'exit', description: 'Exit at Lancaster-Girard', station: 'Lancaster-Girard', exitLine: 'T', time: 0 },
+                    { type: 'walk', description: 'Walk to G line stop', time: t1WalkTimeM }
+                ],
+                travelTime: mWait + mTravelTime + lWait + lTo30thFromM + t1WaitM + t1ToLancasterM,
+                walkTime: t1WalkTimeM,
+                trolleyWait: trolleyWait,
+                totalTime: totalTime,
+                minutesToPickup: totalTravelTime,
+                metroDepartTime: '~' + departTimeFormatted
+            };
+
+            if (bestTrolley) {
+                option.trolleyVehicle = bestTrolley.vehicle;
+                option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
+                option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                option.trolleyIsPCC = bestTrolley.isPCC;
             }
 
             options.push(option);
@@ -1833,6 +2284,170 @@ async function calculateRouteOptions(originStation, trolleyData) {
                 option.trolleyVehicle = bestTrolley.vehicle;
                 option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                option.trolleyIsPCC = bestTrolley.isPCC;
+            }
+
+            options.push(option);
+        }
+
+        // Route 2: D → 69th → L → City Hall → B → Broad-Girard
+        const lToCityHallD = 14; // 69th St to City Hall on L
+        const bWaitD = getMetroFrequency('B');
+        const bToGirardD = 7; // City Hall to Girard on B
+        const bWalkTimeD = 3;
+        const dFrequencyForRoutes = getMetroFrequency('D');
+
+        for (let departureNum = 0; departureNum < 2; departureNum++) {
+            let departureTime, departTimeFormatted, dWait;
+
+            if (useScheduledTimes && departureNum < departures.length) {
+                const dep = departures[departureNum];
+                departureTime = dep.departureTime;
+                departTimeFormatted = dep.time.toUpperCase();
+                dWait = dep.minutesUntil;
+            } else {
+                dWait = departureNum * dFrequencyForRoutes;
+                departureTime = new Date(now.getTime() + dWait * 60000);
+                departTimeFormatted = '~' + formatTime(departureTime);
+            }
+
+            const totalTravelTime = dWait + dTravelTime + lWait + lToCityHallD + bWaitD + bToGirardD + bWalkTimeD;
+
+            const pickupTrolleys = await getTrolleysForPickup('Broad-Girard', trolleyData);
+
+            let bestTrolley = null;
+            let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+            for (const trolley of pickupTrolleys) {
+                const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                if (waitForThisTrolley >= -2) {
+                    if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                        bestTrolley = trolley;
+                        trolleyWait = Math.max(0, waitForThisTrolley);
+                    }
+                }
+            }
+
+            const totalTime = totalTravelTime + trolleyWait;
+            const routeLabel = station.routeName || dLineRoute;
+
+            const option = {
+                gPickup: 'Broad-Girard',
+                steps: [
+                    {
+                        type: 'metro',
+                        line: 'D',
+                        description: `Take ${routeLabel} toward 69th St`,
+                        departTime: departTimeFormatted,
+                        time: dWait + dTravelTime,
+                        fromStation: originStation,
+                        toStation: '69th St TC',
+                        numStops: stopsTo69th,
+                        isScheduled: useScheduledTimes && departureNum < departures.length
+                    },
+                    { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', exitLine: 'D', time: 0 },
+                    { type: 'transfer', description: 'Transfer to L line at 69th Street TC' },
+                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to City Hall', time: lWait + lToCityHallD, fromStation: '69th St TC', toStation: 'City Hall', numStops: 9, isScheduled: false },
+                    { type: 'exit', description: 'Exit at City Hall', station: 'City Hall (MFL)', exitLine: 'L', time: 0 },
+                    { type: 'transfer', description: 'Transfer to B line (Broad Street Line)' },
+                    { type: 'metro', line: 'B', direction: 'northbound', description: 'Take B northbound to Broad-Girard (B1 local or B3 express)', time: bWaitD + bToGirardD, fromStation: 'City Hall', toStation: 'Broad-Girard', numStops: 4, isScheduled: false },
+                    { type: 'exit', description: 'Exit at Broad-Girard', station: 'Broad-Girard', exitLine: 'B', time: 0 },
+                    { type: 'walk', description: 'Walk to Broad-Girard on G line', time: bWalkTimeD }
+                ],
+                travelTime: dWait + dTravelTime + lWait + lToCityHallD + bWaitD + bToGirardD,
+                walkTime: bWalkTimeD,
+                trolleyWait: trolleyWait,
+                totalTime: totalTime,
+                minutesToPickup: totalTravelTime,
+                metroDepartTime: departTimeFormatted
+            };
+
+            if (bestTrolley) {
+                option.trolleyVehicle = bestTrolley.vehicle;
+                option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
+                option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                option.trolleyIsPCC = bestTrolley.isPCC;
+            }
+
+            options.push(option);
+        }
+
+        // Route 3: D → 69th → L → 30th St → T1 → Lancaster-Girard
+        const lTo30thD = 11; // 69th St to 30th St on L
+        const t1WaitD = getMetroFrequency('T');
+        const t1ToLancasterD = 12; // 30th St to Lancaster-Girard on T1
+        const t1WalkTimeD = 2;
+
+        for (let departureNum = 0; departureNum < 2; departureNum++) {
+            let departureTime, departTimeFormatted, dWait;
+
+            if (useScheduledTimes && departureNum < departures.length) {
+                const dep = departures[departureNum];
+                departureTime = dep.departureTime;
+                departTimeFormatted = dep.time.toUpperCase();
+                dWait = dep.minutesUntil;
+            } else {
+                dWait = departureNum * dFrequencyForRoutes;
+                departureTime = new Date(now.getTime() + dWait * 60000);
+                departTimeFormatted = '~' + formatTime(departureTime);
+            }
+
+            const totalTravelTime = dWait + dTravelTime + lWait + lTo30thD + t1WaitD + t1ToLancasterD + t1WalkTimeD;
+
+            const pickupTrolleys = await getTrolleysForPickup('Lancaster-Girard', trolleyData);
+
+            let bestTrolley = null;
+            let trolleyWait = CONFIG.ESTIMATED_HEADWAY;
+
+            for (const trolley of pickupTrolleys) {
+                const waitForThisTrolley = trolley.etaToPickup - totalTravelTime;
+                if (waitForThisTrolley >= -2) {
+                    if (!bestTrolley || waitForThisTrolley < trolleyWait) {
+                        bestTrolley = trolley;
+                        trolleyWait = Math.max(0, waitForThisTrolley);
+                    }
+                }
+            }
+
+            const totalTime = totalTravelTime + trolleyWait;
+            const routeLabel = station.routeName || dLineRoute;
+
+            const option = {
+                gPickup: 'Lancaster-Girard',
+                steps: [
+                    {
+                        type: 'metro',
+                        line: 'D',
+                        description: `Take ${routeLabel} toward 69th St`,
+                        departTime: departTimeFormatted,
+                        time: dWait + dTravelTime,
+                        fromStation: originStation,
+                        toStation: '69th St TC',
+                        numStops: stopsTo69th,
+                        isScheduled: useScheduledTimes && departureNum < departures.length
+                    },
+                    { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', exitLine: 'D', time: 0 },
+                    { type: 'transfer', description: 'Transfer to L line at 69th Street TC' },
+                    { type: 'metro', line: 'L', direction: 'eastbound', description: 'Take L eastbound to 30th Street', time: lWait + lTo30thD, fromStation: '69th St TC', toStation: '30th Street', numStops: 8, isScheduled: false },
+                    { type: 'exit', description: 'Exit at 30th Street', station: '30th Street (MFL)', exitLine: 'L', time: 0 },
+                    { type: 'transfer', description: 'Transfer to T1 trolley (Route 10)' },
+                    { type: 'metro', line: 'T', direction: 'outbound', description: 'Take T1 toward 63rd-Malvern', time: t1WaitD + t1ToLancasterD, fromStation: '30th Street', toStation: 'Lancaster-Girard' },
+                    { type: 'exit', description: 'Exit at Lancaster-Girard', station: 'Lancaster-Girard', exitLine: 'T', time: 0 },
+                    { type: 'walk', description: 'Walk to G line stop', time: t1WalkTimeD }
+                ],
+                travelTime: dWait + dTravelTime + lWait + lTo30thD + t1WaitD + t1ToLancasterD,
+                walkTime: t1WalkTimeD,
+                trolleyWait: trolleyWait,
+                totalTime: totalTime,
+                minutesToPickup: totalTravelTime,
+                metroDepartTime: departTimeFormatted
+            };
+
+            if (bestTrolley) {
+                option.trolleyVehicle = bestTrolley.vehicle;
+                option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
+                option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                option.trolleyIsPCC = bestTrolley.isPCC;
             }
 
             options.push(option);
@@ -1932,6 +2547,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         option.trolleyVehicle = bestTrolley.vehicle;
                         option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                         option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                        option.trolleyIsPCC = bestTrolley.isPCC;
                     }
 
                     options.push(option);
@@ -1995,6 +2611,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         option.trolleyVehicle = bestTrolley.vehicle;
                         option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                         option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                        option.trolleyIsPCC = bestTrolley.isPCC;
                     }
 
                     options.push(option);
@@ -2078,6 +2695,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         option.trolleyVehicle = bestTrolley.vehicle;
                         option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                         option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                        option.trolleyIsPCC = bestTrolley.isPCC;
                     }
 
                     options.push(option);
@@ -2139,6 +2757,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         option.trolleyVehicle = bestTrolley.vehicle;
                         option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                         option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                        option.trolleyIsPCC = bestTrolley.isPCC;
                     }
 
                     options.push(option);
@@ -2231,6 +2850,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     option.trolleyVehicle = bestTrolley.vehicle;
                     option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                     option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    option.trolleyIsPCC = bestTrolley.isPCC;
                 }
 
                 options.push(option);
@@ -2306,6 +2926,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     option.trolleyVehicle = bestTrolley.vehicle;
                     option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                     option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                    option.trolleyIsPCC = bestTrolley.isPCC;
                 }
 
                 options.push(option);
@@ -2395,6 +3016,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                 option.trolleyVehicle = bestTrolley.vehicle;
                 option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                 option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                option.trolleyIsPCC = bestTrolley.isPCC;
             }
 
             options.push(option);
@@ -2596,6 +3218,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         option.trolleyVehicle = bestTrolley.vehicle;
                         option.trolleyDirection = bestTrolley.arrivalDirection || bestTrolley.direction;
                         option.trolleyArrivalTime = new Date(now.getTime() + bestTrolley.etaToPickup * 60000);
+                        option.trolleyIsPCC = bestTrolley.isPCC;
                     }
 
                     options.push(option);
@@ -2818,56 +3441,60 @@ async function fetchTrolleyData() {
                     for (const vehicle of vehicles) {
                         const label = String(vehicle.label || '');
 
-                        // In test mode, show ALL G line vehicles; normally only PCC trolleys (23xx)
-                        const isPCC = label.startsWith('23') && label.length === 4;
-                        if (isPCC || TEST_MODE) {
-                            const destination = (vehicle.destination || '').toUpperCase();
-
-                            let direction = 'Unknown';
-                            if (['RICHMOND', 'FISHTOWN', 'FRANKFORD', 'DELAWARE', 'WESTMORELAND'].some(d => destination.includes(d))) {
-                                direction = 'Eastbound';
-                            } else if (['63RD', 'PARKSIDE', '63'].some(d => destination.includes(d))) {
-                                direction = 'Westbound';
-                            }
-
-                            const currentSeq = vehicle.next_stop_sequence;
-                            let stopsAway = null;
-                            let etaMinutes = null;
-
-                            if (direction in BROAD_GIRARD && currentSeq != null) {
-                                const broadSeq = BROAD_GIRARD[direction].sequence;
-                                stopsAway = broadSeq - currentSeq;
-
-                                if (stopsAway > 0) {
-                                    etaMinutes = Math.round(stopsAway * CONFIG.MINUTES_PER_STOP);
-                                } else if (stopsAway === 0) {
-                                    etaMinutes = 0;
-                                } else {
-                                    // Already passed - calculate how long ago
-                                    stopsAway = null;
-                                    etaMinutes = null;
-                                }
-                            }
-
-                            // Get approximate location
-                            const location = getApproximateLocation(currentSeq, direction);
-
-                            trolleys.push({
-                                vehicle: label,
-                                destination: vehicle.destination || '',
-                                direction,
-                                lat: vehicle.lat,
-                                lng: vehicle.lng,
-                                currentSequence: currentSeq,
-                                stopsAway,
-                                etaMinutes,
-                                location,
-                                nextStopId: vehicle.next_stop_id,
-                                isPCC: isPCC,  // true for PCC trolleys (23xx), false for buses
-                                late: vehicle.late || 0,  // Real-time offset from schedule (negative = early)
-                                tripId: vehicle.trip  // Trip ID to match with schedules
-                            });
+                        // Skip invalid entries (label = 'None', '0', empty, or no stop sequence)
+                        if (!label || label === 'None' || label === '0' || label === '' ||
+                            vehicle.next_stop_sequence == null) {
+                            continue;
                         }
+
+                        // Always fetch all vehicles; display logic will filter based on isPCC and user preferences
+                        const isPCC = label.startsWith('23') && label.length === 4;
+                        const destination = (vehicle.destination || '').toUpperCase();
+
+                        let direction = 'Unknown';
+                        if (['RICHMOND', 'FISHTOWN', 'FRANKFORD', 'DELAWARE', 'WESTMORELAND'].some(d => destination.includes(d))) {
+                            direction = 'Eastbound';
+                        } else if (['63RD', 'PARKSIDE', '63'].some(d => destination.includes(d))) {
+                            direction = 'Westbound';
+                        }
+
+                        const currentSeq = vehicle.next_stop_sequence;
+                        let stopsAway = null;
+                        let etaMinutes = null;
+
+                        if (direction in BROAD_GIRARD && currentSeq != null) {
+                            const broadSeq = BROAD_GIRARD[direction].sequence;
+                            stopsAway = broadSeq - currentSeq;
+
+                            if (stopsAway > 0) {
+                                etaMinutes = Math.round(stopsAway * CONFIG.MINUTES_PER_STOP);
+                            } else if (stopsAway === 0) {
+                                etaMinutes = 0;
+                            } else {
+                                // Already passed - calculate how long ago
+                                stopsAway = null;
+                                etaMinutes = null;
+                            }
+                        }
+
+                        // Get approximate location
+                        const location = getApproximateLocation(currentSeq, direction);
+
+                        trolleys.push({
+                            vehicle: label,
+                            destination: vehicle.destination || '',
+                            direction,
+                            lat: vehicle.lat,
+                            lng: vehicle.lng,
+                            currentSequence: currentSeq,
+                            stopsAway,
+                            etaMinutes,
+                            location,
+                            nextStopId: vehicle.next_stop_id,
+                            isPCC: isPCC,  // true for PCC trolleys (23xx), false for buses
+                            late: vehicle.late || 0,  // Real-time offset from schedule (negative = early)
+                            tripId: vehicle.trip  // Trip ID to match with schedules
+                        });
                     }
                 }
 
@@ -3955,10 +4582,11 @@ async function updateConnections() {
             const dirClass = option.trolleyDirection === 'Eastbound' ? 'east' : 'west';
             const arrivalTimeStr = option.trolleyArrivalTime ? formatTime(option.trolleyArrivalTime) : '';
             const dirAbbrev = option.trolleyDirection === 'Eastbound' ? 'EB' : 'WB';
+            const waitText = option.trolleyWait > 0 ? ` (~${option.trolleyWait} min wait)` : ' (no wait)';
             trolleyInfoHtml = `
                 <div class="trolley-arrival-row compact">
                     <span class="trolley-dir-badge-sm ${dirClass}">${dirAbbrev}</span>
-                    <span class="trolley-info-line">#${option.trolleyVehicle} arrives in ${option.trolleyWait} min${arrivalTimeStr ? ` (${arrivalTimeStr})` : ''}</span>
+                    <span class="trolley-info-line">#${option.trolleyVehicle} to arrive at ${arrivalTimeStr}${waitText}</span>
                 </div>
             `;
         } else {
@@ -4089,7 +4717,7 @@ async function updateConnections() {
                 </div>
                 <div class="destination-info">
                     <div class="destination-pickup">
-                        <span class="pickup-name">Catch Trolley at ${option.gPickup}</span>
+                        <span class="pickup-name">Catch ${option.trolleyIsPCC === false ? 'Bus' : 'Trolley'} at ${option.gPickup}</span>
                     </div>
                     <div class="trolley-arrivals">${trolleyInfoHtml}</div>
                 </div>
@@ -4365,19 +4993,76 @@ function renderTrolleyWaits(connections) {
 
 function updateTrolleyDetails() {
     const container = document.getElementById('trolley-list');
+    const toggleLabel = document.getElementById('show-buses-toggle');
     const now = new Date();
 
-    if (trolleyData.length === 0) {
+    // Store data for re-rendering when checkbox changes
+    window.lastTrolleyData = trolleyData;
+
+    // Separate PCC trolleys from buses
+    const pccTrolleys = trolleyData.filter(t => t.isPCC);
+    const buses = trolleyData.filter(t => !t.isPCC);
+    const hasPCCTrolleys = pccTrolleys.length > 0;
+    const hasBuses = buses.length > 0;
+
+    // Show/hide the "See buses" checkbox
+    if (toggleLabel) {
+        if (hasPCCTrolleys && hasBuses) {
+            toggleLabel.style.display = 'flex';
+        } else {
+            toggleLabel.style.display = 'none';
+        }
+    }
+
+    // Update the section header text based on what's being displayed
+    const sectionTitle = document.getElementById('trolley-section-title');
+    if (sectionTitle) {
+        if (hasPCCTrolleys && showBusesWithTrolleys && hasBuses) {
+            sectionTitle.textContent = 'PCC Trolleys AND Buses Running Now';
+        } else if (hasPCCTrolleys) {
+            sectionTitle.textContent = 'PCC Trolleys Running Now';
+        } else if (hasBuses) {
+            sectionTitle.textContent = 'Buses Running Now';
+        } else {
+            sectionTitle.textContent = 'G Line Status';
+        }
+    }
+
+    // Determine what vehicles to display
+    let vehiclesToShow;
+    let showBummerMessage = false;
+
+    if (hasPCCTrolleys) {
+        // PCC trolleys are running - show them, plus buses if checkbox is checked
+        vehiclesToShow = showBusesWithTrolleys ? trolleyData : pccTrolleys;
+    } else if (hasBuses) {
+        // No PCC trolleys, but buses are running - show "Bummer" message + buses
+        vehiclesToShow = buses;
+        showBummerMessage = true;
+    } else {
+        // Nothing running at all
+        vehiclesToShow = [];
+    }
+
+    if (vehiclesToShow.length === 0) {
         container.innerHTML = `
             <div class="no-trolleys">
-                <div class="no-trolleys-title">No PCC Trolleys Running</div>
-                <div class="no-trolleys-subtitle">Route G is using bus substitutes right now</div>
+                <div class="no-trolleys-title">Bummer. There are no PCC trolley cars running right now :(</div>
+                <div class="no-trolleys-subtitle">No buses detected either. Check back later!</div>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = trolleyData.map(trolley => {
+    // Build the "Bummer" message HTML if needed
+    const bummerHtml = showBummerMessage ? `
+        <div class="no-trolleys" style="margin-bottom: 16px;">
+            <div class="no-trolleys-title">Bummer. There are no PCC trolley cars running right now :(</div>
+            <div class="no-trolleys-subtitle">For now, you can use the app to track the buses on the G below.</div>
+        </div>
+    ` : '';
+
+    container.innerHTML = bummerHtml + vehiclesToShow.map(trolley => {
         const dirClass = trolley.direction === 'Eastbound' ? 'east' : 'west';
         const dirArrow = trolley.direction === 'Eastbound' ? '&#x2192;' : '&#x2190;'; // → or ←
 
@@ -4418,7 +5103,7 @@ function updateTrolleyDetails() {
                             : '';
                         return `
                             <span class="timeline-stop ${stop.position}${isNextImmediate ? ' next-immediate' : ''}${isTransfer ? ' transfer' : ''}">
-                                ${isCurrent ? `<span class="trolley-icon"><img src="${trolley.direction === 'Eastbound' ? 'Graphics/EB_PCC_App_Logo.svg' : 'Graphics/WB PCC App Logo.svg'}" alt="🚋" style="width:28px;height:auto;"></span>` : ''}
+                                ${isCurrent ? `<span class="trolley-icon"><img src="${trolley.isPCC ? (trolley.direction === 'Eastbound' ? 'Graphics/EB_PCC_App_Logo.svg' : 'Graphics/WB PCC App Logo.svg') : (trolley.direction === 'Eastbound' ? 'Graphics/Septa_Bus_EB.svg' : 'Graphics/Septa_Bus_WB.svg')}" alt="${trolley.isPCC ? '🚋' : '🚌'}" style="width:28px;height:auto;"></span>` : ''}
                                 <span class="stop-name">${stop.shortName}</span>
                                 ${isCurrent ? `<span class="direction-arrow ${dirClass}">${dirArrow}</span>` : ''}
                                 ${transferBadges}

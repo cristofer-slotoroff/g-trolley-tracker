@@ -115,7 +115,7 @@ header h1 {
 }
 
 .no-trolleys-title {
-    font-size: 1.2rem;
+    font-size: 0.95rem;
     font-weight: bold;
     color: var(--pcc-cream);
     margin-bottom: 8px;
@@ -124,6 +124,29 @@ header h1 {
 .no-trolleys-subtitle {
     font-size: 0.9rem;
     color: var(--pcc-cream-dim);
+}
+
+/* Show Buses Toggle */
+.show-buses-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--pcc-cream-dim);
+    margin: 4px 0 16px 0;
+    cursor: pointer;
+}
+
+.show-buses-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--pcc-gold);
+}
+
+.show-buses-label span {
+    opacity: 0.8;
 }
 
 /* Cards */
