@@ -5103,10 +5103,12 @@ function updateTrolleyDetails() {
                             : '';
                         return `
                             <span class="timeline-stop ${stop.position}${isNextImmediate ? ' next-immediate' : ''}${isTransfer ? ' transfer' : ''}">
-                                ${isCurrent ? `<span class="trolley-icon"><img src="${trolley.isPCC ? (trolley.direction === 'Eastbound' ? 'Graphics/EB_PCC_App_Logo.svg' : 'Graphics/WB PCC App Logo.svg') : (trolley.direction === 'Eastbound' ? 'Graphics/Septa_Bus_EB.svg' : 'Graphics/Septa_Bus_WB.svg')}" alt="${trolley.isPCC ? '🚋' : '🚌'}" style="width:28px;height:auto;"></span>` : ''}
-                                <span class="stop-name">${stop.shortName}</span>
+                                ${isCurrent ? `<span class="trolley-icon"><img src="${trolley.isPCC ? (trolley.direction === 'Eastbound' ? 'Graphics/EB_PCC_App_Logo.svg' : 'Graphics/WB PCC App Logo.svg') : (trolley.direction === 'Eastbound' ? 'Graphics/Septa_Bus_EB.svg' : 'Graphics/Septa_Bus_WB.svg')}" alt="${trolley.isPCC ? '🚋' : '🚌'}"></span>` : ''}
+                                <span class="stop-name-group">
+                                    <span class="stop-name">${stop.shortName}</span>
+                                    ${transferBadges}
+                                </span>
                                 ${isCurrent ? `<span class="direction-arrow ${dirClass}">${dirArrow}</span>` : ''}
-                                ${transferBadges}
                             </span>
                             ${i < 4 ? '<span class="timeline-connector"></span>' : ''}
                         `;
