@@ -1214,9 +1214,9 @@ header h1 {
     justify-content: center;
 }
 
-/* When no arrow present (non-current stops), push badge down to align with where badges appear on current stops */
+/* Non-current transfer stops: badge aligns with where arrow would be */
 .timeline-stop:not(.current) .transfer-badges {
-    margin-top: 12px;
+    margin-top: 0;
 }
 
 .transfer-badge {
@@ -1515,7 +1515,7 @@ footer p {
     }
 
     .timeline-stop:not(.current) .transfer-badges {
-        margin-top: 10px;
+        margin-top: 0;
     }
 
     .trolley-icon {
