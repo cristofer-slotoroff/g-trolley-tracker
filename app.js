@@ -5114,6 +5114,9 @@ function updateTrolleyDetails() {
                     <span class="timeline-terminal">${rightTerminal}</span>
                 </div>
             `;
+        } else {
+            // Fallback when stop isn't in our database
+            timelineHtml = `<div class="trolley-timeline" style="justify-content: center; opacity: 0.6;"><span style="font-size: 0.7rem;">Location: ${trolley.location || 'Unknown'}</span></div>`;
         }
 
         return `
