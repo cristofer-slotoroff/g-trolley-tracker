@@ -1083,13 +1083,13 @@ header h1 {
 /* 5-stop timeline */
 .trolley-timeline {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 4px;
     padding: 10px 5px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 6px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .timeline-stop {
@@ -1112,12 +1112,12 @@ header h1 {
 }
 
 .stop-bottom {
-    height: 16px;
+    min-height: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 1px;
+    gap: 0;
 }
 
 .timeline-stop .stop-name {
@@ -1183,6 +1183,8 @@ header h1 {
     border-radius: 50%;
     background: var(--pcc-cream-dim);
     opacity: 0.4;
+    margin-top: 28px;
+    flex-shrink: 0;
 }
 
 /* Terminal stops at ends of timeline */
@@ -1193,14 +1195,16 @@ header h1 {
     white-space: nowrap;
     padding: 0 4px;
     flex-shrink: 0;
+    margin-top: 26px;
 }
 
 .timeline-divider {
     width: 1px;
-    height: 24px;
+    height: 16px;
     background: var(--pcc-cream-dim);
     opacity: 0.4;
     margin: 0 6px;
+    margin-top: 26px;
 }
 
 /* Transfer line badges */
@@ -1482,16 +1486,19 @@ footer p {
         padding: 0 2px;
         flex-shrink: 0;
         white-space: nowrap;
+        margin-top: 24px;
     }
 
     .timeline-divider {
         margin: 0 3px;
-        height: 18px;
+        height: 14px;
+        margin-top: 24px;
     }
 
     .timeline-connector {
         width: 4px;
         height: 4px;
+        margin-top: 24px;
     }
 
     .stop-top {
@@ -1499,7 +1506,7 @@ footer p {
     }
 
     .stop-bottom {
-        height: 14px;
+        min-height: 18px;
     }
 
     .trolley-icon {
