@@ -116,10 +116,10 @@ const G_LINE_STOPS_FULL = [
     { stopId: '20986', name: 'Girard Av & Berks St', shortName: 'Berks', lng: -75.125833 },
     { stopId: '21105', name: 'Girard Av & Richmond St', shortName: 'Richmond', lng: -75.119769 },
     { stopId: '25779', name: 'Richmond St & Girard Av', shortName: 'Richmond', lng: -75.119591 },
-    { stopId: '650', name: 'Richmond St & Cumberland St', shortName: 'Cumberland', lng: -75.118038 },
-    { stopId: '649', name: 'Richmond St & Cumberland St', shortName: 'Cumberland', lng: -75.118181 },
-    { stopId: '21107', name: 'Richmond St & Huntingdon St', shortName: 'Huntingdon', lng: -75.11573 },
-    { stopId: '20984', name: 'Richmond St & Huntingdon St', shortName: 'Huntingdon', lng: -75.115552 },
+    { stopId: '650', name: 'Richmond St & Cumberland St', shortName: 'Cumb', lng: -75.118038 },
+    { stopId: '649', name: 'Richmond St & Cumberland St', shortName: 'Cumb', lng: -75.118181 },
+    { stopId: '21107', name: 'Richmond St & Huntingdon St', shortName: 'Hunt', lng: -75.11573 },
+    { stopId: '20984', name: 'Richmond St & Huntingdon St', shortName: 'Hunt', lng: -75.115552 },
     { stopId: '21108', name: 'Richmond St & Lehigh Av', shortName: 'Lehigh', lng: -75.113302 },
     { stopId: '20983', name: 'Richmond St & Lehigh Av', shortName: 'Lehigh', lng: -75.113101 },
     { stopId: '21109', name: 'Richmond St & Somerset St', shortName: 'Somerset', lng: -75.110887 },
@@ -192,8 +192,8 @@ const G_LINE_STOPS_SIMPLE = [
     { name: 'Palmer St', shortName: 'Palmer' },
     { name: 'Berks St', shortName: 'Berks' },
     { name: 'Richmond & Girard', shortName: 'Richmond' },
-    { name: 'Cumberland St', shortName: 'Cumberland' },
-    { name: 'Huntingdon St', shortName: 'Huntingdon' },
+    { name: 'Cumberland St', shortName: 'Cumb' },
+    { name: 'Huntingdon St', shortName: 'Hunt' },
     { name: 'Lehigh Av', shortName: 'Lehigh' },
     { name: 'Somerset St', shortName: 'Somerset' },
     { name: 'Cambria St', shortName: 'Cambria' },
@@ -976,7 +976,7 @@ function populateLineSelector() {
                 <span class="line-letter">M</span> Norristown
             </button>
             <button class="line-btn line-D ${selectedLine === 'D' ? 'active' : ''}" data-line="D" onclick="setLine('D')">
-                <span class="line-letter">D</span> Media/Sharon Hill
+                <span class="line-letter">D</span> <span class="line-name">Media-<br>Sharon Hill</span>
             </button>
             <button class="line-btn line-T ${selectedLine === 'T' ? 'active' : ''}" data-line="T" onclick="setLine('T')">
                 <span class="line-letter">T</span> Trolleys

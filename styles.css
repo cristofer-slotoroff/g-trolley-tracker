@@ -1330,6 +1330,11 @@ footer p {
         font-size: 0.75rem;
     }
 
+    .line-btn .line-name {
+        text-align: center;
+        line-height: 1.1;
+    }
+
     /* Trolley info - more compact */
     .trolley-header {
         gap: 6px;
@@ -1460,19 +1465,20 @@ footer p {
 
     /* Route steps - compact single-line layout */
     .route-steps {
-        grid-template-columns: 52px 38px 1fr;
-        gap: 2px 4px;
+        grid-template-columns: 48px 34px 1fr;
+        gap: 2px 3px;
         margin-bottom: 8px;
     }
 
     .step-time-box {
-        padding: 2px 3px;
-        font-size: 0.65rem;
+        padding: 2px 2px;
+        font-size: 0.55rem;
         border-radius: 3px;
+        white-space: nowrap;
     }
 
     .step-number {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
     }
 
     .step-content {
@@ -1549,33 +1555,34 @@ footer p {
 
     /* Trolley arrival rows - more compact */
     .trolley-arrival-row {
-        gap: 8px;
-        padding: 6px 0;
+        gap: 6px;
+        padding: 5px 0;
+        flex-wrap: wrap;
     }
 
     .trolley-dir-badge {
-        padding: 4px 6px;
-        font-size: 0.7rem;
-        min-width: 70px;
+        padding: 3px 5px;
+        font-size: 0.6rem;
+        min-width: 55px;
     }
 
     .trolley-details {
-        gap: 4px;
-        font-size: 0.7rem;
-        flex-wrap: nowrap;
-        overflow: hidden;
+        gap: 3px;
+        font-size: 0.65rem;
+        flex-wrap: wrap;
+        flex: 1;
     }
 
     .trolley-details .trolley-id {
-        font-size: 0.8rem;
-    }
-
-    .trolley-details .trolley-eta {
         font-size: 0.7rem;
     }
 
-    .trolley-details .trolley-time {
+    .trolley-details .trolley-eta {
         font-size: 0.65rem;
+    }
+
+    .trolley-details .trolley-time {
+        font-size: 0.6rem;
     }
 
     .schedule-source {
