@@ -1146,6 +1146,8 @@ header h1 {
 .trolley-icon img {
     display: block;
     margin: 0 auto;
+    width: 28px;
+    height: auto;
 }
 
 .direction-arrow {
@@ -1491,7 +1493,7 @@ footer p {
     }
 
     .stop-top {
-        height: 20px;
+        height: 22px;
     }
 
     .stop-bottom {
@@ -1504,12 +1506,12 @@ footer p {
     }
 
     .trolley-icon img, img.trolley-icon {
-        width: 22px;
+        width: 24px;
         height: auto;
     }
 
     .direction-arrow {
-        font-size: 0.55rem;
+        font-size: 0.6rem;
         margin-top: 0;
     }
 
@@ -1517,8 +1519,12 @@ footer p {
         gap: 0;
     }
 
+    .timeline-stop .stop-name {
+        font-size: 0.6rem;
+    }
+
     .timeline-stop.current .stop-name {
-        font-size: 0.55rem;
+        font-size: 0.65rem;
     }
 
     .transfer-badges {
@@ -1527,8 +1533,8 @@ footer p {
     }
 
     .transfer-badge {
-        font-size: 0.4rem;
-        padding: 1px 2px;
+        font-size: 0.45rem;
+        padding: 1px 3px;
     }
 
     /* Route option cards - more compact */
