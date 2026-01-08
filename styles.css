@@ -1112,12 +1112,12 @@ header h1 {
 }
 
 .stop-bottom {
-    min-height: 20px;
+    min-height: 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 0;
+    gap: 3px;
 }
 
 .timeline-stop .stop-name {
@@ -1211,8 +1211,12 @@ header h1 {
 .transfer-badges {
     display: flex;
     gap: 2px;
-    margin-top: 1px;
     justify-content: center;
+}
+
+/* When no arrow present (non-current stops), push badge down to align with where badges appear on current stops */
+.timeline-stop:not(.current) .transfer-badges {
+    margin-top: 12px;
 }
 
 .transfer-badge {
@@ -1506,7 +1510,12 @@ footer p {
     }
 
     .stop-bottom {
-        min-height: 18px;
+        min-height: 22px;
+        gap: 2px;
+    }
+
+    .timeline-stop:not(.current) .transfer-badges {
+        margin-top: 10px;
     }
 
     .trolley-icon {
