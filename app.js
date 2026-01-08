@@ -391,19 +391,25 @@ const METRO_LINES = {
         apiRoutes: ['D1', 'D2'], // Routes 101, 102 - real-time available
         // D lines connect to L at 69th St TC
         routes: {
-            'Route 101': [
-                { name: '69th Street TC (D)', stopsTo69th: 0, transferTo: 'L', stopId: '15497' },
-                { name: 'Drexel Park', stopsTo69th: 1, stopId: '18600' },
-                { name: 'Aronimink', stopsTo69th: 2, stopId: '18628' },
-                { name: 'Scenic Road', stopsTo69th: 3, stopId: '30607' },
-                { name: 'Springfield Mall', stopsTo69th: 5, stopId: '1951' },
-                { name: 'Media TC', stopsTo69th: 10, stopId: '18615' }
-            ],
-            'Route 102': [
-                { name: '69th Street TC (D2)', stopsTo69th: 0, transferTo: 'L', stopId: '15497' },
-                { name: 'Drexel Park (102)', stopsTo69th: 1, stopId: '18600' },
-                { name: 'Sharon Hill', stopsTo69th: 8, stopId: '15333' }
-            ]
+            'D1': {
+                name: 'Route 101 (Media)',
+                stations: [
+                    { name: '69th Street TC (D)', stopsTo69th: 0, transferTo: 'L', stopId: '15497' },
+                    { name: 'Drexel Park', stopsTo69th: 1, stopId: '18600' },
+                    { name: 'Aronimink', stopsTo69th: 2, stopId: '18628' },
+                    { name: 'Scenic Road', stopsTo69th: 3, stopId: '30607' },
+                    { name: 'Springfield Mall', stopsTo69th: 5, stopId: '1951' },
+                    { name: 'Media TC', stopsTo69th: 10, stopId: '18615' }
+                ]
+            },
+            'D2': {
+                name: 'Route 102 (Sharon Hill)',
+                stations: [
+                    { name: '69th Street TC (D2)', stopsTo69th: 0, transferTo: 'L', stopId: '15497' },
+                    { name: 'Drexel Park (102)', stopsTo69th: 1, stopId: '18600' },
+                    { name: 'Sharon Hill', stopsTo69th: 8, stopId: '15333' }
+                ]
+            }
         }
     },
     'T': {
@@ -1094,17 +1100,20 @@ function generateStopsIndicator(fromStation, toStation, numStops, intermediateSt
     const shorten = (name) => {
         if (!name) return '';
         // Remove common suffixes and shorten
-        return name
+        let shortened = name
             .replace(' Station', '')
             .replace(' (MFL)', '')
+            .replace(' (D)', '')
+            .replace(' (D2)', '')
             .replace(' TC', '')
             .replace('North ', 'N ')
             .replace('South ', 'S ')
             .replace('East ', 'E ')
             .replace('West ', 'W ')
             .replace(' Street', ' St')
-            .replace(' Avenue', ' Av')
-            .substring(0, 10);
+            .replace(' Avenue', ' Av');
+        // Only truncate if still too long (14 chars)
+        return shortened.length > 14 ? shortened.substring(0, 12) + '..' : shortened;
     };
 
     const from = shorten(fromStation);

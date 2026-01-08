@@ -705,9 +705,15 @@ header h1 {
 }
 
 .stop-more {
-    color: var(--pcc-cream-dim);
+    color: var(--pcc-cream);
     font-size: 0.65rem;
-    margin-left: 2px;
+    background: var(--pcc-green-dark);
+    padding: 1px 4px;
+    border-radius: 8px;
+    position: relative;
+    z-index: 2;
+    white-space: nowrap;
+    border: 1px solid var(--pcc-cream-dim);
 }
 
 /* Live indicator for real-time data */
