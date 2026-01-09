@@ -4407,16 +4407,27 @@ async function updateConnections() {
 
     // Filter out bus routes unless the "See buses" checkbox is checked
     // Use strict === true check since trolleyIsPCC may be undefined for some routes
+    const unfilteredCount = routeOptions.length;
     if (!showBusesWithTrolleys) {
         routeOptions = routeOptions.filter(option => option.trolleyIsPCC === true);
     }
 
     if (routeOptions.length === 0) {
-        container.innerHTML = `
-            <div class="error-message">
-                No routes found from ${selectedStation} to Route G.
-            </div>
-        `;
+        // Check if we filtered out bus routes - show helpful message
+        if (unfilteredCount > 0 && !showBusesWithTrolleys) {
+            container.innerHTML = `
+                <div class="no-trolleys" style="margin: 0;">
+                    <div class="no-trolleys-title">No PCC trolley routes available right now</div>
+                    <div class="no-trolleys-subtitle">Check "See buses on the G Line too?" above to view bus routes.</div>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="error-message">
+                    No routes found from ${selectedStation} to Route G.
+                </div>
+            `;
+        }
         return;
     }
 
