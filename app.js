@@ -2265,7 +2265,8 @@ async function calculateRouteOptions(originStation, trolleyData) {
                         numStops: stopsTo69th,
                         isScheduled: useScheduledTimes && !matchedVehicle,
                         isRealTime: !!matchedVehicle,
-                        vehicleId: matchedVehicle?.vehicle
+                        vehicleId: matchedVehicle?.vehicleId || matchedVehicle?.vehicle,
+                        blockId: matchedVehicle?.blockId || null
                     },
                     { type: 'exit', description: 'Exit at 69th Street TC', station: '69th Street TC', exitLine: 'D', time: 0 },
                     { type: 'transfer', description: 'Transfer to L line at 69th Street TC' },
@@ -2529,7 +2530,8 @@ async function calculateRouteOptions(originStation, trolleyData) {
                                 toStation: 'Lancaster-Girard',
                                 numStops: vehicle.stopsAway,
                                 isRealTime: true,  // Real-time data from TransitView + GTFS
-                                vehicleId: vehicle.vehicle,
+                                vehicleId: vehicle.vehicleId || vehicle.vehicle,
+                                blockId: vehicle.blockId || null,
                                 lateMinutes: vehicle.lateMinutes,
                                 lateInfo: lateInfo
                             },
@@ -3308,6 +3310,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
 let trolleyData = [];
 let tLineData = [];  // Real-time T line (T1-T5) vehicle positions
 let dLineData = [];  // Real-time D line (D1/D2 = 101/102) vehicle positions
+let mLineData = [];  // Real-time M line (M1 = NHSL) vehicle positions
 let trainData = [];
 let refreshTimer = null;
 
@@ -3434,6 +3437,7 @@ async function fetchTrolleyData() {
         const trolleys = [];
         const tLines = [];  // T1-T5 real-time positions
         const dLines = [];  // D1-D2 real-time positions
+        const mLines = [];  // M1 (NHSL) real-time positions
 
         for (const route of (data.routes || [])) {
             for (const [routeId, vehicles] of Object.entries(route)) {
@@ -3541,6 +3545,8 @@ async function fetchTrolleyData() {
                         tLines.push({
                             route: tLineRoute,  // Use mapped T1-T5 name
                             vehicle: label,
+                            vehicleId: vehicle.VehicleID || label,
+                            blockId: vehicle.BlockID || null,
                             destination: vehicle.destination || '',
                             direction,
                             lat: parseFloat(vehicle.lat),
@@ -3590,6 +3596,51 @@ async function fetchTrolleyData() {
                         dLines.push({
                             route: dLineRoute,  // Use mapped D1-D2 name
                             vehicle: label,
+                            vehicleId: vehicle.VehicleID || label,
+                            blockId: vehicle.BlockID || null,
+                            destination: vehicle.destination || '',
+                            direction,
+                            lat: parseFloat(vehicle.lat),
+                            lng: parseFloat(vehicle.lng),
+                            nextStopId: vehicle.next_stop_id,
+                            nextStopSequence: vehicle.next_stop_sequence,
+                            nextStopName: vehicle.next_stop_name,
+                            late: vehicle.late || 0,
+                            tripId: vehicle.trip,
+                            timestamp: vehicle.timestamp
+                        });
+                    }
+                }
+
+                // Process M1 (Norristown High Speed Line) for real-time tracking
+                // API returns route: M1
+                if (routeId === 'M1') {
+                    for (const vehicle of vehicles) {
+                        const label = String(vehicle.label || '');
+                        // Skip invalid entries (label = 'None', '0', empty, or very late = 998/999)
+                        if (!label || label === 'None' || label === '0' || label === '' ||
+                            vehicle.late >= 998 || vehicle.next_stop_sequence == null) {
+                            continue;
+                        }
+
+                        const destination = (vehicle.destination || '').toUpperCase();
+
+                        // Determine direction based on destination
+                        // Inbound = toward 69th Street Terminal
+                        // Outbound = toward Norristown Transit Center
+                        let direction = 'Unknown';
+                        if (destination.includes('NORRISTOWN') || destination.includes('NTC')) {
+                            direction = 'Outbound';  // Toward Norristown (northwest)
+                        } else if (destination.includes('69TH') || destination.includes('69') ||
+                                   destination.includes('TERMINAL')) {
+                            direction = 'Inbound';  // Toward 69th St Terminal
+                        }
+
+                        mLines.push({
+                            route: 'M1',
+                            vehicle: label,
+                            vehicleId: vehicle.VehicleID || label,
+                            blockId: vehicle.BlockID || null,
                             destination: vehicle.destination || '',
                             direction,
                             lat: parseFloat(vehicle.lat),
@@ -3613,6 +3664,10 @@ async function fetchTrolleyData() {
         // Store D line data globally for use in routing
         dLineData = dLines;
         console.log(`[D-LINE] Fetched ${dLines.length} D line vehicles:`, dLines.map(d => `${d.route} #${d.vehicle} → ${d.destination}`));
+
+        // Store M line data globally for use in routing
+        mLineData = mLines;
+        console.log(`[M-LINE] Fetched ${mLines.length} M line vehicles:`, mLines.map(m => `${m.route} #${m.vehicle} (Block ${m.blockId}) → ${m.destination}`));
 
         return trolleys;
     } catch (error) {
@@ -3675,6 +3730,25 @@ function getDLineVehicles(routeFilter = null) {
 function hasDLineRealTimeData(routeFilter = null) {
     const vehicles = getDLineVehicles(routeFilter);
     return vehicles.length > 0;
+}
+
+/**
+ * Get real-time M line (NHSL) vehicle data
+ * @returns {Array} Array of vehicles currently active on the M line
+ */
+function getMLineVehicles() {
+    if (!mLineData || mLineData.length === 0) {
+        return [];
+    }
+    return mLineData;
+}
+
+/**
+ * Check if real-time M line data is available
+ * @returns {boolean} True if real-time data is available
+ */
+function hasMLineRealTimeData() {
+    return getMLineVehicles().length > 0;
 }
 
 /**
@@ -4405,16 +4479,19 @@ async function updateConnections() {
     let routeOptions = await calculateRouteOptions(selectedStation, trolleyData);
     console.log('Route options:', routeOptions);
 
-    // Filter out bus routes unless the "See buses" checkbox is checked
-    // Use strict === true check since trolleyIsPCC may be undefined for some routes
+    // Filter out bus routes unless:
+    // 1. The "See buses" checkbox is checked, OR
+    // 2. There are no PCC trolleys running (checkbox is hidden anyway, so show buses)
+    const hasPCCTrolleys = trolleyData.some(t => t.isPCC);
     const unfilteredCount = routeOptions.length;
-    if (!showBusesWithTrolleys) {
+    if (!showBusesWithTrolleys && hasPCCTrolleys) {
         routeOptions = routeOptions.filter(option => option.trolleyIsPCC === true);
     }
 
     if (routeOptions.length === 0) {
         // Check if we filtered out bus routes - show helpful message
-        if (unfilteredCount > 0 && !showBusesWithTrolleys) {
+        // Only show checkbox hint if the checkbox is actually visible (PCC trolleys are running)
+        if (unfilteredCount > 0 && !showBusesWithTrolleys && hasPCCTrolleys) {
             container.innerHTML = `
                 <div class="no-trolleys" style="margin: 0;">
                     <div class="no-trolleys-title">No PCC trolley routes available right now</div>
@@ -4557,6 +4634,14 @@ async function updateConnections() {
                 liveIndicator = ' <span class="live-indicator" title="Live real-time data">●</span>';
             }
 
+            // Build vehicle info for metro steps with real-time GPS data
+            let vehicleInfoHtml = '';
+            if (step.type === 'metro' && step.isRealTime && step.vehicleId) {
+                const blockText = step.blockId ? ` Block ${step.blockId}` : '';
+                const lateText = step.lateMinutes ? (step.lateMinutes > 0 ? ` (+${step.lateMinutes} min)` : ` (${step.lateMinutes} min)`) : '';
+                vehicleInfoHtml = `<div class="vehicle-info">Vehicle #${step.vehicleId}${blockText}${lateText}</div>`;
+            }
+
             // Generate stops indicator if we have from/to info
             let stopsIndicatorHtml = '';
             if (step.fromStation && step.toStation && step.numStops > 0) {
@@ -4585,6 +4670,7 @@ async function updateConnections() {
                     <span class="step-number">Step ${stepNum}</span>
                     <span class="step-content">${lineBadgeHtml}${stepDescription}${liveIndicator}${delayInfo}</span>
                 </div>
+                ${vehicleInfoHtml}
                 ${stopsIndicatorHtml}
             `;
         }).join('');
