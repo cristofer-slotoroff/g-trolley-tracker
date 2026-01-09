@@ -2183,7 +2183,10 @@ async function calculateRouteOptions(originStation, trolleyData) {
         const inboundVehicles = dLineVehicles.filter(v => v.direction === 'Inbound');
         const hasRealTimeData = inboundVehicles.length > 0;
 
-        console.log(`[D-LINE ROUTING] Route ${dLineRoute}, found ${inboundVehicles.length} inbound vehicles`);
+        console.log(`[D-LINE ROUTING] Route ${dLineRoute}, dLineData has ${dLineData.length} total, getDLineVehicles returned ${dLineVehicles.length}, inbound: ${inboundVehicles.length}`);
+        if (inboundVehicles.length > 0) {
+            console.log(`[D-LINE ROUTING] Inbound vehicles:`, inboundVehicles.map(v => `#${v.vehicleId} Block ${v.blockId} dir=${v.direction}`));
+        }
 
         // Try to get actual scheduled departures
         const stopId = stationData?.stopId;
@@ -2244,6 +2247,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
             let matchedVehicle = null;
             if (hasRealTimeData && inboundVehicles.length > departureNum) {
                 matchedVehicle = inboundVehicles[departureNum];
+                console.log(`[D-LINE ROUTING] Matched vehicle for departure ${departureNum}:`, matchedVehicle ? `#${matchedVehicle.vehicleId} Block ${matchedVehicle.blockId}` : 'none');
             }
 
             // Build description with vehicle number if real-time data available
@@ -3504,14 +3508,13 @@ async function fetchTrolleyData() {
                 }
 
                 // Process T1-T5 (Subway-Surface Trolleys) for real-time tracking
-                // API returns route numbers: 10, 11, 13, 34, 36
-                // Map to SEPTA Metro naming: T1, T2, T3, T4, T5
+                // API can return either old route numbers (10, 11, 13, 34, 36) or new Metro names (T1-T5)
                 const tLineMapping = {
-                    '10': 'T1',
-                    '11': 'T2',
-                    '13': 'T3',
-                    '34': 'T4',
-                    '36': 'T5'
+                    '10': 'T1', 'T1': 'T1',
+                    '11': 'T2', 'T2': 'T2',
+                    '13': 'T3', 'T3': 'T3',
+                    '34': 'T4', 'T4': 'T4',
+                    '36': 'T5', 'T5': 'T5'
                 };
 
                 if (tLineMapping[routeId]) {
@@ -3562,11 +3565,11 @@ async function fetchTrolleyData() {
                 }
 
                 // Process D1-D2 (Media/Sharon Hill Lines) for real-time tracking
-                // API returns route numbers: 101, 102
-                // Map to SEPTA Metro naming: D1, D2
+                // API returns either old route numbers (101, 102) or new Metro names (D1, D2)
+                // Map both formats to SEPTA Metro naming: D1, D2
                 const dLineMapping = {
-                    '101': 'D1',
-                    '102': 'D2'
+                    '101': 'D1', 'D1': 'D1',
+                    '102': 'D2', 'D2': 'D2'
                 };
 
                 if (dLineMapping[routeId]) {
@@ -4481,13 +4484,12 @@ async function updateConnections() {
 
     // Filter out bus routes unless:
     // 1. The "See buses" checkbox is checked, OR
-    // 2. There are no PCC-based route options (show buses as fallback)
-    const pccRouteOptions = routeOptions.filter(option => option.trolleyIsPCC === true);
-    const hasPCCRouteOptions = pccRouteOptions.length > 0;
+    // 2. There are no PCC trolleys running at all (checkbox is hidden)
+    const hasPCCTrolleys = trolleyData.some(t => t.isPCC);
     const unfilteredCount = routeOptions.length;
-    console.log('[ROUTE FILTER] hasPCCRouteOptions:', hasPCCRouteOptions, 'showBusesWithTrolleys:', showBusesWithTrolleys, 'unfilteredCount:', unfilteredCount);
-    if (!showBusesWithTrolleys && hasPCCRouteOptions) {
-        routeOptions = pccRouteOptions;
+    console.log('[ROUTE FILTER] hasPCCTrolleys:', hasPCCTrolleys, 'showBusesWithTrolleys:', showBusesWithTrolleys, 'unfilteredCount:', unfilteredCount);
+    if (!showBusesWithTrolleys && hasPCCTrolleys) {
+        routeOptions = routeOptions.filter(option => option.trolleyIsPCC === true);
         console.log('[ROUTE FILTER] Filtered to PCC only, remaining:', routeOptions.length);
     } else {
         console.log('[ROUTE FILTER] Showing all routes (buses included)');
