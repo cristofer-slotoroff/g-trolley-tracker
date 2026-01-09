@@ -4484,8 +4484,12 @@ async function updateConnections() {
     // 2. There are no PCC trolleys running (checkbox is hidden anyway, so show buses)
     const hasPCCTrolleys = trolleyData.some(t => t.isPCC);
     const unfilteredCount = routeOptions.length;
+    console.log('[ROUTE FILTER] hasPCCTrolleys:', hasPCCTrolleys, 'showBusesWithTrolleys:', showBusesWithTrolleys, 'unfilteredCount:', unfilteredCount);
     if (!showBusesWithTrolleys && hasPCCTrolleys) {
         routeOptions = routeOptions.filter(option => option.trolleyIsPCC === true);
+        console.log('[ROUTE FILTER] Filtered to PCC only, remaining:', routeOptions.length);
+    } else {
+        console.log('[ROUTE FILTER] Showing all routes (buses included)');
     }
 
     if (routeOptions.length === 0) {
