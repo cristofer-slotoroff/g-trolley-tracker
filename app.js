@@ -3762,6 +3762,94 @@ function hasMLineRealTimeData() {
 }
 
 /**
+ * Enrich route option steps with real-time vehicle data from T/D/M lines
+ * This adds vehicleId, blockId, and isRealTime to metro steps
+ * @param {Array} routeOptions - Array of route options to enrich
+ */
+function enrichMetroStepsWithVehicleData(routeOptions) {
+    for (const option of routeOptions) {
+        if (!option.steps) continue;
+
+        for (const step of option.steps) {
+            if (step.type !== 'metro') continue;
+
+            // Determine which line and direction
+            const line = step.line;
+            let vehicles = [];
+            let directionFilter = step.direction;
+
+            // Get vehicles for this line
+            if (line && line.startsWith('T')) {
+                vehicles = getTLineVehicles(line);
+            } else if (line === 'D') {
+                // Generic D line - get all D line vehicles
+                vehicles = getDLineVehicles(null);
+            } else if (line && line.startsWith('D')) {
+                vehicles = getDLineVehicles(line);
+            } else if (line === 'M' || line === 'M1') {
+                vehicles = getMLineVehicles();
+            }
+
+            if (vehicles.length === 0) continue;
+
+            // Filter out schedule-based placeholder vehicles (not real GPS tracking)
+            vehicles = vehicles.filter(v => {
+                const vid = v.vehicleId || v.vehicle || '';
+                return !vid.toString().includes('schedBased');
+            });
+
+            if (vehicles.length === 0) continue;
+
+            // Map step direction to vehicle direction
+            // Inbound/Outbound or specific directions like northbound/southbound
+            let matchDirection = null;
+            if (directionFilter) {
+                const dir = directionFilter.toLowerCase();
+                if (dir.includes('inbound') || dir.includes('east')) {
+                    matchDirection = 'Inbound';
+                } else if (dir.includes('outbound') || dir.includes('west')) {
+                    matchDirection = 'Outbound';
+                } else if (dir.includes('north')) {
+                    matchDirection = 'Inbound'; // B line northbound = toward Fern Rock
+                } else if (dir.includes('south')) {
+                    matchDirection = 'Outbound'; // B line southbound = toward NRG
+                }
+            }
+
+            // Find the next vehicle going the right direction
+            let nextVehicle = null;
+            if (matchDirection) {
+                nextVehicle = vehicles.find(v => v.direction === matchDirection);
+            }
+            // If no direction match, just take the first vehicle
+            if (!nextVehicle && vehicles.length > 0) {
+                nextVehicle = vehicles[0];
+            }
+
+            if (nextVehicle) {
+                step.vehicleId = nextVehicle.vehicleId || nextVehicle.vehicle;
+                step.blockId = nextVehicle.blockId;
+                step.isRealTime = true;
+                step.lateMinutes = nextVehicle.late || 0;
+                step.vehicleDestination = nextVehicle.destination;
+
+                // Update description to include vehicle number inline (like Regional Rail)
+                // "Take T1 toward X" → "Take T1 #9030 → X"
+                if (step.description && step.vehicleId && !step.description.includes('#')) {
+                    const dest = step.vehicleDestination || step.toStation || '';
+                    // Match patterns like "Take T1 toward X" or "Take Route 101 (Media) toward X"
+                    if (step.description.includes(' toward ')) {
+                        step.description = step.description.replace(/ toward .+$/, ` #${step.vehicleId} → ${dest}`);
+                    }
+                }
+
+                console.log(`[ENRICH] ${line} step: Vehicle #${step.vehicleId}, Block ${step.blockId}, dest: ${step.vehicleDestination}`);
+            }
+        }
+    }
+}
+
+/**
  * Calculate T line vehicle ETAs using actual GTFS schedule data + real-time positions
  * @param {string} userStopId - The user's stop ID
  * @param {string} route - Route (T1, T2, T3, T4, T5)
@@ -4487,6 +4575,10 @@ async function updateConnections() {
 
     // Get route options using smart routing (async for metro schedule fetching)
     let routeOptions = await calculateRouteOptions(selectedStation, trolleyData);
+
+    // Enrich metro steps with real-time vehicle data (T/D/M lines)
+    enrichMetroStepsWithVehicleData(routeOptions);
+
     console.log('Route options:', routeOptions);
 
     // Filter out bus routes unless:
@@ -4499,6 +4591,7 @@ async function updateConnections() {
         // For each route option, find the best PCC trolley (not just any trolley)
         // This ensures we show PCC routes even if buses have better ETAs
         const pccFilteredOptions = [];
+        const originalOptions = [...routeOptions]; // Save for fallback
         for (const option of routeOptions) {
             if (option.trolleyIsPCC === true) {
                 // Already has a PCC trolley
@@ -4507,9 +4600,11 @@ async function updateConnections() {
                 // Re-query for PCC trolleys at this pickup point
                 const trolleysAtPickup = await getTrolleysForPickup(option.gPickup, trolleyData);
                 const pccTrolleys = trolleysAtPickup.filter(t => t.isPCC);
+                console.log(`[ROUTE FILTER] Pickup ${option.gPickup}: ${trolleysAtPickup.length} total, ${pccTrolleys.length} PCC`);
                 if (pccTrolleys.length > 0) {
                     // Use the best PCC trolley instead
                     const bestPCC = pccTrolleys[0]; // Already sorted by ETA
+                    console.log(`[ROUTE FILTER] Best PCC: #${bestPCC.vehicle} ETA ${bestPCC.etaToPickup}min, user arrives in ${option.minutesToPickup}min`);
                     option.trolleyVehicle = bestPCC.vehicle;
                     option.trolleyDirection = bestPCC.arrivalDirection || bestPCC.direction;
                     option.trolleyArrivalTime = new Date(Date.now() + bestPCC.etaToPickup * 60000);
@@ -4521,7 +4616,15 @@ async function updateConnections() {
                 // If no PCC at this pickup, skip this route option
             }
         }
-        routeOptions = pccFilteredOptions;
+
+        // If no PCC routes could be created, fall back to showing all routes
+        // This handles the case where PCC exists but is going wrong direction
+        if (pccFilteredOptions.length === 0 && originalOptions.length > 0) {
+            console.log('[ROUTE FILTER] No PCC routes available for these stations - falling back to bus routes');
+            routeOptions = originalOptions;
+        } else {
+            routeOptions = pccFilteredOptions;
+        }
         console.log('[ROUTE FILTER] Filtered to PCC only, remaining:', routeOptions.length);
     } else {
         console.log('[ROUTE FILTER] Showing all routes (buses included)');
@@ -4676,12 +4779,14 @@ async function updateConnections() {
                 liveIndicator = ' <span class="live-indicator" title="Live real-time data">●</span>';
             }
 
-            // Build vehicle info for metro steps with real-time GPS data
+            // Build late/early indicator for metro steps with real-time GPS data
             let vehicleInfoHtml = '';
-            if (step.type === 'metro' && step.isRealTime && step.vehicleId) {
-                const blockText = step.blockId ? ` Block ${step.blockId}` : '';
-                const lateText = step.lateMinutes ? (step.lateMinutes > 0 ? ` (+${step.lateMinutes} min)` : ` (${step.lateMinutes} min)`) : '';
-                vehicleInfoHtml = `<div class="vehicle-info">Vehicle #${step.vehicleId}${blockText}${lateText}</div>`;
+            if (step.type === 'metro' && step.isRealTime && step.lateMinutes) {
+                if (step.lateMinutes > 0) {
+                    vehicleInfoHtml = `<span class="late-badge">+${step.lateMinutes}m</span>`;
+                } else {
+                    vehicleInfoHtml = `<span class="early-badge">${step.lateMinutes}m</span>`;
+                }
             }
 
             // Generate stops indicator if we have from/to info
@@ -4710,9 +4815,8 @@ async function updateConnections() {
                 <div class="${stepClass}">
                     <span class="step-time-box${timeBoxContent ? '' : ' empty'}">${timeBoxContent}</span>
                     <span class="step-number">Step ${stepNum}</span>
-                    <span class="step-content">${lineBadgeHtml}${stepDescription}${liveIndicator}${delayInfo}</span>
+                    <span class="step-content">${lineBadgeHtml}${stepDescription}${vehicleInfoHtml}${liveIndicator}${delayInfo}</span>
                 </div>
-                ${vehicleInfoHtml}
                 ${stopsIndicatorHtml}
             `;
         }).join('');
