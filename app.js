@@ -114,12 +114,12 @@ const G_LINE_STOPS_FULL = [
     { stopId: '20993', name: 'Girard Av & 2nd St', shortName: '2nd', lng: -75.13945 },
     { stopId: '20978', name: 'Front-Girard', shortName: 'Front', lng: -75.136358, isTransfer: true, transferLines: ['L'] },
     { stopId: '342', name: 'Front-Girard', shortName: 'Front', lng: -75.136075, isTransfer: true, transferLines: ['L'] },
-    { stopId: '21098', name: 'Girard Av & Frankford Av', shortName: 'Frankford Av', lng: -75.134244 },
-    { stopId: '31540', name: 'Frankford Av & Girard Av', shortName: 'Frankford Av', lng: -75.134493 },
-    { stopId: '481', name: 'Frankford Av & Girard Av', shortName: 'Frankford Av', lng: -75.134351 },
-    { stopId: '31347', name: 'Frankford-Delaware', shortName: 'Frankford', lng: -75.134154 },
-    { stopId: '24038', name: 'Frankford Av & Richmond St', shortName: 'Frankford', lng: -75.134492 },
-    { stopId: '23992', name: 'Frankford Av & Richmond St', shortName: 'Frankford', lng: -75.134338 },
+    { stopId: '21098', name: 'Girard Av & Frankford Av', shortName: 'Frnk Av', lng: -75.134244 },
+    { stopId: '31540', name: 'Frankford Av & Girard Av', shortName: 'Frnk Av', lng: -75.134493 },
+    { stopId: '481', name: 'Frankford Av & Girard Av', shortName: 'Frnk Av', lng: -75.134351 },
+    { stopId: '31347', name: 'Frankford-Delaware', shortName: 'Frnkfd', lng: -75.134154 },
+    { stopId: '24038', name: 'Frankford Av & Richmond St', shortName: 'Frnkfd', lng: -75.134492 },
+    { stopId: '23992', name: 'Frankford Av & Richmond St', shortName: 'Frnkfd', lng: -75.134338 },
     { stopId: '21100', name: 'Girard Av & Columbia Av', shortName: 'Clmbia', lng: -75.130542 },
     { stopId: '20989', name: 'Girard Av & Columbia Av', shortName: 'Clmbia', lng: -75.130423 },
     { stopId: '20988', name: 'Girard Av & Palmer St', shortName: 'Palmer', lng: -75.1284 },
@@ -3443,6 +3443,10 @@ async function fetchTrolleyData() {
         const dLines = [];  // D1-D2 real-time positions
         const mLines = [];  // M1 (NHSL) real-time positions
 
+        // Debug: Log all route IDs received from API
+        const allRouteIds = (data.routes || []).flatMap(r => Object.keys(r));
+        console.log('[API DEBUG] All route IDs in response:', allRouteIds.filter(id => id.match(/^[TDM][0-9]|^G1|^10$|^11$|^13$|^34$|^36$|^101$|^102$/)));
+
         for (const route of (data.routes || [])) {
             for (const [routeId, vehicles] of Object.entries(route)) {
                 // Process G1 (Girard Ave trolley)
@@ -3519,6 +3523,7 @@ async function fetchTrolleyData() {
 
                 if (tLineMapping[routeId]) {
                     const tLineRoute = tLineMapping[routeId];
+                    console.log(`[T-LINE DEBUG] Found route ${routeId} -> ${tLineRoute} with ${vehicles.length} vehicles`);
                     for (const vehicle of vehicles) {
                         const label = String(vehicle.label || '');
                         // Skip invalid entries (label = 'None', '0', empty, or very late = 998/999)
@@ -3538,7 +3543,8 @@ async function fetchTrolleyData() {
                             destination.includes('YEADON') || destination.includes('DARBY') ||
                             destination.includes('EASTWICK') || destination.includes('63RD') ||
                             destination.includes('61ST') || destination.includes('40TH-MARKET') ||
-                            destination.includes('40TH ST')) {
+                            destination.includes('40TH ST') || destination.includes('ELMWOOD') ||
+                            destination.includes('ISLAND')) {
                             direction = 'Outbound';  // Toward terminals (west)
                         } else if (destination.includes('CITY HALL') || destination.includes('13TH') ||
                                    destination.includes('15TH') || destination.includes('JUNIPER')) {
@@ -3574,6 +3580,7 @@ async function fetchTrolleyData() {
 
                 if (dLineMapping[routeId]) {
                     const dLineRoute = dLineMapping[routeId];
+                    console.log(`[D-LINE DEBUG] Found route ${routeId} -> ${dLineRoute} with ${vehicles.length} vehicles`);
                     for (const vehicle of vehicles) {
                         const label = String(vehicle.label || '');
                         // Skip invalid entries (label = 'None', '0', empty, or very late = 998/999)
@@ -4489,7 +4496,32 @@ async function updateConnections() {
     const unfilteredCount = routeOptions.length;
     console.log('[ROUTE FILTER] hasPCCTrolleys:', hasPCCTrolleys, 'showBusesWithTrolleys:', showBusesWithTrolleys, 'unfilteredCount:', unfilteredCount);
     if (!showBusesWithTrolleys && hasPCCTrolleys) {
-        routeOptions = routeOptions.filter(option => option.trolleyIsPCC === true);
+        // For each route option, find the best PCC trolley (not just any trolley)
+        // This ensures we show PCC routes even if buses have better ETAs
+        const pccFilteredOptions = [];
+        for (const option of routeOptions) {
+            if (option.trolleyIsPCC === true) {
+                // Already has a PCC trolley
+                pccFilteredOptions.push(option);
+            } else if (option.gPickup) {
+                // Re-query for PCC trolleys at this pickup point
+                const trolleysAtPickup = await getTrolleysForPickup(option.gPickup, trolleyData);
+                const pccTrolleys = trolleysAtPickup.filter(t => t.isPCC);
+                if (pccTrolleys.length > 0) {
+                    // Use the best PCC trolley instead
+                    const bestPCC = pccTrolleys[0]; // Already sorted by ETA
+                    option.trolleyVehicle = bestPCC.vehicle;
+                    option.trolleyDirection = bestPCC.arrivalDirection || bestPCC.direction;
+                    option.trolleyArrivalTime = new Date(Date.now() + bestPCC.etaToPickup * 60000);
+                    option.trolleyIsPCC = true;
+                    option.trolleyETA = bestPCC.etaToPickup;
+                    console.log('[ROUTE FILTER] Updated route to use PCC #' + bestPCC.vehicle + ' at ' + option.gPickup);
+                    pccFilteredOptions.push(option);
+                }
+                // If no PCC at this pickup, skip this route option
+            }
+        }
+        routeOptions = pccFilteredOptions;
         console.log('[ROUTE FILTER] Filtered to PCC only, remaining:', routeOptions.length);
     } else {
         console.log('[ROUTE FILTER] Showing all routes (buses included)');
