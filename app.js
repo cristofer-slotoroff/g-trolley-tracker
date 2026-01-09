@@ -4481,12 +4481,13 @@ async function updateConnections() {
 
     // Filter out bus routes unless:
     // 1. The "See buses" checkbox is checked, OR
-    // 2. There are no PCC trolleys running (checkbox is hidden anyway, so show buses)
-    const hasPCCTrolleys = trolleyData.some(t => t.isPCC);
+    // 2. There are no PCC-based route options (show buses as fallback)
+    const pccRouteOptions = routeOptions.filter(option => option.trolleyIsPCC === true);
+    const hasPCCRouteOptions = pccRouteOptions.length > 0;
     const unfilteredCount = routeOptions.length;
-    console.log('[ROUTE FILTER] hasPCCTrolleys:', hasPCCTrolleys, 'showBusesWithTrolleys:', showBusesWithTrolleys, 'unfilteredCount:', unfilteredCount);
-    if (!showBusesWithTrolleys && hasPCCTrolleys) {
-        routeOptions = routeOptions.filter(option => option.trolleyIsPCC === true);
+    console.log('[ROUTE FILTER] hasPCCRouteOptions:', hasPCCRouteOptions, 'showBusesWithTrolleys:', showBusesWithTrolleys, 'unfilteredCount:', unfilteredCount);
+    if (!showBusesWithTrolleys && hasPCCRouteOptions) {
+        routeOptions = pccRouteOptions;
         console.log('[ROUTE FILTER] Filtered to PCC only, remaining:', routeOptions.length);
     } else {
         console.log('[ROUTE FILTER] Showing all routes (buses included)');
@@ -4494,8 +4495,11 @@ async function updateConnections() {
 
     if (routeOptions.length === 0) {
         // Check if we filtered out bus routes - show helpful message
-        // Only show checkbox hint if the checkbox is actually visible (PCC trolleys are running)
-        if (unfilteredCount > 0 && !showBusesWithTrolleys && hasPCCTrolleys) {
+        // Only show checkbox hint if the checkbox is actually visible (PCC trolleys AND buses exist)
+        const hasPCCTrolleys = trolleyData.some(t => t.isPCC);
+        const hasBuses = trolleyData.some(t => !t.isPCC);
+        const checkboxIsVisible = hasPCCTrolleys && hasBuses;
+        if (unfilteredCount > 0 && !showBusesWithTrolleys && checkboxIsVisible) {
             container.innerHTML = `
                 <div class="no-trolleys" style="margin: 0;">
                     <div class="no-trolleys-title">No PCC trolley routes available right now</div>
