@@ -19,8 +19,9 @@ let showBusesWithTrolleys = false;
 function toggleBusVisibility() {
     const checkbox = document.getElementById('show-buses-checkbox');
     showBusesWithTrolleys = checkbox?.checked || false;
-    // Re-render the trolley list with current data
+    // Re-render the trolley list and route options with current data
     updateTrolleyDetails();
+    updateConnections();
 }
 
 // ============================================
@@ -4401,8 +4402,13 @@ async function updateConnections() {
     console.log('Train data:', trainData);
 
     // Get route options using smart routing (async for metro schedule fetching)
-    const routeOptions = await calculateRouteOptions(selectedStation, trolleyData);
+    let routeOptions = await calculateRouteOptions(selectedStation, trolleyData);
     console.log('Route options:', routeOptions);
+
+    // Filter out bus routes unless the "See buses" checkbox is checked
+    if (!showBusesWithTrolleys) {
+        routeOptions = routeOptions.filter(option => option.trolleyIsPCC !== false);
+    }
 
     if (routeOptions.length === 0) {
         container.innerHTML = `
