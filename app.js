@@ -5151,7 +5151,7 @@ function updateTrolleyDetails() {
     if (vehiclesToShow.length === 0) {
         container.innerHTML = `
             <div class="no-trolleys">
-                <div class="no-trolleys-title">Bummer. There are no PCC trolley cars running right now :(</div>
+                <div class="no-trolleys-title" style="color: #ffd54f;">Bummer. There are no PCC trolley cars running right now :(</div>
                 <div class="no-trolleys-subtitle">No buses detected either. Check back later!</div>
             </div>
         `;
@@ -5161,7 +5161,7 @@ function updateTrolleyDetails() {
     // Build the "Bummer" message HTML if needed
     const bummerHtml = showBummerMessage ? `
         <div class="no-trolleys" style="margin-bottom: 16px;">
-            <div class="no-trolleys-title">Bummer. There are no PCC trolley cars running right now :(</div>
+            <div class="no-trolleys-title" style="color: #ffd54f;">Bummer. There are no PCC trolley cars running right now :(</div>
             <div class="no-trolleys-subtitle">For now, you can use the app to track the buses on the G below.</div>
         </div>
     ` : '';
