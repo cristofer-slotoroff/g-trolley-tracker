@@ -4406,8 +4406,9 @@ async function updateConnections() {
     console.log('Route options:', routeOptions);
 
     // Filter out bus routes unless the "See buses" checkbox is checked
+    // Use strict === true check since trolleyIsPCC may be undefined for some routes
     if (!showBusesWithTrolleys) {
-        routeOptions = routeOptions.filter(option => option.trolleyIsPCC !== false);
+        routeOptions = routeOptions.filter(option => option.trolleyIsPCC === true);
     }
 
     if (routeOptions.length === 0) {
@@ -4723,7 +4724,7 @@ async function updateConnections() {
                 </div>
                 <div class="destination-info">
                     <div class="destination-pickup">
-                        <span class="pickup-name">Catch ${option.trolleyIsPCC === false ? 'Bus' : 'Trolley'} at ${option.gPickup}</span>
+                        <span class="pickup-name">Catch ${option.trolleyIsPCC === true ? 'Trolley' : 'Bus'} at ${option.gPickup}</span>
                     </div>
                     <div class="trolley-arrivals">${trolleyInfoHtml}</div>
                 </div>
