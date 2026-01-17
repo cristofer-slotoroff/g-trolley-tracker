@@ -6,6 +6,8 @@
 [functions]
   # Use Node.js 18 for the serverless functions
   node_bundler = "esbuild"
+  # Include Supabase client for scheduled functions
+  external_node_modules = ["@supabase/supabase-js"]
 
 # Redirect for cleaner URLs
 [[redirects]]

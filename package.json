@@ -1,0 +1,12 @@
+{
+  "name": "pcc-route-g-trip-planner",
+  "version": "1.0.0",
+  "description": "PCC Trolley Tracker for SEPTA G Line",
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
