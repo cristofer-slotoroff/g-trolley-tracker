@@ -1832,3 +1832,323 @@ footer p {
         font-size: 0.55rem;
     }
 }
+
+/* ==========================================
+   Stats Dashboard Styles
+   ========================================== */
+
+.stats-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.stats-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 18px;
+    background: transparent;
+    border: none;
+    color: var(--pcc-gold);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.stats-toggle:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.stats-toggle-icon {
+    transition: transform 0.3s;
+    font-size: 0.8rem;
+}
+
+.stats-toggle[aria-expanded="true"] .stats-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.stats-content {
+    padding: 0 18px 18px;
+}
+
+.stats-intro {
+    font-size: 0.85rem;
+    color: var(--pcc-cream-dim);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.stats-loading {
+    text-align: center;
+    padding: 30px;
+    color: var(--pcc-cream-dim);
+    font-style: italic;
+}
+
+.stats-error {
+    text-align: center;
+    padding: 20px;
+    color: #E88892;
+    background: rgba(114, 47, 55, 0.2);
+    border-radius: 6px;
+}
+
+/* Summary Stats Boxes */
+.stats-summary {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.stat-box {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 12px 8px;
+    text-align: center;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--pcc-gold);
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--pcc-cream-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Stats Sections */
+.stats-section {
+    margin-bottom: 20px;
+}
+
+.stats-section:last-child {
+    margin-bottom: 0;
+}
+
+.stats-section h3 {
+    font-size: 0.85rem;
+    color: var(--pcc-cream);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(245, 241, 227, 0.1);
+}
+
+.stats-note {
+    font-size: 0.8rem;
+    color: var(--pcc-cream-dim);
+    margin-bottom: 10px;
+}
+
+/* Hourly Chart - Simple Bar Chart */
+.hourly-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 80px;
+    padding: 10px 0;
+}
+
+.hour-bar {
+    flex: 1;
+    background: var(--pcc-green-light);
+    border-radius: 2px 2px 0 0;
+    min-height: 2px;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.hour-bar:hover {
+    background: var(--pcc-gold);
+}
+
+.hour-bar-label {
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.55rem;
+    color: var(--pcc-cream-dim);
+    white-space: nowrap;
+}
+
+.hour-bar:nth-child(4n+1) .hour-bar-label {
+    display: block;
+}
+
+.hour-bar:not(:nth-child(4n+1)) .hour-bar-label {
+    display: none;
+}
+
+/* Daily Chart */
+.daily-chart {
+    display: flex;
+    gap: 6px;
+}
+
+.day-bar-container {
+    flex: 1;
+    text-align: center;
+}
+
+.day-bar {
+    height: 50px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.day-bar-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--pcc-green-light);
+    border-radius: 0 0 4px 4px;
+    transition: height 0.3s;
+}
+
+.day-bar-label {
+    margin-top: 6px;
+    font-size: 0.7rem;
+    color: var(--pcc-cream-dim);
+}
+
+/* Vehicle Roster */
+.vehicle-roster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vehicle-chip {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 70px;
+}
+
+.vehicle-chip-id {
+    font-weight: bold;
+    font-size: 1rem;
+    color: var(--pcc-cream);
+}
+
+.vehicle-chip-stat {
+    font-size: 0.7rem;
+    color: var(--pcc-cream-dim);
+    margin-top: 2px;
+}
+
+/* Recent Days List */
+.recent-days {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.recent-day-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.recent-day-date {
+    min-width: 80px;
+    color: var(--pcc-cream);
+    font-weight: 500;
+}
+
+.recent-day-vehicles {
+    flex: 1;
+    color: var(--pcc-cream-dim);
+}
+
+.recent-day-count {
+    background: var(--pcc-green-light);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.recent-day-row.no-service {
+    opacity: 0.5;
+}
+
+.recent-day-row.no-service .recent-day-count {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Stats Responsive */
+@media (max-width: 500px) {
+    .stats-toggle {
+        padding: 12px 14px;
+        font-size: 0.85rem;
+    }
+
+    .stats-content {
+        padding: 0 14px 14px;
+    }
+
+    .stats-summary {
+        gap: 6px;
+    }
+
+    .stat-box {
+        padding: 10px 6px;
+    }
+
+    .stat-value {
+        font-size: 0.95rem;
+    }
+
+    .stat-label {
+        font-size: 0.6rem;
+    }
+
+    .hourly-chart {
+        height: 60px;
+    }
+
+    .hour-bar-label {
+        font-size: 0.5rem;
+    }
+
+    .vehicle-chip {
+        padding: 6px 10px;
+        min-width: 60px;
+    }
+
+    .vehicle-chip-id {
+        font-size: 0.9rem;
+    }
+
+    .recent-day-row {
+        font-size: 0.75rem;
+        padding: 6px 8px;
+    }
+
+    .recent-day-date {
+        min-width: 70px;
+    }
+}

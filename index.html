@@ -27,6 +27,66 @@
             <p>This app tracks the PCC trolleys only so that you can easily make a plan to ride one. Simply select your origin SEPTA metro or regional rail stop and have fun, fellow trolley rider!</p>
         </section>
 
+        <!-- Collapsible Stats Section -->
+        <section class="card stats-card">
+            <button class="stats-toggle" onclick="toggleStats()" aria-expanded="false" aria-controls="stats-content">
+                <span class="stats-toggle-text">When Are Trolleys Usually Running?</span>
+                <span class="stats-toggle-icon">▼</span>
+            </button>
+            <div id="stats-content" class="stats-content" hidden>
+                <p class="stats-intro">Based on real tracking data, here's when PCC trolleys typically operate on the G Line. Note: service varies by day and weather conditions.</p>
+
+                <div id="stats-loading" class="stats-loading">Loading statistics...</div>
+
+                <div id="stats-data" class="stats-data" style="display: none;">
+                    <!-- Summary Stats -->
+                    <div class="stats-summary">
+                        <div class="stat-box">
+                            <span class="stat-value" id="stat-typical-hours">--</span>
+                            <span class="stat-label">Typical Hours</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-value" id="stat-days-tracked">--</span>
+                            <span class="stat-label">Days Tracked</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-value" id="stat-vehicles-seen">--</span>
+                            <span class="stat-label">PCCs Spotted</span>
+                        </div>
+                    </div>
+
+                    <!-- Hourly Chart -->
+                    <div class="stats-section">
+                        <h3>Activity by Hour</h3>
+                        <div id="hourly-chart" class="hourly-chart"></div>
+                    </div>
+
+                    <!-- Day of Week -->
+                    <div class="stats-section">
+                        <h3>Activity by Day</h3>
+                        <div id="daily-chart" class="daily-chart"></div>
+                    </div>
+
+                    <!-- Vehicle Roster -->
+                    <div class="stats-section">
+                        <h3>PCC Roster</h3>
+                        <p class="stats-note">Which vintage trolleys have been in service:</p>
+                        <div id="vehicle-roster" class="vehicle-roster"></div>
+                    </div>
+
+                    <!-- Recent Days -->
+                    <div class="stats-section">
+                        <h3>Recent Service</h3>
+                        <div id="recent-days" class="recent-days"></div>
+                    </div>
+                </div>
+
+                <div id="stats-error" class="stats-error" style="display: none;">
+                    Unable to load statistics. Check back later!
+                </div>
+            </div>
+        </section>
+
         <div id="status-bar" class="status-bar">
             <span id="last-update">Loading...</span>
             <button id="refresh-btn" class="refresh-btn" onclick="refreshData()">↻ Refresh</button>

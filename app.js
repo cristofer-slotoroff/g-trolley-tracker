@@ -5409,3 +5409,149 @@ function showError(message) {
     const container = document.getElementById('pcc-alert');
     container.innerHTML = `<div class="error-message">${message}</div>`;
 }
+
+// ==========================================
+// Stats Dashboard Functions
+// ==========================================
+
+let statsLoaded = false;
+
+function toggleStats() {
+    const content = document.getElementById('stats-content');
+    const toggle = document.querySelector('.stats-toggle');
+    const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+
+    if (isExpanded) {
+        content.hidden = true;
+        toggle.setAttribute('aria-expanded', 'false');
+    } else {
+        content.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+
+        // Load stats on first open
+        if (!statsLoaded) {
+            loadStats();
+        }
+    }
+}
+
+async function loadStats() {
+    const loadingEl = document.getElementById('stats-loading');
+    const dataEl = document.getElementById('stats-data');
+    const errorEl = document.getElementById('stats-error');
+
+    loadingEl.style.display = 'block';
+    dataEl.style.display = 'none';
+    errorEl.style.display = 'none';
+
+    try {
+        const response = await fetch('/.netlify/functions/pcc-stats');
+        if (!response.ok) throw new Error('Failed to fetch stats');
+
+        const stats = await response.json();
+
+        if (stats.totalObservations === 0) {
+            loadingEl.textContent = 'No tracking data yet. Check back after trolleys have been running!';
+            return;
+        }
+
+        renderStats(stats);
+        loadingEl.style.display = 'none';
+        dataEl.style.display = 'block';
+        statsLoaded = true;
+
+    } catch (error) {
+        console.error('Stats error:', error);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+    }
+}
+
+function renderStats(stats) {
+    // Summary stats
+    document.getElementById('stat-typical-hours').textContent = stats.typicalHoursFormatted;
+    document.getElementById('stat-days-tracked').textContent = stats.daysWithService;
+    document.getElementById('stat-vehicles-seen').textContent = stats.uniqueVehicles;
+
+    // Hourly chart
+    renderHourlyChart(stats.hourlyPattern);
+
+    // Daily chart
+    renderDailyChart(stats.dailyPattern);
+
+    // Vehicle roster
+    renderVehicleRoster(stats.vehicleStats);
+
+    // Recent days
+    renderRecentDays(stats.recentDays);
+}
+
+function renderHourlyChart(hourlyData) {
+    const container = document.getElementById('hourly-chart');
+    const maxObs = Math.max(...hourlyData.map(h => h.observations), 1);
+
+    container.innerHTML = hourlyData.map(h => {
+        const heightPct = (h.observations / maxObs) * 100;
+        return `
+            <div class="hour-bar" style="height: ${Math.max(heightPct, 2)}%" title="${h.label}: ${h.observations} observations">
+                <span class="hour-bar-label">${h.label}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderDailyChart(dailyData) {
+    const container = document.getElementById('daily-chart');
+    const maxObs = Math.max(...dailyData.map(d => d.observations), 1);
+
+    container.innerHTML = dailyData.map(d => {
+        const heightPct = (d.observations / maxObs) * 100;
+        return `
+            <div class="day-bar-container">
+                <div class="day-bar">
+                    <div class="day-bar-fill" style="height: ${heightPct}%"></div>
+                </div>
+                <div class="day-bar-label">${d.day}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderVehicleRoster(vehicleStats) {
+    const container = document.getElementById('vehicle-roster');
+
+    if (vehicleStats.length === 0) {
+        container.innerHTML = '<p class="stats-note">No vehicles tracked yet.</p>';
+        return;
+    }
+
+    container.innerHTML = vehicleStats.map(v => `
+        <div class="vehicle-chip">
+            <span class="vehicle-chip-id">#${v.vehicleId}</span>
+            <span class="vehicle-chip-stat">${v.daysActive} day${v.daysActive !== 1 ? 's' : ''}</span>
+        </div>
+    `).join('');
+}
+
+function renderRecentDays(recentDays) {
+    const container = document.getElementById('recent-days');
+
+    if (recentDays.length === 0) {
+        container.innerHTML = '<p class="stats-note">No recent data.</p>';
+        return;
+    }
+
+    container.innerHTML = recentDays.slice(0, 7).map(day => {
+        const date = new Date(day.date + 'T12:00:00');
+        const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const hasService = day.observations > 0;
+
+        return `
+            <div class="recent-day-row ${hasService ? '' : 'no-service'}">
+                <span class="recent-day-date">${dateStr}</span>
+                <span class="recent-day-vehicles">${hasService ? day.vehicles.join(', ') : 'No service'}</span>
+                <span class="recent-day-count">${day.observations}</span>
+            </div>
+        `;
+    }).join('');
+}
