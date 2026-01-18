@@ -48,6 +48,10 @@
                             <span class="stat-label">Typical Hours</span>
                         </div>
                         <div class="stat-box">
+                            <span class="stat-value" id="stat-peak-concurrent">--</span>
+                            <span class="stat-label">Peak at Once</span>
+                        </div>
+                        <div class="stat-box">
                             <span class="stat-value" id="stat-days-tracked">--</span>
                             <span class="stat-label">Days Tracked</span>
                         </div>
@@ -55,6 +59,13 @@
                             <span class="stat-value" id="stat-vehicles-seen">--</span>
                             <span class="stat-label">PCCs Spotted</span>
                         </div>
+                    </div>
+
+                    <!-- Concurrency Chart -->
+                    <div class="stats-section">
+                        <h3>Trolleys Running at Once</h3>
+                        <p class="stats-note">Maximum trolleys seen running simultaneously at each hour:</p>
+                        <div id="concurrency-chart" class="concurrency-chart"></div>
                     </div>
 
                     <!-- Hourly Chart -->

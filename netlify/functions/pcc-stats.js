@@ -34,6 +34,18 @@ export const handler = async (event) => {
 
         if (error) throw error;
 
+        // Also get samples data for concurrent trolley counts
+        const { data: samples, error: samplesError } = await supabase
+            .from('pcc_samples')
+            .select('sampled_at, pcc_count, vehicle_ids')
+            .gte('sampled_at', thirtyDaysAgo)
+            .order('sampled_at', { ascending: true });
+
+        if (samplesError) {
+            console.error('Samples query error:', samplesError);
+            // Continue without samples data
+        }
+
         if (!observations || observations.length === 0) {
             return {
                 statusCode: 200,
@@ -44,13 +56,15 @@ export const handler = async (event) => {
                     daysWithService: 0,
                     vehicleStats: [],
                     hourlyPattern: [],
-                    dailyPattern: []
+                    dailyPattern: [],
+                    concurrencyByHour: [],
+                    peakConcurrent: 0
                 })
             };
         }
 
         // Process the data
-        const stats = processObservations(observations);
+        const stats = processObservations(observations, samples || []);
 
         return {
             statusCode: 200,
@@ -68,12 +82,37 @@ export const handler = async (event) => {
     }
 };
 
-function processObservations(observations) {
+function processObservations(observations, samples) {
     // Group by date (Eastern time)
     const byDate = {};
     const byHour = {};
     const byVehicle = {};
     const byDayOfWeek = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }; // Sun-Sat
+
+    // Process samples for concurrency data
+    const concurrencyByHour = {};
+    let peakConcurrent = 0;
+    let peakConcurrentTime = null;
+
+    for (const sample of samples) {
+        if (sample.pcc_count > 0) {
+            const date = new Date(sample.sampled_at);
+            const eastern = new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            const hour = eastern.getHours();
+
+            if (!concurrencyByHour[hour]) {
+                concurrencyByHour[hour] = { maxCount: 0, totalCount: 0, sampleCount: 0 };
+            }
+            concurrencyByHour[hour].maxCount = Math.max(concurrencyByHour[hour].maxCount, sample.pcc_count);
+            concurrencyByHour[hour].totalCount += sample.pcc_count;
+            concurrencyByHour[hour].sampleCount++;
+
+            if (sample.pcc_count > peakConcurrent) {
+                peakConcurrent = sample.pcc_count;
+                peakConcurrentTime = eastern;
+            }
+        }
+    }
 
     for (const obs of observations) {
         const date = new Date(obs.observed_at);
@@ -166,6 +205,20 @@ function processObservations(observations) {
         .sort((a, b) => b.date.localeCompare(a.date))
         .slice(0, 14); // Last 14 days
 
+    // Format concurrency by hour (max and avg trolleys running at each hour)
+    const concurrencyPattern = [];
+    for (let h = 0; h < 24; h++) {
+        const data = concurrencyByHour[h];
+        concurrencyPattern.push({
+            hour: h,
+            label: formatHour(h),
+            maxConcurrent: data?.maxCount || 0,
+            avgConcurrent: data?.sampleCount > 0
+                ? Math.round((data.totalCount / data.sampleCount) * 10) / 10
+                : 0
+        });
+    }
+
     return {
         totalObservations: observations.length,
         daysWithService: Object.keys(byDate).length,
@@ -174,9 +227,14 @@ function processObservations(observations) {
         typicalEndHour: lastHour,
         typicalHoursFormatted: firstHour !== null ?
             `${formatHour(firstHour)} - ${formatHour(lastHour + 1)}` : 'No data yet',
+        peakConcurrent,
+        peakConcurrentFormatted: peakConcurrentTime
+            ? `${peakConcurrent} at ${formatHour(peakConcurrentTime.getHours())}`
+            : 'N/A',
         vehicleStats,
         hourlyPattern,
         dailyPattern,
+        concurrencyPattern,
         recentDays,
         lastUpdated: new Date().toISOString()
     };

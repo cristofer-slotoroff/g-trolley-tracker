@@ -5470,8 +5470,12 @@ async function loadStats() {
 function renderStats(stats) {
     // Summary stats
     document.getElementById('stat-typical-hours').textContent = stats.typicalHoursFormatted;
+    document.getElementById('stat-peak-concurrent').textContent = stats.peakConcurrent > 0 ? stats.peakConcurrent : '--';
     document.getElementById('stat-days-tracked').textContent = stats.daysWithService;
     document.getElementById('stat-vehicles-seen').textContent = stats.uniqueVehicles;
+
+    // Concurrency chart (trolleys at once by hour)
+    renderConcurrencyChart(stats.concurrencyPattern);
 
     // Hourly chart
     renderHourlyChart(stats.hourlyPattern);
@@ -5484,6 +5488,25 @@ function renderStats(stats) {
 
     // Recent days
     renderRecentDays(stats.recentDays);
+}
+
+function renderConcurrencyChart(concurrencyData) {
+    const container = document.getElementById('concurrency-chart');
+    const maxCount = Math.max(...concurrencyData.map(h => h.maxConcurrent), 1);
+
+    // Only show hours 5am-11pm for cleaner display
+    const relevantHours = concurrencyData.filter(h => h.hour >= 5 && h.hour <= 23);
+
+    container.innerHTML = relevantHours.map(h => {
+        const heightPct = (h.maxConcurrent / maxCount) * 100;
+        const barClass = h.maxConcurrent > 0 ? 'concurrency-bar' : 'concurrency-bar empty';
+        return `
+            <div class="${barClass}" style="height: ${h.maxConcurrent > 0 ? Math.max(heightPct, 15) : 5}%" title="${h.label}: max ${h.maxConcurrent} trolley${h.maxConcurrent !== 1 ? 's' : ''}">
+                <span class="concurrency-count">${h.maxConcurrent > 0 ? h.maxConcurrent : ''}</span>
+                <span class="concurrency-label">${h.label}</span>
+            </div>
+        `;
+    }).join('');
 }
 
 function renderHourlyChart(hourlyData) {
