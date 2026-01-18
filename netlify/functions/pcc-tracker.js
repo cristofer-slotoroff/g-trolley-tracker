@@ -95,7 +95,34 @@ export const handler = async (event) => {
 
         console.log(`PCC Tracker: Found ${observations.length} PCC trolleys`);
 
-        // Insert observations into Supabase (only if we found PCCs)
+        // Always record a sample (even if no PCCs found) to track gaps/loop times
+        const sampleRecord = {
+            sampled_at: observedAt.toISOString(),
+            pcc_count: observations.length,
+            vehicle_ids: observations.map(o => o.vehicle_id),
+            vehicles_data: observations.map(o => ({
+                vehicle_id: o.vehicle_id,
+                direction: o.direction,
+                destination: o.destination,
+                lat: o.lat,
+                lng: o.lng,
+                next_stop_sequence: o.next_stop_sequence,
+                late_minutes: o.late_minutes
+            }))
+        };
+
+        const { error: sampleError } = await supabase
+            .from('pcc_samples')
+            .insert(sampleRecord);
+
+        if (sampleError) {
+            console.error('Supabase sample insert error:', sampleError);
+            // Don't throw - still try to insert observations
+        } else {
+            console.log('PCC Tracker: Recorded sample');
+        }
+
+        // Insert individual observations (only if we found PCCs)
         if (observations.length > 0) {
             const { error } = await supabase
                 .from('pcc_observations')
