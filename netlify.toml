@@ -9,6 +9,14 @@
   # Include Supabase client for scheduled functions
   external_node_modules = ["@supabase/supabase-js"]
 
+# Scheduled function: runs every 5 minutes to track PCC trolleys
+[functions."pcc-tracker"]
+  schedule = "*/5 * * * *"
+
+# Scheduled function: runs daily at 4 AM Eastern to compute daily summary
+[functions."pcc-daily-summary"]
+  schedule = "0 9 * * *"
+
 # Redirect for cleaner URLs
 [[redirects]]
   from = "/api/*"
