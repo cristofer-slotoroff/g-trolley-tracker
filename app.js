@@ -5577,3 +5577,17 @@ function renderRecentDays(recentDays) {
         `;
     }).join('');
 }
+
+// ==========================================
+// Simple Analytics - Log page visits
+// ==========================================
+
+(function() {
+    // Only log once per session to avoid over-counting refreshes
+    if (sessionStorage.getItem('visit_logged')) return;
+
+    // Log the visit (fire and forget, don't wait for response)
+    fetch('/.netlify/functions/log-visit', { method: 'POST' })
+        .then(() => sessionStorage.setItem('visit_logged', 'true'))
+        .catch(() => {}); // Silently ignore errors
+})();
