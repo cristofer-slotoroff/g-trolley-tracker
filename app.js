@@ -2595,6 +2595,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                             {
                                 type: 'metro',
                                 line: 'T1',
+                                direction: 'outbound',  // Toward 63rd-Malvern/Lancaster-Girard
                                 description: 'Take T1 toward Lancaster-Girard',
                                 departTime: departTimeFormatted,
                                 time: waitTime + travelTime,
@@ -3767,11 +3768,25 @@ function hasMLineRealTimeData() {
  * @param {Array} routeOptions - Array of route options to enrich
  */
 function enrichMetroStepsWithVehicleData(routeOptions) {
+    // Track which vehicles have been assigned to options, keyed by "line_direction"
+    // This prevents showing the same physical vehicle across multiple route options
+    const usedVehicles = {};
+
     for (const option of routeOptions) {
         if (!option.steps) continue;
 
         for (const step of option.steps) {
             if (step.type !== 'metro') continue;
+
+            // Skip steps that already have real-time vehicle data (from getTLineVehicleETAs etc.)
+            // These were assigned specific vehicles based on actual ETA calculations
+            if (step.isRealTime && step.vehicleId) {
+                // Mark this vehicle as used so we don't assign it to other options
+                const key = `${step.line}_${step.direction || 'any'}`;
+                if (!usedVehicles[key]) usedVehicles[key] = new Set();
+                usedVehicles[key].add(String(step.vehicleId));
+                continue;
+            }
 
             // Determine which line and direction
             const line = step.line;
@@ -3816,35 +3831,52 @@ function enrichMetroStepsWithVehicleData(routeOptions) {
                 }
             }
 
-            // Find the next vehicle going the right direction
-            let nextVehicle = null;
-            if (matchDirection) {
-                nextVehicle = vehicles.find(v => v.direction === matchDirection);
-            }
-            // If no direction match, just take the first vehicle
-            if (!nextVehicle && vehicles.length > 0) {
-                nextVehicle = vehicles[0];
+            // Key for tracking used vehicles
+            const vehicleKey = `${line}_${matchDirection || 'any'}`;
+            if (!usedVehicles[vehicleKey]) usedVehicles[vehicleKey] = new Set();
+
+            // Filter to vehicles going the right direction
+            let matchingVehicles = matchDirection
+                ? vehicles.filter(v => v.direction === matchDirection)
+                : vehicles;
+
+            // Filter out already-used vehicles to avoid showing same vehicle on multiple options
+            const availableVehicles = matchingVehicles.filter(v => {
+                const vid = String(v.vehicleId || v.vehicle || '');
+                return !usedVehicles[vehicleKey].has(vid);
+            });
+
+            // Find the next available vehicle
+            let nextVehicle = availableVehicles.length > 0 ? availableVehicles[0] : null;
+
+            // If no unused vehicles available, don't enrich this step
+            // This leaves it as a schedule-based estimate without a specific vehicle
+            if (!nextVehicle) {
+                console.log(`[ENRICH] ${line} ${matchDirection || 'any'}: No unused vehicles available (${usedVehicles[vehicleKey].size} already used)`);
+                continue;
             }
 
-            if (nextVehicle) {
-                step.vehicleId = nextVehicle.vehicleId || nextVehicle.vehicle;
-                step.blockId = nextVehicle.blockId;
-                step.isRealTime = true;
-                step.lateMinutes = nextVehicle.late || 0;
-                step.vehicleDestination = nextVehicle.destination;
+            // Mark this vehicle as used
+            const vid = String(nextVehicle.vehicleId || nextVehicle.vehicle);
+            usedVehicles[vehicleKey].add(vid);
 
-                // Update description to include vehicle number inline (like Regional Rail)
-                // "Take T1 toward X" → "Take T1 #9030 → X"
-                if (step.description && step.vehicleId && !step.description.includes('#')) {
-                    const dest = step.vehicleDestination || step.toStation || '';
-                    // Match patterns like "Take T1 toward X" or "Take Route 101 (Media) toward X"
-                    if (step.description.includes(' toward ')) {
-                        step.description = step.description.replace(/ toward .+$/, ` #${step.vehicleId} → ${dest}`);
-                    }
+            step.vehicleId = nextVehicle.vehicleId || nextVehicle.vehicle;
+            step.blockId = nextVehicle.blockId;
+            step.isRealTime = true;
+            step.lateMinutes = nextVehicle.late || 0;
+            step.vehicleDestination = nextVehicle.destination;
+
+            // Update description to include vehicle number inline (like Regional Rail)
+            // "Take T1 toward X" → "Take T1 #9030 → X"
+            if (step.description && step.vehicleId && !step.description.includes('#')) {
+                const dest = step.vehicleDestination || step.toStation || '';
+                // Match patterns like "Take T1 toward X" or "Take Route 101 (Media) toward X"
+                if (step.description.includes(' toward ')) {
+                    step.description = step.description.replace(/ toward .+$/, ` #${step.vehicleId} → ${dest}`);
                 }
-
-                console.log(`[ENRICH] ${line} step: Vehicle #${step.vehicleId}, Block ${step.blockId}, dest: ${step.vehicleDestination}`);
             }
+
+            console.log(`[ENRICH] ${line} step: Vehicle #${step.vehicleId}, Block ${step.blockId}, dest: ${step.vehicleDestination}`);
         }
     }
 }
@@ -4602,16 +4634,27 @@ async function updateConnections() {
                 const pccTrolleys = trolleysAtPickup.filter(t => t.isPCC);
                 console.log(`[ROUTE FILTER] Pickup ${option.gPickup}: ${trolleysAtPickup.length} total, ${pccTrolleys.length} PCC`);
                 if (pccTrolleys.length > 0) {
-                    // Use the best PCC trolley instead
-                    const bestPCC = pccTrolleys[0]; // Already sorted by ETA
-                    console.log(`[ROUTE FILTER] Best PCC: #${bestPCC.vehicle} ETA ${bestPCC.etaToPickup}min, user arrives in ${option.minutesToPickup}min`);
-                    option.trolleyVehicle = bestPCC.vehicle;
-                    option.trolleyDirection = bestPCC.arrivalDirection || bestPCC.direction;
-                    option.trolleyArrivalTime = new Date(Date.now() + bestPCC.etaToPickup * 60000);
-                    option.trolleyIsPCC = true;
-                    option.trolleyETA = bestPCC.etaToPickup;
-                    console.log('[ROUTE FILTER] Updated route to use PCC #' + bestPCC.vehicle + ' at ' + option.gPickup);
-                    pccFilteredOptions.push(option);
+                    // Filter to PCC trolleys the user can actually catch
+                    // (arriving at most 2 min before user, or later)
+                    const userArrival = option.minutesToPickup || 0;
+                    const catchablePCCs = pccTrolleys.filter(t => t.etaToPickup >= userArrival - 2);
+
+                    if (catchablePCCs.length > 0) {
+                        const bestPCC = catchablePCCs[0]; // First catchable PCC (sorted by ETA)
+                        const trolleyWait = Math.max(0, bestPCC.etaToPickup - userArrival);
+                        console.log(`[ROUTE FILTER] Best catchable PCC: #${bestPCC.vehicle} ETA ${bestPCC.etaToPickup}min, user arrives in ${userArrival}min, wait ${trolleyWait}min`);
+                        option.trolleyVehicle = bestPCC.vehicle;
+                        option.trolleyDirection = bestPCC.arrivalDirection || bestPCC.direction;
+                        option.trolleyArrivalTime = new Date(Date.now() + bestPCC.etaToPickup * 60000);
+                        option.trolleyIsPCC = true;
+                        option.trolleyETA = bestPCC.etaToPickup;
+                        option.trolleyWait = trolleyWait;
+                        console.log('[ROUTE FILTER] Updated route to use PCC #' + bestPCC.vehicle + ' at ' + option.gPickup);
+                        pccFilteredOptions.push(option);
+                    } else {
+                        console.log(`[ROUTE FILTER] No catchable PCC at ${option.gPickup} for user arriving in ${userArrival}min (${pccTrolleys.length} PCC trolleys but all arrive too early)`);
+                        // No catchable PCC - skip this option
+                    }
                 }
                 // If no PCC at this pickup, skip this route option
             }
