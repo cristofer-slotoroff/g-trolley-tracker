@@ -1995,6 +1995,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     {
                         type: 'metro',
                         line: 'M',
+                        direction: 'inbound',  // Toward 69th St TC
                         description: 'Take M toward 69th St',
                         departTime: '~' + departTimeFormatted,
                         time: mWait + mTravelTime,
@@ -2062,6 +2063,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     {
                         type: 'metro',
                         line: 'M',
+                        direction: 'inbound',  // Toward 69th St TC
                         description: 'Take M toward 69th St',
                         departTime: '~' + departTimeFormatted,
                         time: mWait + mTravelTime,
@@ -2132,6 +2134,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     {
                         type: 'metro',
                         line: 'M',
+                        direction: 'inbound',  // Toward 69th St TC
                         description: 'Take M toward 69th St',
                         departTime: '~' + departTimeFormatted,
                         time: mWait + mTravelTime,
@@ -2261,6 +2264,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     {
                         type: 'metro',
                         line: 'D',
+                        direction: 'inbound',  // Toward 69th St TC
                         description: stepDescription,
                         departTime: departTimeFormatted,
                         time: dWait + dTravelTime,
@@ -2343,6 +2347,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     {
                         type: 'metro',
                         line: 'D',
+                        direction: 'inbound',  // Toward 69th St TC
                         description: `Take ${routeLabel} toward 69th St`,
                         departTime: departTimeFormatted,
                         time: dWait + dTravelTime,
@@ -2424,6 +2429,7 @@ async function calculateRouteOptions(originStation, trolleyData) {
                     {
                         type: 'metro',
                         line: 'D',
+                        direction: 'inbound',  // Toward 69th St TC
                         description: `Take ${routeLabel} toward 69th St`,
                         departTime: departTimeFormatted,
                         time: dWait + dTravelTime,
