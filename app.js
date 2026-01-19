@@ -5573,7 +5573,6 @@ function renderRecentDays(recentDays) {
             <div class="recent-day-row ${hasService ? '' : 'no-service'}">
                 <span class="recent-day-date">${dateStr}</span>
                 <span class="recent-day-vehicles">${hasService ? day.vehicles.join(', ') : 'No service'}</span>
-                <span class="recent-day-count">${day.observations}</span>
             </div>
         `;
     }).join('');
