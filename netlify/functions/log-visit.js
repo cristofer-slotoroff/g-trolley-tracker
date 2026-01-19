@@ -20,6 +20,17 @@ export const handler = async (event) => {
     }
 
     try {
+        // Parse request body for visitor ID
+        let visitorId = null;
+        if (event.body) {
+            try {
+                const body = JSON.parse(event.body);
+                visitorId = body.visitorId || null;
+            } catch (e) {
+                // Ignore parse errors
+            }
+        }
+
         // Get basic info (no personal data)
         const userAgent = event.headers['user-agent'] || '';
         const isMobile = /mobile|android|iphone|ipad/i.test(userAgent);
@@ -32,7 +43,8 @@ export const handler = async (event) => {
             .insert({
                 visited_at: new Date().toISOString(),
                 visit_date: today,
-                is_mobile: isMobile
+                is_mobile: isMobile,
+                visitor_id: visitorId
             });
 
         if (error) {

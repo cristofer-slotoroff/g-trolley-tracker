@@ -5635,8 +5635,19 @@ function renderRecentDays(recentDays) {
     // Only log once per session to avoid over-counting refreshes
     if (sessionStorage.getItem('visit_logged')) return;
 
+    // Get or create a persistent visitor ID (anonymous, just for counting uniques)
+    let visitorId = localStorage.getItem('visitor_id');
+    if (!visitorId) {
+        visitorId = crypto.randomUUID();
+        localStorage.setItem('visitor_id', visitorId);
+    }
+
     // Log the visit (fire and forget, don't wait for response)
-    fetch('/.netlify/functions/log-visit', { method: 'POST' })
+    fetch('/.netlify/functions/log-visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visitorId })
+    })
         .then(() => sessionStorage.setItem('visit_logged', 'true'))
         .catch(() => {}); // Silently ignore errors
 })();
