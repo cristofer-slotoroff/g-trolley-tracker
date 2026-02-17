@@ -1,5 +1,5 @@
-// pcc-tracker.js - Scheduled function to collect PCC trolley up-time data
-// Runs every 5 minutes, records active PCC trolleys to Supabase
+// pcc-tracker.js - Scheduled function to collect G1 vehicle up-time data
+// Runs every 5 minutes, records active PCC trolleys AND buses to Supabase
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -75,14 +75,10 @@ export const handler = async (event) => {
                     continue;
                 }
 
-                // Only track PCC trolleys (vehicle IDs starting with "23", length 4)
-                if (!isPCCTrolley(label)) {
-                    continue;
-                }
-
                 observations.push({
                     observed_at: observedAt.toISOString(),
                     vehicle_id: label,
+                    vehicle_type: isPCCTrolley(label) ? 'pcc' : 'bus',
                     direction: getDirection(vehicle.destination),
                     destination: vehicle.destination || null,
                     lat: vehicle.lat || null,
@@ -93,14 +89,17 @@ export const handler = async (event) => {
             }
         }
 
-        console.log(`PCC Tracker: Found ${observations.length} PCC trolleys`);
+        const pccObs = observations.filter(o => o.vehicle_type === 'pcc');
+        const busObs = observations.filter(o => o.vehicle_type === 'bus');
 
-        // Always record a sample (even if no PCCs found) to track gaps/loop times
+        console.log(`PCC Tracker: Found ${pccObs.length} PCC trolleys, ${busObs.length} buses`);
+
+        // Always record a sample (even if nothing found) to track gaps/uptime
         const sampleRecord = {
             sampled_at: observedAt.toISOString(),
-            pcc_count: observations.length,
-            vehicle_ids: observations.map(o => o.vehicle_id),
-            vehicles_data: observations.map(o => ({
+            pcc_count: pccObs.length,
+            vehicle_ids: pccObs.map(o => o.vehicle_id),
+            vehicles_data: pccObs.map(o => ({
                 vehicle_id: o.vehicle_id,
                 direction: o.direction,
                 destination: o.destination,
@@ -108,7 +107,9 @@ export const handler = async (event) => {
                 lng: o.lng,
                 next_stop_sequence: o.next_stop_sequence,
                 late_minutes: o.late_minutes
-            }))
+            })),
+            bus_count: busObs.length,
+            bus_vehicle_ids: busObs.map(o => o.vehicle_id)
         };
 
         const { error: sampleError } = await supabase
@@ -122,7 +123,7 @@ export const handler = async (event) => {
             console.log('PCC Tracker: Recorded sample');
         }
 
-        // Insert individual observations (only if we found PCCs)
+        // Insert individual observations (PCCs and buses)
         if (observations.length > 0) {
             const { error } = await supabase
                 .from('pcc_observations')
@@ -133,9 +134,9 @@ export const handler = async (event) => {
                 throw error;
             }
 
-            console.log(`PCC Tracker: Inserted ${observations.length} observations`);
+            console.log(`PCC Tracker: Inserted ${observations.length} observations (${pccObs.length} PCC, ${busObs.length} bus)`);
         } else {
-            console.log('PCC Tracker: No PCC trolleys currently running (normal during off-hours)');
+            console.log('PCC Tracker: No G1 vehicles currently running (normal during off-hours)');
         }
 
         return {
@@ -143,9 +144,11 @@ export const handler = async (event) => {
             body: JSON.stringify({
                 success: true,
                 timestamp: observedAt.toISOString(),
-                pccCount: observations.length,
+                pccCount: pccObs.length,
+                busCount: busObs.length,
                 vehicles: observations.map(o => ({
                     id: o.vehicle_id,
+                    type: o.vehicle_type,
                     direction: o.direction
                 }))
             })

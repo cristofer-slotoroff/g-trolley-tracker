@@ -47,11 +47,13 @@ export const handler = async (event) => {
         const startOfDay = `${summaryDate}T00:00:00-05:00`;
         const endOfDay = `${summaryDate}T23:59:59-05:00`;
 
+        // Only summarize PCC trolleys (exclude buses)
         const { data: observations, error: fetchError } = await supabase
             .from('pcc_observations')
             .select('*')
             .gte('observed_at', startOfDay)
-            .lte('observed_at', endOfDay);
+            .lte('observed_at', endOfDay)
+            .or('vehicle_type.eq.pcc,vehicle_type.is.null');
 
         if (fetchError) {
             console.error('Fetch error:', fetchError);

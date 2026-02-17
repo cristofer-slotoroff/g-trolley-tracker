@@ -21,13 +21,18 @@ export const handler = async (event) => {
 
     try {
         // Parse request body for visitor ID
+        // Netlify may base64-encode the body depending on content type
         let visitorId = null;
         if (event.body) {
             try {
-                const body = JSON.parse(event.body);
+                let rawBody = event.body;
+                if (event.isBase64Encoded) {
+                    rawBody = Buffer.from(rawBody, 'base64').toString('utf-8');
+                }
+                const body = JSON.parse(rawBody);
                 visitorId = body.visitorId || null;
             } catch (e) {
-                // Ignore parse errors
+                console.error('Body parse error:', e.message);
             }
         }
 

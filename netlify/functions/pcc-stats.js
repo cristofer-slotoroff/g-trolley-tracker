@@ -25,11 +25,12 @@ export const handler = async (event) => {
         const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
         const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        // Get all observations from last 30 days
+        // Get all PCC observations from last 30 days (exclude buses)
         const { data: observations, error } = await supabase
             .from('pcc_observations')
             .select('observed_at, vehicle_id, direction, next_stop_sequence')
             .gte('observed_at', thirtyDaysAgo)
+            .or('vehicle_type.eq.pcc,vehicle_type.is.null')
             .order('observed_at', { ascending: true });
 
         if (error) throw error;
