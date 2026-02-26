@@ -2113,21 +2113,38 @@ footer p {
     margin-top: 2px;
 }
 
-/* Recent Days List */
+/* Service History List */
 .recent-days {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .recent-day-row {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
     padding: 8px 10px;
     background: rgba(0, 0, 0, 0.15);
     border-radius: 6px;
     font-size: 0.85rem;
+}
+
+.recent-day-row.has-service {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.recent-day-row.has-service:hover {
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.recent-day-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
 }
 
 .recent-day-date {
@@ -2136,26 +2153,123 @@ footer p {
     font-weight: 500;
 }
 
-.recent-day-vehicles {
+.recent-day-summary {
     flex: 1;
     color: var(--pcc-cream-dim);
+    font-size: 0.8rem;
+    text-align: right;
 }
 
-.recent-day-count {
-    background: var(--pcc-green-light);
-    color: white;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.75rem;
-    font-weight: 600;
+.recent-day-expand {
+    font-size: 0.6rem;
+    color: var(--pcc-cream-dim);
+    transition: transform 0.2s;
+    margin-left: 4px;
+}
+
+.recent-day-row.expanded .recent-day-expand {
+    transform: rotate(90deg);
 }
 
 .recent-day-row.no-service {
     opacity: 0.5;
 }
 
-.recent-day-row.no-service .recent-day-count {
-    background: rgba(255, 255, 255, 0.2);
+/* Day Detail Accordion */
+.recent-day-detail {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(245, 241, 227, 0.1);
+}
+
+.day-detail-loading {
+    text-align: center;
+    color: var(--pcc-cream-dim);
+    font-style: italic;
+    font-size: 0.8rem;
+    padding: 10px 0;
+}
+
+.day-detail-empty {
+    color: var(--pcc-cream-dim);
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.day-detail-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 60px;
+    padding: 5px 0 20px 0;
+}
+
+.day-detail-bar {
+    flex: 1;
+    background: var(--pcc-gold);
+    border-radius: 2px 2px 0 0;
+    min-height: 3px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.day-detail-bar.empty {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.day-detail-bar-count {
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: var(--pcc-green-dark);
+    padding: 1px;
+}
+
+.day-detail-bar-label {
+    position: absolute;
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.5rem;
+    color: var(--pcc-cream-dim);
+    white-space: nowrap;
+}
+
+.day-detail-bar:nth-child(3n+1) .day-detail-bar-label {
+    display: block;
+}
+
+.day-detail-bar:not(:nth-child(3n+1)) .day-detail-bar-label {
+    display: none;
+}
+
+.day-detail-vehicles {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.day-detail-vehicle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 0.8rem;
+}
+
+.day-detail-vehicle-id {
+    font-weight: bold;
+    color: var(--pcc-cream);
+}
+
+.day-detail-vehicle-time {
+    color: var(--pcc-cream-dim);
+    font-size: 0.7rem;
 }
 
 /* Stats Responsive */
@@ -2209,5 +2323,21 @@ footer p {
 
     .recent-day-date {
         min-width: 70px;
+    }
+
+    .recent-day-summary {
+        font-size: 0.65rem;
+    }
+
+    .day-detail-chart {
+        height: 45px;
+    }
+
+    .day-detail-vehicle {
+        font-size: 0.7rem;
+    }
+
+    .day-detail-vehicle-time {
+        font-size: 0.6rem;
     }
 }

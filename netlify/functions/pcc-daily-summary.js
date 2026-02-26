@@ -53,7 +53,8 @@ export const handler = async (event) => {
             .select('*')
             .gte('observed_at', startOfDay)
             .lte('observed_at', endOfDay)
-            .or('vehicle_type.eq.pcc,vehicle_type.is.null');
+            .or('vehicle_type.eq.pcc,vehicle_type.is.null')
+            .limit(5000);
 
         if (fetchError) {
             console.error('Fetch error:', fetchError);

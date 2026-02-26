@@ -5517,11 +5517,11 @@ async function loadStats() {
 }
 
 function renderStats(stats) {
-    // Summary stats
+    // Summary stats - use all-time where available
     document.getElementById('stat-typical-hours').textContent = stats.typicalHoursFormatted;
     document.getElementById('stat-peak-concurrent').textContent = stats.peakConcurrent > 0 ? stats.peakConcurrent : '--';
-    document.getElementById('stat-days-tracked').textContent = stats.daysWithService;
-    document.getElementById('stat-vehicles-seen').textContent = stats.uniqueVehicles;
+    document.getElementById('stat-days-tracked').textContent = stats.allTimeDaysWithService || stats.daysWithService;
+    document.getElementById('stat-vehicles-seen').textContent = stats.allTimeUniqueVehicles || stats.uniqueVehicles;
 
     // Concurrency chart (trolleys at once by hour)
     renderConcurrencyChart(stats.concurrencyPattern);
@@ -5532,10 +5532,10 @@ function renderStats(stats) {
     // Daily chart
     renderDailyChart(stats.dailyPattern);
 
-    // Vehicle roster
-    renderVehicleRoster(stats.vehicleStats);
+    // Vehicle roster - use all-time stats
+    renderVehicleRoster(stats.allTimeVehicleStats || stats.vehicleStats);
 
-    // Recent days
+    // Service history
     renderRecentDays(stats.recentDays);
 }
 
@@ -5605,6 +5605,10 @@ function renderVehicleRoster(vehicleStats) {
     `).join('');
 }
 
+// Day detail accordion state
+const dayDetailCache = {};
+let expandedDay = null;
+
 function renderRecentDays(recentDays) {
     const container = document.getElementById('recent-days');
 
@@ -5613,18 +5617,134 @@ function renderRecentDays(recentDays) {
         return;
     }
 
-    container.innerHTML = recentDays.slice(0, 7).map(day => {
+    container.innerHTML = recentDays.map(day => {
         const date = new Date(day.date + 'T12:00:00');
         const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         const hasService = day.observations > 0;
+        const vehicleCount = day.vehicles.length;
+
+        // Format time range from daily summary
+        let timeRange = '';
+        if (hasService && day.firstSeen && day.lastSeen) {
+            // Convert HH:MM:SS to readable format
+            const fmtTime = (t) => {
+                const [h, m] = t.split(':').map(Number);
+                const ampm = h >= 12 ? 'pm' : 'am';
+                const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                return `${h12}:${String(m).padStart(2, '0')}${ampm}`;
+            };
+            timeRange = `${fmtTime(day.firstSeen)}\u2013${fmtTime(day.lastSeen)}`;
+        }
 
         return `
-            <div class="recent-day-row ${hasService ? '' : 'no-service'}">
-                <span class="recent-day-date">${dateStr}</span>
-                <span class="recent-day-vehicles">${hasService ? day.vehicles.join(', ') : 'No service'}</span>
+            <div class="recent-day-row ${hasService ? 'has-service' : 'no-service'}"
+                 data-date="${day.date}"
+                 ${hasService ? `onclick="toggleDayDetail('${day.date}')"` : ''}>
+                <div class="recent-day-header">
+                    <span class="recent-day-date">${dateStr}</span>
+                    <span class="recent-day-summary">
+                        ${hasService
+                            ? `${vehicleCount} PCC${vehicleCount !== 1 ? 's' : ''}${timeRange ? ' \u00b7 ' + timeRange : ''}`
+                            : 'No service'}
+                    </span>
+                    ${hasService ? '<span class="recent-day-expand">&#9654;</span>' : ''}
+                </div>
+                <div class="recent-day-detail" id="day-detail-${day.date}" style="display:none;"></div>
             </div>
         `;
     }).join('');
+}
+
+async function toggleDayDetail(date) {
+    const detailEl = document.getElementById(`day-detail-${date}`);
+    if (!detailEl) return;
+
+    const row = detailEl.closest('.recent-day-row');
+    const isCurrentlyExpanded = detailEl.style.display !== 'none';
+
+    // Collapse any currently expanded day
+    if (expandedDay && expandedDay !== date) {
+        const prevDetail = document.getElementById(`day-detail-${expandedDay}`);
+        if (prevDetail) {
+            prevDetail.style.display = 'none';
+            prevDetail.closest('.recent-day-row')?.classList.remove('expanded');
+        }
+    }
+
+    if (isCurrentlyExpanded) {
+        detailEl.style.display = 'none';
+        row.classList.remove('expanded');
+        expandedDay = null;
+        return;
+    }
+
+    // Expand this day
+    detailEl.style.display = 'block';
+    row.classList.add('expanded');
+    expandedDay = date;
+
+    // Check cache first
+    if (dayDetailCache[date]) {
+        renderDayDetail(date, dayDetailCache[date]);
+        return;
+    }
+
+    // Fetch from API
+    detailEl.innerHTML = '<div class="day-detail-loading">Loading hourly detail...</div>';
+
+    try {
+        const response = await fetch(`/.netlify/functions/pcc-day-detail?date=${date}`);
+        if (!response.ok) throw new Error('Failed to fetch');
+
+        const data = await response.json();
+        dayDetailCache[date] = data;
+        renderDayDetail(date, data);
+    } catch (error) {
+        console.error('Day detail error:', error);
+        detailEl.innerHTML = '<p class="day-detail-empty">Unable to load detail.</p>';
+    }
+}
+
+function renderDayDetail(date, data) {
+    const detailEl = document.getElementById(`day-detail-${date}`);
+    if (!detailEl) return;
+
+    if (data.totalObservations === 0) {
+        detailEl.innerHTML = '<p class="day-detail-empty">No PCC trolleys observed this day.</p>';
+        return;
+    }
+
+    // Filter to relevant hours (5am-11pm)
+    const relevantHours = data.hourlyBreakdown.filter(h => h.hour >= 5 && h.hour <= 23);
+    const maxCount = Math.max(...relevantHours.map(h => h.vehicleCount), 1);
+
+    // Mini concurrency chart for this day
+    const miniChart = relevantHours.map(h => {
+        const heightPct = (h.vehicleCount / maxCount) * 100;
+        const barClass = h.vehicleCount > 0 ? 'day-detail-bar' : 'day-detail-bar empty';
+        const tooltip = h.vehicleCount > 0
+            ? `${h.label}: ${h.vehicles.map(v => '#' + v).join(', ')}`
+            : `${h.label}: none`;
+        return `
+            <div class="${barClass}" style="height: ${h.vehicleCount > 0 ? Math.max(heightPct, 20) : 5}%" title="${tooltip}">
+                <span class="day-detail-bar-count">${h.vehicleCount > 0 ? h.vehicleCount : ''}</span>
+                <span class="day-detail-bar-label">${h.label}</span>
+            </div>
+        `;
+    }).join('');
+
+    // Vehicle timeline pills
+    const vehicleList = data.vehicleTimelines.map(v => `
+        <div class="day-detail-vehicle">
+            <span class="day-detail-vehicle-id">#${v.vehicleId}</span>
+            <span class="day-detail-vehicle-time">${v.firstSeen} \u2013 ${v.lastSeen}</span>
+        </div>
+    `).join('');
+
+    detailEl.innerHTML = `
+        <div class="day-detail-chart">${miniChart}</div>
+        <div class="day-detail-vehicles">${vehicleList}</div>
+    `;
 }
 
 // ==========================================

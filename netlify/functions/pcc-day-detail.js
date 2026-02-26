@@ -1,0 +1,153 @@
+// pcc-day-detail.js - Per-day hourly detail endpoint
+// Returns hourly breakdown of PCC trolleys for a specific date
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY
+);
+
+export const handler = async (event) => {
+    const headers = {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=600' // Cache 10 min (historical data is stable)
+    };
+
+    if (event.httpMethod === 'OPTIONS') {
+        return { statusCode: 200, headers, body: '' };
+    }
+
+    const date = (event.queryStringParameters || {}).date;
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'date parameter required (YYYY-MM-DD)' })
+        };
+    }
+
+    try {
+        // Query PCC observations for the given date (Eastern time boundaries)
+        const startOfDay = `${date}T00:00:00-05:00`;
+        const endOfDay = `${date}T23:59:59-05:00`;
+
+        const { data: observations, error } = await supabase
+            .from('pcc_observations')
+            .select('observed_at, vehicle_id, direction, late_minutes')
+            .gte('observed_at', startOfDay)
+            .lte('observed_at', endOfDay)
+            .or('vehicle_type.eq.pcc,vehicle_type.is.null')
+            .order('observed_at', { ascending: true })
+            .limit(5000);
+
+        if (error) throw error;
+
+        if (!observations || observations.length === 0) {
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    date,
+                    totalObservations: 0,
+                    hourlyBreakdown: [],
+                    vehicleTimelines: []
+                })
+            };
+        }
+
+        // Build hourly breakdown and per-vehicle timelines
+        const hourlyMap = {};
+        const vehicleMap = {};
+
+        for (const obs of observations) {
+            const dt = new Date(obs.observed_at);
+            const eastern = new Date(dt.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            const hour = eastern.getHours();
+
+            // Hourly grouping
+            if (!hourlyMap[hour]) {
+                hourlyMap[hour] = { vehicles: new Set(), count: 0 };
+            }
+            hourlyMap[hour].vehicles.add(obs.vehicle_id);
+            hourlyMap[hour].count++;
+
+            // Per-vehicle timeline
+            if (!vehicleMap[obs.vehicle_id]) {
+                vehicleMap[obs.vehicle_id] = {
+                    firstSeen: eastern,
+                    lastSeen: eastern,
+                    hours: new Set(),
+                    observations: 0
+                };
+            }
+            vehicleMap[obs.vehicle_id].lastSeen = eastern;
+            vehicleMap[obs.vehicle_id].hours.add(hour);
+            vehicleMap[obs.vehicle_id].observations++;
+        }
+
+        // Format hourly breakdown (all 24 hours)
+        const hourlyBreakdown = [];
+        for (let h = 0; h < 24; h++) {
+            const data = hourlyMap[h];
+            hourlyBreakdown.push({
+                hour: h,
+                label: formatHour(h),
+                vehicleCount: data ? data.vehicles.size : 0,
+                vehicles: data ? Array.from(data.vehicles) : [],
+                observations: data ? data.count : 0
+            });
+        }
+
+        // Format vehicle timelines
+        const vehicleTimelines = Object.entries(vehicleMap)
+            .map(([id, data]) => ({
+                vehicleId: id,
+                firstSeen: formatTime(data.firstSeen),
+                lastSeen: formatTime(data.lastSeen),
+                hoursActive: Array.from(data.hours).sort((a, b) => a - b),
+                observations: data.observations
+            }))
+            .sort((a, b) => {
+                const aFirst = a.hoursActive[0] || 0;
+                const bFirst = b.hoursActive[0] || 0;
+                return aFirst - bFirst;
+            });
+
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+                date,
+                totalObservations: observations.length,
+                hourlyBreakdown,
+                vehicleTimelines
+            })
+        };
+
+    } catch (error) {
+        console.error('Day detail error:', error);
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: error.message })
+        };
+    }
+};
+
+function formatHour(hour) {
+    if (hour === 0 || hour === 24) return '12am';
+    if (hour === 12) return '12pm';
+    if (hour < 12) return `${hour}am`;
+    return `${hour - 12}pm`;
+}
+
+function formatTime(date) {
+    return date.toLocaleTimeString('en-US', {
+        timeZone: 'America/New_York',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+}

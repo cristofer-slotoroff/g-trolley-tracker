@@ -26,25 +26,39 @@ export const handler = async (event) => {
         const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
         // Get all PCC observations from last 30 days (exclude buses)
+        // NOTE: Supabase defaults to 1000 rows max. 30 days can have ~5000+ rows.
         const { data: observations, error } = await supabase
             .from('pcc_observations')
             .select('observed_at, vehicle_id, direction, next_stop_sequence')
             .gte('observed_at', thirtyDaysAgo)
             .or('vehicle_type.eq.pcc,vehicle_type.is.null')
-            .order('observed_at', { ascending: true });
+            .order('observed_at', { ascending: true })
+            .limit(50000);
 
         if (error) throw error;
 
         // Also get samples data for concurrent trolley counts
+        // 30 days × 288 samples/day = ~8640 rows, exceeds default 1000 limit
         const { data: samples, error: samplesError } = await supabase
             .from('pcc_samples')
             .select('sampled_at, pcc_count, vehicle_ids')
             .gte('sampled_at', thirtyDaysAgo)
-            .order('sampled_at', { ascending: true });
+            .order('sampled_at', { ascending: true })
+            .limit(50000);
 
         if (samplesError) {
             console.error('Samples query error:', samplesError);
             // Continue without samples data
+        }
+
+        // Query ALL daily summaries (lightweight - one row per day) for all-time stats
+        const { data: dailySummaries, error: summaryError } = await supabase
+            .from('pcc_daily_summaries')
+            .select('summary_date, vehicle_ids, total_observations, peak_concurrent_vehicles, first_observation_time, last_observation_time')
+            .order('summary_date', { ascending: true });
+
+        if (summaryError) {
+            console.error('Daily summaries query error:', summaryError);
         }
 
         if (!observations || observations.length === 0) {
@@ -65,7 +79,7 @@ export const handler = async (event) => {
         }
 
         // Process the data
-        const stats = processObservations(observations, samples || []);
+        const stats = processObservations(observations, samples || [], dailySummaries || []);
 
         return {
             statusCode: 200,
@@ -83,7 +97,7 @@ export const handler = async (event) => {
     }
 };
 
-function processObservations(observations, samples) {
+function processObservations(observations, samples, dailySummaries) {
     // Group by date (Eastern time)
     const byDate = {};
     const byHour = {};
@@ -196,15 +210,77 @@ function processObservations(observations, samples) {
         }))
         .sort((a, b) => b.timesSpotted - a.timesSpotted);
 
-    // Recent days with service
-    const recentDays = Object.entries(byDate)
-        .map(([date, data]) => ({
-            date,
-            observations: data.count,
-            vehicles: Array.from(data.vehicles)
-        }))
-        .sort((a, b) => b.date.localeCompare(a.date))
-        .slice(0, 14); // Last 14 days
+    // All-time vehicle roster from daily summaries
+    const allTimeVehicleDays = {};
+    for (const summary of dailySummaries) {
+        if (summary.vehicle_ids && Array.isArray(summary.vehicle_ids)) {
+            for (const vid of summary.vehicle_ids) {
+                if (!allTimeVehicleDays[vid]) allTimeVehicleDays[vid] = 0;
+                allTimeVehicleDays[vid]++;
+            }
+        }
+    }
+    const allTimeVehicleStats = Object.entries(allTimeVehicleDays)
+        .map(([id, daysActive]) => ({ vehicleId: id, daysActive }))
+        .sort((a, b) => b.daysActive - a.daysActive);
+
+    // Build gap-filled service history from daily summaries + today's live data
+    const recentDays = [];
+    const now = new Date();
+    const todayET = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const todayKey = todayET.toISOString().split('T')[0];
+
+    // Index daily summaries by date
+    const summaryByDate = {};
+    for (const s of dailySummaries) {
+        summaryByDate[s.summary_date] = s;
+    }
+
+    // Find earliest tracked date (first daily summary or 30 days ago, whichever is more recent)
+    const thirtyDaysAgoDate = new Date(todayET);
+    thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30);
+    const firstSummaryDate = dailySummaries.length > 0 ? new Date(dailySummaries[0].summary_date + 'T12:00:00') : thirtyDaysAgoDate;
+    const startDate = firstSummaryDate < thirtyDaysAgoDate ? thirtyDaysAgoDate : firstSummaryDate;
+
+    // Calculate number of days to show
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const daysToShow = Math.ceil((todayET - startDate) / msPerDay) + 1;
+
+    for (let i = 0; i < daysToShow; i++) {
+        const d = new Date(todayET);
+        d.setDate(d.getDate() - i);
+        const dateKey = d.toISOString().split('T')[0];
+
+        const summary = summaryByDate[dateKey];
+        const liveData = byDate[dateKey];
+
+        if (dateKey === todayKey && liveData) {
+            // Today: use live observation data (daily summary hasn't been computed yet)
+            recentDays.push({
+                date: dateKey,
+                observations: liveData.count,
+                vehicles: Array.from(liveData.vehicles),
+                firstSeen: null,
+                lastSeen: null
+            });
+        } else if (summary) {
+            recentDays.push({
+                date: dateKey,
+                observations: summary.total_observations,
+                vehicles: summary.vehicle_ids || [],
+                firstSeen: summary.first_observation_time,
+                lastSeen: summary.last_observation_time
+            });
+        } else {
+            recentDays.push({
+                date: dateKey,
+                observations: 0,
+                vehicles: [],
+                firstSeen: null,
+                lastSeen: null
+            });
+        }
+    }
 
     // Format concurrency by hour (max and avg trolleys running at each hour)
     const concurrencyPattern = [];
@@ -224,6 +300,9 @@ function processObservations(observations, samples) {
         totalObservations: observations.length,
         daysWithService: Object.keys(byDate).length,
         uniqueVehicles: Object.keys(byVehicle).length,
+        allTimeUniqueVehicles: Object.keys(allTimeVehicleDays).length,
+        allTimeVehicleStats,
+        allTimeDaysWithService: dailySummaries.filter(s => s.total_observations > 0).length,
         typicalStartHour: firstHour,
         typicalEndHour: lastHour,
         typicalHoursFormatted: firstHour !== null ?
