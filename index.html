@@ -54,53 +54,56 @@
                 <div id="stats-loading" class="stats-loading">Loading statistics...</div>
 
                 <div id="stats-data" class="stats-data" style="display: none;">
-                    <!-- Summary Stats -->
+                    <!-- Quick Stats -->
                     <div class="stats-summary">
-                        <div class="stat-box">
-                            <span class="stat-value" id="stat-typical-hours">--</span>
-                            <span class="stat-label">Typical Hours</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-value" id="stat-peak-concurrent">--</span>
-                            <span class="stat-label">Peak at Once</span>
-                        </div>
                         <div class="stat-box">
                             <span class="stat-value" id="stat-days-tracked">--</span>
                             <span class="stat-label">Days Tracked</span>
                         </div>
                         <div class="stat-box">
-                            <span class="stat-value" id="stat-vehicles-seen">--</span>
-                            <span class="stat-label">PCCs Spotted</span>
+                            <span class="stat-value" id="stat-typical-hours">--</span>
+                            <span class="stat-label">Typical Hours</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-value" id="stat-best-time">--</span>
+                            <span class="stat-label">Best Time</span>
                         </div>
                     </div>
 
-                    <!-- Concurrency Chart -->
-                    <div class="stats-section">
-                        <h3>Trolleys Running at Once</h3>
-                        <p class="stats-note">Maximum trolleys seen running simultaneously at each hour:</p>
-                        <div id="concurrency-chart" class="concurrency-chart"></div>
+                    <!-- Today's Trolleys -->
+                    <div class="stats-section today-section" id="today-section">
+                        <h3 id="today-header">Today's Trolleys</h3>
+                        <div id="today-content"></div>
                     </div>
 
-                    <!-- Hourly Chart -->
+                    <!-- Historical Patterns -->
                     <div class="stats-section">
-                        <h3>Activity by Hour</h3>
+                        <h3>Historical Patterns</h3>
+                        <p class="stats-note" id="historical-subtitle"></p>
+                        <div id="concurrency-chart" class="concurrency-chart"></div>
+                        <p class="stats-note" id="peak-concurrent-note"></p>
+                    </div>
+
+                    <!-- Activity by Hour (All-Time) -->
+                    <div class="stats-section">
+                        <h3>Activity by Hour (All-Time)</h3>
+                        <p class="stats-note">Average observations per hour on service days:</p>
                         <div id="hourly-chart" class="hourly-chart"></div>
                     </div>
 
-                    <!-- Day of Week -->
+                    <!-- Activity by Day -->
                     <div class="stats-section">
-                        <h3>Activity by Day</h3>
-                        <div id="daily-chart" class="daily-chart"></div>
+                        <h3 id="day-history-header">Activity by Day</h3>
+                        <div id="daily-chart"></div>
                     </div>
 
-                    <!-- Vehicle Roster -->
+                    <!-- PCC Trolley Roster -->
                     <div class="stats-section">
-                        <h3>PCC Roster</h3>
-                        <p class="stats-note">All PCC trolleys observed (all time):</p>
+                        <h3>PCC Trolley Roster</h3>
                         <div id="vehicle-roster" class="vehicle-roster"></div>
                     </div>
 
-                    <!-- Recent Days -->
+                    <!-- Service History -->
                     <div class="stats-section">
                         <h3>Service History</h3>
                         <p class="stats-note">Tap a day to see hourly detail:</p>

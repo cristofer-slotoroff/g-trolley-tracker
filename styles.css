@@ -2049,68 +2049,165 @@ footer p {
     display: none;
 }
 
-/* Daily Chart */
-.daily-chart {
+/* Today's Trolleys Section */
+.today-section {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 3px solid var(--pcc-gold);
+}
+
+.today-summary {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.today-count {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--pcc-gold);
+}
+
+.today-time-range {
+    font-size: 0.8rem;
+    color: var(--pcc-cream-dim);
+}
+
+.today-vehicles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.today-vehicle-badge {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--pcc-gold);
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: var(--pcc-cream);
+}
+
+.today-direction {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+/* Direction Badges (shared) */
+.direction-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.direction-badge.eb {
+    background: rgba(76, 175, 80, 0.2);
+    color: #81C784;
+}
+
+.direction-badge.wb {
+    background: rgba(66, 165, 245, 0.2);
+    color: #64B5F6;
+}
+
+.direction-badge-sm {
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 0.6rem;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+.direction-badge-sm.eb {
+    background: rgba(76, 175, 80, 0.15);
+    color: #81C784;
+}
+
+.direction-badge-sm.wb {
+    background: rgba(66, 165, 245, 0.15);
+    color: #64B5F6;
+}
+
+/* Weekday History (Activity by Day) */
+.weekday-history-row {
+    display: flex;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    align-items: flex-start;
+}
+
+.weekday-history-row.today-highlight {
+    border-left: 3px solid var(--pcc-gold);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.weekday-history-date {
+    min-width: 55px;
+    color: var(--pcc-cream);
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+.weekday-history-details {
+    flex: 1;
+}
+
+.weekday-history-vehicles {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--pcc-cream);
+    margin-bottom: 3px;
+}
+
+.weekday-history-time {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--pcc-cream-dim);
+    margin-bottom: 3px;
+}
+
+.weekday-history-direction {
     display: flex;
     gap: 6px;
 }
 
-.day-bar-container {
-    flex: 1;
-    text-align: center;
-}
-
-.day-bar {
-    height: 50px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-}
-
-.day-bar-fill {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--pcc-green-light);
-    border-radius: 0 0 4px 4px;
-    transition: height 0.3s;
-}
-
-.day-bar-label {
-    margin-top: 6px;
-    font-size: 0.7rem;
-    color: var(--pcc-cream-dim);
-}
-
-/* Vehicle Roster */
+/* Vehicle Roster (PCC Trolley Roster with icons) */
 .vehicle-roster {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 12px;
+    justify-content: center;
 }
 
-.vehicle-chip {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    padding: 8px 12px;
+.roster-vehicle {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 70px;
+    gap: 4px;
 }
 
-.vehicle-chip-id {
+.roster-vehicle-icon {
+    width: 36px;
+    height: auto;
+    opacity: 0.9;
+}
+
+.roster-vehicle-id {
     font-weight: bold;
-    font-size: 1rem;
+    font-size: 0.8rem;
     color: var(--pcc-cream);
-}
-
-.vehicle-chip-stat {
-    font-size: 0.7rem;
-    color: var(--pcc-cream-dim);
-    margin-top: 2px;
 }
 
 /* Service History List */
@@ -2173,6 +2270,11 @@ footer p {
 
 .recent-day-row.no-service {
     opacity: 0.5;
+}
+
+.recent-day-row.is-today {
+    border-left: 3px solid var(--pcc-gold);
+    opacity: 0.8;
 }
 
 /* Day Detail Accordion */
@@ -2248,28 +2350,49 @@ footer p {
 .day-detail-vehicles {
     margin-top: 8px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+    flex-direction: column;
+    gap: 6px;
 }
 
-.day-detail-vehicle {
-    display: inline-flex;
+.day-detail-vehicle-row {
+    display: flex;
     align-items: center;
-    gap: 4px;
-    background: rgba(0, 0, 0, 0.2);
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.15);
     border-radius: 4px;
-    padding: 3px 8px;
+    padding: 5px 8px;
     font-size: 0.8rem;
 }
 
 .day-detail-vehicle-id {
     font-weight: bold;
     color: var(--pcc-cream);
+    min-width: 45px;
 }
 
 .day-detail-vehicle-time {
     color: var(--pcc-cream-dim);
     font-size: 0.7rem;
+    min-width: 100px;
+}
+
+.day-detail-vehicle-dots {
+    display: flex;
+    gap: 2px;
+    flex: 1;
+    align-items: center;
+}
+
+.timeline-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+.timeline-dot.active {
+    background: var(--pcc-gold);
 }
 
 /* Stats Responsive */
@@ -2292,7 +2415,7 @@ footer p {
     }
 
     .stat-value {
-        font-size: 0.95rem;
+        font-size: 0.85rem;
     }
 
     .stat-label {
@@ -2307,13 +2430,35 @@ footer p {
         font-size: 0.5rem;
     }
 
-    .vehicle-chip {
-        padding: 6px 10px;
-        min-width: 60px;
+    .today-section {
+        padding: 10px;
     }
 
-    .vehicle-chip-id {
-        font-size: 0.9rem;
+    .today-count {
+        font-size: 1rem;
+    }
+
+    .today-vehicle-badge {
+        font-size: 0.8rem;
+        padding: 2px 8px;
+    }
+
+    .roster-vehicle-icon {
+        width: 28px;
+    }
+
+    .roster-vehicle-id {
+        font-size: 0.7rem;
+    }
+
+    .weekday-history-row {
+        font-size: 0.75rem;
+        padding: 6px 8px;
+    }
+
+    .weekday-history-date {
+        min-width: 45px;
+        font-size: 0.7rem;
     }
 
     .recent-day-row {
@@ -2333,11 +2478,23 @@ footer p {
         height: 45px;
     }
 
-    .day-detail-vehicle {
+    .day-detail-vehicle-row {
         font-size: 0.7rem;
+        flex-wrap: wrap;
     }
 
     .day-detail-vehicle-time {
         font-size: 0.6rem;
+        min-width: auto;
+    }
+
+    .day-detail-vehicle-dots {
+        width: 100%;
+        margin-top: 2px;
+    }
+
+    .timeline-dot {
+        width: 4px;
+        height: 4px;
     }
 }

@@ -5517,90 +5517,230 @@ async function loadStats() {
 }
 
 function renderStats(stats) {
-    // Summary stats - use all-time where available
-    document.getElementById('stat-typical-hours').textContent = stats.typicalHoursFormatted;
-    document.getElementById('stat-peak-concurrent').textContent = stats.peakConcurrent > 0 ? stats.peakConcurrent : '--';
+    // Quick stats
     document.getElementById('stat-days-tracked').textContent = stats.allTimeDaysWithService || stats.daysWithService;
-    document.getElementById('stat-vehicles-seen').textContent = stats.allTimeUniqueVehicles || stats.uniqueVehicles;
+    document.getElementById('stat-typical-hours').textContent = stats.typicalHoursFormatted;
+    document.getElementById('stat-best-time').textContent = `${stats.bestDay}, ${stats.bestHourRange}`;
 
-    // Concurrency chart (trolleys at once by hour)
-    renderConcurrencyChart(stats.concurrencyPattern);
+    // Today's Trolleys
+    renderTodaySection(stats.todayData);
 
-    // Hourly chart
-    renderHourlyChart(stats.hourlyPattern);
+    // Historical patterns (concurrency chart, service-days only)
+    renderHistoricalPatterns(stats);
 
-    // Daily chart
-    renderDailyChart(stats.dailyPattern);
+    // Activity by Hour (all-time, service-days only)
+    renderHourlyChart(stats.hourlyPatternServiceDays || stats.hourlyPattern);
 
-    // Vehicle roster - use all-time stats
+    // Activity by Day (same day-of-week history)
+    renderDayOfWeekHistory(stats);
+
+    // PCC Trolley Roster
     renderVehicleRoster(stats.allTimeVehicleStats || stats.vehicleStats);
 
     // Service history
     renderRecentDays(stats.recentDays);
 }
 
-function renderConcurrencyChart(concurrencyData) {
-    const container = document.getElementById('concurrency-chart');
-    const maxCount = Math.max(...concurrencyData.map(h => h.maxConcurrent), 1);
+function renderTodaySection(todayData) {
+    const header = document.getElementById('today-header');
+    const content = document.getElementById('today-content');
+    if (!todayData) return;
 
-    // Only show hours 5am-11pm for cleaner display
-    const relevantHours = concurrencyData.filter(h => h.hour >= 5 && h.hour <= 23);
+    // Format date for header
+    const dateObj = new Date(todayData.date + 'T12:00:00');
+    const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    header.textContent = `Today's Trolleys \u2014 ${dateStr}`;
 
-    container.innerHTML = relevantHours.map(h => {
-        const heightPct = (h.maxConcurrent / maxCount) * 100;
-        const barClass = h.maxConcurrent > 0 ? 'concurrency-bar' : 'concurrency-bar empty';
+    if (todayData.pccCount === 0) {
+        content.innerHTML = '<p class="stats-note">No PCC service observed yet today. Tracking in progress...</p>';
+        return;
+    }
+
+    // Vehicle badges
+    const vehicleBadges = todayData.vehicleIds.map(id =>
+        `<span class="today-vehicle-badge">#${id}</span>`
+    ).join('');
+
+    // Time range
+    const timeRange = todayData.firstSeen && todayData.lastSeen
+        ? `${todayData.firstSeen} \u2013 ${todayData.lastSeen}`
+        : '';
+
+    // Direction split
+    const totalDir = todayData.ebCount + todayData.wbCount;
+    const dirInfo = totalDir > 0
+        ? `<span class="direction-badge eb">EB ${todayData.ebCount}</span> <span class="direction-badge wb">WB ${todayData.wbCount}</span>`
+        : '';
+
+    // Hourly chart for today
+    const relevantHours = todayData.hourlyBreakdown.filter(h => h.hour >= 5 && h.hour <= 23);
+    const maxCount = Math.max(...relevantHours.map(h => h.vehicleCount), 1);
+    const miniChart = relevantHours.map(h => {
+        const heightPct = (h.vehicleCount / maxCount) * 100;
+        const barClass = h.vehicleCount > 0 ? 'concurrency-bar' : 'concurrency-bar empty';
+        const tooltip = h.vehicleCount > 0
+            ? `${h.label}: ${h.vehicles.map(v => '#' + v).join(', ')}`
+            : `${h.label}: none`;
         return `
-            <div class="${barClass}" style="height: ${h.maxConcurrent > 0 ? Math.max(heightPct, 15) : 5}%" title="${h.label}: max ${h.maxConcurrent} trolley${h.maxConcurrent !== 1 ? 's' : ''}">
-                <span class="concurrency-count">${h.maxConcurrent > 0 ? h.maxConcurrent : ''}</span>
+            <div class="${barClass}" style="height: ${h.vehicleCount > 0 ? Math.max(heightPct, 15) : 5}%" title="${tooltip}">
+                <span class="concurrency-count">${h.vehicleCount > 0 ? h.vehicleCount : ''}</span>
                 <span class="concurrency-label">${h.label}</span>
             </div>
         `;
     }).join('');
+
+    content.innerHTML = `
+        <div class="today-summary">
+            <span class="today-count">${todayData.pccCount} PCC${todayData.pccCount !== 1 ? 's' : ''}</span>
+            ${timeRange ? `<span class="today-time-range">${timeRange}</span>` : ''}
+        </div>
+        <div class="today-vehicles">${vehicleBadges}</div>
+        ${dirInfo ? `<div class="today-direction">${dirInfo}</div>` : ''}
+        <div class="concurrency-chart" style="margin-top: 12px;">${miniChart}</div>
+    `;
+}
+
+function renderHistoricalPatterns(stats) {
+    const container = document.getElementById('concurrency-chart');
+    const subtitle = document.getElementById('historical-subtitle');
+    const peakNote = document.getElementById('peak-concurrent-note');
+
+    const serviceDays = stats.allTimeDaysWithService || stats.daysWithService;
+    subtitle.textContent = `Average trolleys per hour on service days (based on ${serviceDays} days with service):`;
+
+    // Show avg concurrent trolleys by hour (service-days only)
+    const concurrencyData = stats.concurrencyPattern;
+    const maxAvg = Math.max(...concurrencyData.map(h => h.avgConcurrent), 1);
+    const relevantHours = concurrencyData.filter(h => h.hour >= 5 && h.hour <= 23);
+
+    container.innerHTML = relevantHours.map(h => {
+        const heightPct = (h.avgConcurrent / maxAvg) * 100;
+        const barClass = h.avgConcurrent > 0 ? 'concurrency-bar' : 'concurrency-bar empty';
+        return `
+            <div class="${barClass}" style="height: ${h.avgConcurrent > 0 ? Math.max(heightPct, 15) : 5}%" title="${h.label}: avg ${h.avgConcurrent}, max ${h.maxConcurrent}">
+                <span class="concurrency-count">${h.avgConcurrent > 0 ? h.avgConcurrent : ''}</span>
+                <span class="concurrency-label">${h.label}</span>
+            </div>
+        `;
+    }).join('');
+
+    // Peak concurrent note
+    if (stats.peakConcurrent > 0) {
+        peakNote.textContent = `All-time peak: ${stats.peakConcurrent} trolley${stats.peakConcurrent !== 1 ? 's' : ''} at once`;
+    }
 }
 
 function renderHourlyChart(hourlyData) {
     const container = document.getElementById('hourly-chart');
-    const maxObs = Math.max(...hourlyData.map(h => h.observations), 1);
+    // Use avgVehicles if available (service-days only), otherwise observations
+    const useAvg = hourlyData[0] && hourlyData[0].avgVehicles !== undefined;
+    const values = hourlyData.map(h => useAvg ? h.avgVehicles : h.observations);
+    const maxVal = Math.max(...values, 1);
 
-    container.innerHTML = hourlyData.map(h => {
-        const heightPct = (h.observations / maxObs) * 100;
+    container.innerHTML = hourlyData.map((h, i) => {
+        const val = values[i];
+        const heightPct = (val / maxVal) * 100;
+        const label = useAvg
+            ? `${h.label}: avg ${h.avgVehicles} vehicles (${h.daysActive} days)`
+            : `${h.label}: ${h.observations} observations`;
         return `
-            <div class="hour-bar" style="height: ${Math.max(heightPct, 2)}%" title="${h.label}: ${h.observations} observations">
+            <div class="hour-bar" style="height: ${Math.max(heightPct, 2)}%" title="${label}">
                 <span class="hour-bar-label">${h.label}</span>
             </div>
         `;
     }).join('');
 }
 
-function renderDailyChart(dailyData) {
+function renderDayOfWeekHistory(stats) {
     const container = document.getElementById('daily-chart');
-    const maxObs = Math.max(...dailyData.map(d => d.observations), 1);
+    const header = document.getElementById('day-history-header');
+    const todayData = stats.todayData;
+    const sameDayHistory = stats.sameDayHistory || [];
+    const dayName = todayData ? todayData.dayName : '';
 
-    container.innerHTML = dailyData.map(d => {
-        const heightPct = (d.observations / maxObs) * 100;
-        return `
-            <div class="day-bar-container">
-                <div class="day-bar">
-                    <div class="day-bar-fill" style="height: ${heightPct}%"></div>
+    header.textContent = `${dayName} History`;
+
+    // Format time from HH:MM:SS to readable
+    const fmtTime = (t) => {
+        if (!t) return '';
+        // Handle both "HH:MM:SS" and already-formatted "H:MM AM" styles
+        if (t.includes('AM') || t.includes('PM') || t.includes('am') || t.includes('pm')) return t;
+        const [h, m] = t.split(':').map(Number);
+        const ampm = h >= 12 ? 'pm' : 'am';
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${h12}:${String(m).padStart(2, '0')}${ampm}`;
+    };
+
+    let html = '';
+
+    // Today's entry (highlighted)
+    if (todayData && todayData.pccCount > 0) {
+        const timeRange = todayData.firstSeen && todayData.lastSeen
+            ? `${todayData.firstSeen} \u2013 ${todayData.lastSeen}` : '';
+        html += `
+            <div class="weekday-history-row today-highlight">
+                <div class="weekday-history-date">Today</div>
+                <div class="weekday-history-details">
+                    <span class="weekday-history-vehicles">${todayData.vehicleIds.map(v => '#' + v).join(', ')}</span>
+                    ${timeRange ? `<span class="weekday-history-time">${timeRange}</span>` : ''}
+                    <div class="weekday-history-direction">
+                        <span class="direction-badge eb">EB ${todayData.ebCount}</span>
+                        <span class="direction-badge wb">WB ${todayData.wbCount}</span>
+                    </div>
                 </div>
-                <div class="day-bar-label">${d.day}</div>
-            </div>
-        `;
-    }).join('');
+            </div>`;
+    } else if (todayData) {
+        html += `
+            <div class="weekday-history-row today-highlight">
+                <div class="weekday-history-date">Today</div>
+                <div class="weekday-history-details">
+                    <span class="stats-note">No PCC service yet today</span>
+                </div>
+            </div>`;
+    }
+
+    // Previous same-day entries
+    if (sameDayHistory.length > 0) {
+        html += `<p class="stats-note" style="margin-top: 10px;">Previous ${dayName}s:</p>`;
+        for (const entry of sameDayHistory) {
+            const dateObj = new Date(entry.date + 'T12:00:00');
+            const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const vehicleList = entry.vehicles.map(v => '#' + v).join(', ');
+            const timeRange = entry.firstSeen && entry.lastSeen
+                ? `${fmtTime(entry.firstSeen)} \u2013 ${fmtTime(entry.lastSeen)}` : '';
+
+            html += `
+                <div class="weekday-history-row">
+                    <div class="weekday-history-date">${dateStr}</div>
+                    <div class="weekday-history-details">
+                        <span class="weekday-history-vehicles">${vehicleList}</span>
+                        ${timeRange ? `<span class="weekday-history-time">${timeRange}</span>` : ''}
+                        <div class="weekday-history-direction">
+                            <span class="direction-badge eb">EB ${entry.ebCount}</span>
+                            <span class="direction-badge wb">WB ${entry.wbCount}</span>
+                        </div>
+                    </div>
+                </div>`;
+        }
+    } else {
+        html += `<p class="stats-note" style="margin-top: 10px;">No previous ${dayName} data yet.</p>`;
+    }
+
+    container.innerHTML = html;
 }
 
 function renderVehicleRoster(vehicleStats) {
     const container = document.getElementById('vehicle-roster');
 
-    if (vehicleStats.length === 0) {
+    if (!vehicleStats || vehicleStats.length === 0) {
         container.innerHTML = '<p class="stats-note">No vehicles tracked yet.</p>';
         return;
     }
 
     container.innerHTML = vehicleStats.map(v => `
-        <div class="vehicle-chip">
-            <span class="vehicle-chip-id">#${v.vehicleId}</span>
-            <span class="vehicle-chip-stat">${v.daysActive} day${v.daysActive !== 1 ? 's' : ''}</span>
+        <div class="roster-vehicle">
+            <img src="Graphics/EB_PCC_App_Logo.svg" alt="PCC Trolley" class="roster-vehicle-icon">
+            <span class="roster-vehicle-id">#${v.vehicleId}</span>
         </div>
     `).join('');
 }
@@ -5612,22 +5752,26 @@ let expandedDay = null;
 function renderRecentDays(recentDays) {
     const container = document.getElementById('recent-days');
 
-    if (recentDays.length === 0) {
+    if (!recentDays || recentDays.length === 0) {
         container.innerHTML = '<p class="stats-note">No recent data.</p>';
         return;
     }
 
     container.innerHTML = recentDays.map(day => {
         const date = new Date(day.date + 'T12:00:00');
-        const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const dateStr = day.isToday
+            ? 'Today'
+            : date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         const hasService = day.observations > 0;
         const vehicleCount = day.vehicles.length;
 
-        // Format time range from daily summary
+        // Format time range
         let timeRange = '';
         if (hasService && day.firstSeen && day.lastSeen) {
-            // Convert HH:MM:SS to readable format
+            // Handle both HH:MM:SS and already-formatted times
             const fmtTime = (t) => {
+                if (!t) return '';
+                if (t.includes('AM') || t.includes('PM') || t.includes('am') || t.includes('pm')) return t;
                 const [h, m] = t.split(':').map(Number);
                 const ampm = h >= 12 ? 'pm' : 'am';
                 const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
@@ -5636,16 +5780,32 @@ function renderRecentDays(recentDays) {
             timeRange = `${fmtTime(day.firstSeen)}\u2013${fmtTime(day.lastSeen)}`;
         }
 
+        // Direction info
+        const dirInfo = (day.ebCount > 0 || day.wbCount > 0)
+            ? `<span class="direction-badge-sm eb">EB${day.ebCount}</span><span class="direction-badge-sm wb">WB${day.wbCount}</span>`
+            : '';
+
+        // Status text
+        let statusText;
+        if (hasService) {
+            statusText = `${vehicleCount} PCC${vehicleCount !== 1 ? 's' : ''}${timeRange ? ' \u00b7 ' + timeRange : ''}`;
+        } else if (day.isToday) {
+            statusText = 'Tracking...';
+        } else {
+            statusText = 'No service';
+        }
+
+        const isClickable = hasService || day.isToday;
+
         return `
-            <div class="recent-day-row ${hasService ? 'has-service' : 'no-service'}"
+            <div class="recent-day-row ${hasService ? 'has-service' : (day.isToday ? 'is-today' : 'no-service')}"
                  data-date="${day.date}"
-                 ${hasService ? `onclick="toggleDayDetail('${day.date}')"` : ''}>
+                 ${isClickable && hasService ? `onclick="toggleDayDetail('${day.date}')"` : ''}>
                 <div class="recent-day-header">
                     <span class="recent-day-date">${dateStr}</span>
                     <span class="recent-day-summary">
-                        ${hasService
-                            ? `${vehicleCount} PCC${vehicleCount !== 1 ? 's' : ''}${timeRange ? ' \u00b7 ' + timeRange : ''}`
-                            : 'No service'}
+                        ${statusText}
+                        ${dirInfo}
                     </span>
                     ${hasService ? '<span class="recent-day-expand">&#9654;</span>' : ''}
                 </div>
@@ -5718,7 +5878,7 @@ function renderDayDetail(date, data) {
     const relevantHours = data.hourlyBreakdown.filter(h => h.hour >= 5 && h.hour <= 23);
     const maxCount = Math.max(...relevantHours.map(h => h.vehicleCount), 1);
 
-    // Mini concurrency chart for this day
+    // Mini hourly chart
     const miniChart = relevantHours.map(h => {
         const heightPct = (h.vehicleCount / maxCount) * 100;
         const barClass = h.vehicleCount > 0 ? 'day-detail-bar' : 'day-detail-bar empty';
@@ -5733,17 +5893,27 @@ function renderDayDetail(date, data) {
         `;
     }).join('');
 
-    // Vehicle timeline pills
-    const vehicleList = data.vehicleTimelines.map(v => `
-        <div class="day-detail-vehicle">
-            <span class="day-detail-vehicle-id">#${v.vehicleId}</span>
-            <span class="day-detail-vehicle-time">${v.firstSeen} \u2013 ${v.lastSeen}</span>
-        </div>
-    `).join('');
+    // Vehicle timeline: show each vehicle with dot indicators for which hours it was active
+    const allHoursRange = relevantHours.map(h => h.hour);
+    const vehicleTimeline = data.vehicleTimelines.map(v => {
+        const activeSet = new Set(v.hoursActive);
+        const dots = allHoursRange.map(h => {
+            const isActive = activeSet.has(h);
+            return `<span class="timeline-dot ${isActive ? 'active' : ''}" title="${data.hourlyBreakdown.find(hb => hb.hour === h)?.label || ''}"></span>`;
+        }).join('');
+
+        return `
+            <div class="day-detail-vehicle-row">
+                <span class="day-detail-vehicle-id">#${v.vehicleId}</span>
+                <span class="day-detail-vehicle-time">${v.firstSeen} \u2013 ${v.lastSeen}</span>
+                <div class="day-detail-vehicle-dots">${dots}</div>
+            </div>
+        `;
+    }).join('');
 
     detailEl.innerHTML = `
         <div class="day-detail-chart">${miniChart}</div>
-        <div class="day-detail-vehicles">${vehicleList}</div>
+        <div class="day-detail-vehicles">${vehicleTimeline}</div>
     `;
 }
 
