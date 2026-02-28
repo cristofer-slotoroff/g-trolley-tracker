@@ -5549,10 +5549,10 @@ function renderTodaySection(todayData) {
         ? `${todayData.firstSeen} \u2013 ${todayData.lastSeen}`
         : '';
 
-    // Direction split
-    const totalDir = todayData.ebCount + todayData.wbCount;
-    const dirInfo = totalDir > 0
-        ? `<span class="direction-badge eb">EB ${todayData.ebCount}</span> <span class="direction-badge wb">WB ${todayData.wbCount}</span>`
+    // Trip counts
+    const totalTrips = todayData.totalTrips || 0;
+    const tripInfo = totalTrips > 0
+        ? `<div class="today-trips">${totalTrips} trip${totalTrips !== 1 ? 's' : ''} <span class="trip-breakdown">(${todayData.ebTrips || 0} EB · ${todayData.wbTrips || 0} WB)</span></div>`
         : '';
 
     // Hourly chart for today
@@ -5578,7 +5578,7 @@ function renderTodaySection(todayData) {
             ${timeRange ? `<span class="today-time-range">${timeRange}</span>` : ''}
         </div>
         <div class="today-vehicles">${vehicleBadges}</div>
-        ${dirInfo ? `<div class="today-direction">${dirInfo}</div>` : ''}
+        ${tripInfo}
         <div class="concurrency-chart" style="margin-top: 12px;">${miniChart}</div>
     `;
 }
@@ -5589,7 +5589,7 @@ function renderHistoricalPatterns(stats) {
     const peakNote = document.getElementById('peak-concurrent-note');
 
     const serviceDays = stats.allTimeDaysWithService || stats.daysWithService;
-    subtitle.textContent = `Average observations per hour on service days (${serviceDays} days with service):`;
+    subtitle.textContent = `Average trolleys per hour on service days (${serviceDays} days with service):`;
 
     // Prefer concurrency data; fall back to hourlyPatternServiceDays if concurrency is all zeros
     const concurrencyData = stats.concurrencyPattern || [];
@@ -5649,8 +5649,8 @@ function renderHourlyChart(hourlyData) {
         const val = filteredVals[i];
         const heightPct = (val / filteredMax) * 100;
         const label = useAvg
-            ? `${h.label}: avg ${h.avgVehicles} obs/day (${h.daysActive} days)`
-            : `${h.label}: ${h.observations} observations`;
+            ? `${h.label}: ~${h.avgVehicles} avg trolleys (${h.daysActive} service days)`
+            : `${h.label}: ${h.observations} sightings`;
         return `
             <div class="hour-bar" style="height: ${Math.max(heightPct, 2)}%" title="${label}">
                 ${val > 0 ? `<span class="hour-bar-count">${val}</span>` : ''}
@@ -5687,16 +5687,14 @@ function renderDayOfWeekHistory(stats) {
     if (todayData && todayData.pccCount > 0) {
         const timeRange = todayData.firstSeen && todayData.lastSeen
             ? `${todayData.firstSeen} \u2013 ${todayData.lastSeen}` : '';
+        const todayTotalTrips = todayData.totalTrips || 0;
         html += `
             <div class="weekday-history-row today-highlight">
                 <div class="weekday-history-date">Today</div>
                 <div class="weekday-history-details">
                     <span class="weekday-history-vehicles">${todayData.vehicleIds.map(v => '#' + v).join(', ')}</span>
                     ${timeRange ? `<span class="weekday-history-time">${timeRange}</span>` : ''}
-                    <div class="weekday-history-direction">
-                        <span class="direction-badge eb">\u2190 EB ${todayData.ebCount} obs</span>
-                        <span class="direction-badge wb">WB ${todayData.wbCount} obs \u2192</span>
-                    </div>
+                    ${todayTotalTrips > 0 ? `<div class="weekday-history-trips">${todayTotalTrips} trip${todayTotalTrips !== 1 ? 's' : ''} (${todayData.ebTrips || 0} EB · ${todayData.wbTrips || 0} WB)</div>` : ''}
                 </div>
             </div>`;
     } else if (todayData) {
@@ -5719,16 +5717,14 @@ function renderDayOfWeekHistory(stats) {
             const timeRange = entry.firstSeen && entry.lastSeen
                 ? `${fmtTime(entry.firstSeen)} \u2013 ${fmtTime(entry.lastSeen)}` : '';
 
+            const entryTotalTrips = entry.totalTrips || 0;
             html += `
                 <div class="weekday-history-row">
                     <div class="weekday-history-date">${dateStr}</div>
                     <div class="weekday-history-details">
                         <span class="weekday-history-vehicles">${vehicleList}</span>
                         ${timeRange ? `<span class="weekday-history-time">${timeRange}</span>` : ''}
-                        <div class="weekday-history-direction">
-                            <span class="direction-badge eb">\u2190 EB ${entry.ebCount} obs</span>
-                            <span class="direction-badge wb">WB ${entry.wbCount} obs \u2192</span>
-                        </div>
+                        ${entryTotalTrips > 0 ? `<div class="weekday-history-trips">${entryTotalTrips} trip${entryTotalTrips !== 1 ? 's' : ''} (${entry.ebTrips || 0} EB · ${entry.wbTrips || 0} WB)</div>` : ''}
                     </div>
                 </div>`;
         }
@@ -5809,8 +5805,9 @@ function renderRecentDays(recentDays) {
             timeRange = `${fmtTime(day.firstSeen)}\u2013${fmtTime(day.lastSeen)}`;
         }
 
-        const dirInfo = (day.ebCount > 0 || day.wbCount > 0)
-            ? `<span class="direction-badge-sm eb">EB${day.ebCount}</span><span class="direction-badge-sm wb">WB${day.wbCount}</span>`
+        const tripCount = day.totalTrips || 0;
+        const tripInfo = tripCount > 0
+            ? `<span class="trip-count-sm">${tripCount} trip${tripCount !== 1 ? 's' : ''}</span>`
             : '';
 
         let statusText;
@@ -5830,7 +5827,7 @@ function renderRecentDays(recentDays) {
                     <span class="recent-day-date">${dateStr}</span>
                     <span class="recent-day-summary">
                         ${statusText}
-                        ${dirInfo}
+                        ${tripInfo}
                     </span>
                     ${hasService ? '<span class="recent-day-expand">&#9654;</span>' : ''}
                 </div>
@@ -5944,28 +5941,27 @@ function renderDayDetail(date, data) {
         `;
     }).join('');
 
-    // Vehicle list with time ranges
+    // Vehicle list with time ranges and trip counts
     const vehicleList = data.vehicleTimelines.map(v => {
-        // Build simple hour-span text
-        const hoursStr = v.hoursActive.length > 0
-            ? v.hoursActive.map(h => {
-                const hData = data.hourlyBreakdown.find(hb => hb.hour === h);
-                return hData ? hData.label : '';
-            }).filter(Boolean).join(', ')
-            : '';
-
+        const trips = v.trips || 0;
         return `
             <div class="day-detail-vehicle-row">
                 <span class="day-detail-vehicle-id">#${v.vehicleId}</span>
                 <span class="day-detail-vehicle-time">${v.firstSeen} \u2013 ${v.lastSeen}</span>
-                <span class="day-detail-vehicle-obs">${v.observations} obs</span>
+                <span class="day-detail-vehicle-trips">${trips} trip${trips !== 1 ? 's' : ''}</span>
             </div>
         `;
     }).join('');
 
+    // Total trips for the day
+    const totalTrips = data.totalTrips || 0;
+    const tripSummary = totalTrips > 0
+        ? `<p class="stats-note" style="margin-top: 8px;">${totalTrips} total trip${totalTrips !== 1 ? 's' : ''} (${data.ebTrips || 0} EB · ${data.wbTrips || 0} WB):</p>`
+        : '<p class="stats-note" style="margin-top: 8px;">Vehicles active this day:</p>';
+
     detailEl.innerHTML = `
         <div class="day-detail-chart">${miniChart}</div>
-        <p class="stats-note" style="margin-top: 8px;">Vehicles active this day:</p>
+        ${tripSummary}
         <div class="day-detail-vehicles">${vehicleList}</div>
     `;
 }

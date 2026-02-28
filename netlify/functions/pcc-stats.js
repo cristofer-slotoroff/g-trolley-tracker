@@ -154,6 +154,9 @@ function processObservations(observations, samples, dailySummaries) {
     let todayLastSeen = null;
     const todayVehicles = new Set();
 
+    // Direction sequences for trip counting (dateKey -> vehicleId -> [{direction, time}])
+    const dirSequenceByDate = {};
+
     for (const obs of observations) {
         const date = new Date(obs.observed_at);
         const dateKey = toEasternDateKey(date);
@@ -206,7 +209,50 @@ function processObservations(observations, samples, dailySummaries) {
             todayObsByHour[hour].count++;
             todayObsByHour[hour].vehicles.add(obs.vehicle_id);
         }
+
+        // Track direction sequence for trip counting
+        if (!dirSequenceByDate[dateKey]) dirSequenceByDate[dateKey] = {};
+        if (!dirSequenceByDate[dateKey][obs.vehicle_id]) dirSequenceByDate[dateKey][obs.vehicle_id] = [];
+        dirSequenceByDate[dateKey][obs.vehicle_id].push({ direction: obs.direction, time: date });
     }
+
+    // ============================================================
+    // Compute trips from direction sequences
+    // A "trip" = one continuous run in one direction by one vehicle.
+    // Direction change or >30 min gap = new trip.
+    // ============================================================
+    function countTripsForDate(dateKey) {
+        const sequences = dirSequenceByDate[dateKey];
+        if (!sequences) return { ebTrips: 0, wbTrips: 0, totalTrips: 0 };
+
+        let ebTrips = 0, wbTrips = 0;
+        for (const vehicleObs of Object.values(sequences)) {
+            vehicleObs.sort((a, b) => a.time - b.time);
+            let lastDir = null;
+            let lastTime = null;
+            for (const entry of vehicleObs) {
+                const gap = lastTime ? (entry.time - lastTime) / (1000 * 60) : 0;
+                // New trip if direction changed OR gap > 30 min (vehicle went to barn)
+                if (entry.direction !== lastDir || gap > 30) {
+                    if (entry.direction === 'Eastbound') ebTrips++;
+                    else if (entry.direction === 'Westbound') wbTrips++;
+                    lastDir = entry.direction;
+                }
+                lastTime = entry.time;
+            }
+        }
+        return { ebTrips, wbTrips, totalTrips: ebTrips + wbTrips };
+    }
+
+    // Estimate trips from observation counts (for historical daily summaries
+    // where we don't have raw observations). ~10 observations per one-way trip
+    // (50 min trip / 5 min polls).
+    function estimateTrips(obsCount) {
+        if (!obsCount || obsCount === 0) return 0;
+        return Math.max(1, Math.round(obsCount / 10));
+    }
+
+    const todayTrips = countTripsForDate(todayKey);
 
     // ============================================================
     // Process samples for concurrency data
@@ -313,6 +359,9 @@ function processObservations(observations, samples, dailySummaries) {
         lastSeen: todayLastSeen ? toEasternTimeStr(todayLastSeen) : null,
         ebCount: todayEbCount,
         wbCount: todayWbCount,
+        ebTrips: todayTrips.ebTrips,
+        wbTrips: todayTrips.wbTrips,
+        totalTrips: todayTrips.totalTrips,
         hourlyBreakdown: todayHourly
     };
 
@@ -324,16 +373,24 @@ function processObservations(observations, samples, dailySummaries) {
             const d = new Date(s.summary_date + 'T12:00:00');
             return d.getDay() === todayDow && s.total_observations > 0;
         })
-        .map(s => ({
-            date: s.summary_date,
-            vehicles: s.vehicle_ids || [],
-            firstSeen: s.first_observation_time,
-            lastSeen: s.last_observation_time,
-            ebCount: s.eastbound_observations || 0,
-            wbCount: s.westbound_observations || 0,
-            peakConcurrent: s.peak_concurrent_vehicles || 0,
-            observations: s.total_observations
-        }))
+        .map(s => {
+            // Use exact trips if we have raw observations for this date, otherwise estimate
+            const exactTrips = countTripsForDate(s.summary_date);
+            const hasExact = exactTrips.totalTrips > 0;
+            return {
+                date: s.summary_date,
+                vehicles: s.vehicle_ids || [],
+                firstSeen: s.first_observation_time,
+                lastSeen: s.last_observation_time,
+                ebCount: s.eastbound_observations || 0,
+                wbCount: s.westbound_observations || 0,
+                ebTrips: hasExact ? exactTrips.ebTrips : estimateTrips(s.eastbound_observations),
+                wbTrips: hasExact ? exactTrips.wbTrips : estimateTrips(s.westbound_observations),
+                totalTrips: hasExact ? exactTrips.totalTrips : estimateTrips(s.eastbound_observations) + estimateTrips(s.westbound_observations),
+                peakConcurrent: s.peak_concurrent_vehicles || 0,
+                observations: s.total_observations
+            };
+        })
         .reverse()  // Most recent first
         .slice(0, 12);
 
@@ -433,7 +490,7 @@ function processObservations(observations, samples, dailySummaries) {
         const liveData = byDate[dateKey];
 
         if (dateKey === todayKey) {
-            // Today: always show, use live observation data
+            // Today: always show, use live observation data with exact trips
             recentDays.push({
                 date: dateKey,
                 isToday: true,
@@ -441,10 +498,14 @@ function processObservations(observations, samples, dailySummaries) {
                 vehicles: liveData ? Array.from(liveData.vehicles) : [],
                 firstSeen: todayFirstSeen ? toEasternTimeStr(todayFirstSeen) : null,
                 lastSeen: todayLastSeen ? toEasternTimeStr(todayLastSeen) : null,
-                ebCount: todayEbCount,
-                wbCount: todayWbCount
+                ebTrips: todayTrips.ebTrips,
+                wbTrips: todayTrips.wbTrips,
+                totalTrips: todayTrips.totalTrips
             });
         } else if (summary) {
+            // Use exact trips if in observation window, otherwise estimate
+            const exactTrips = countTripsForDate(dateKey);
+            const hasExact = exactTrips.totalTrips > 0;
             recentDays.push({
                 date: dateKey,
                 isToday: false,
@@ -452,8 +513,9 @@ function processObservations(observations, samples, dailySummaries) {
                 vehicles: summary.vehicle_ids || [],
                 firstSeen: summary.first_observation_time,
                 lastSeen: summary.last_observation_time,
-                ebCount: summary.eastbound_observations || 0,
-                wbCount: summary.westbound_observations || 0
+                ebTrips: hasExact ? exactTrips.ebTrips : estimateTrips(summary.eastbound_observations),
+                wbTrips: hasExact ? exactTrips.wbTrips : estimateTrips(summary.westbound_observations),
+                totalTrips: hasExact ? exactTrips.totalTrips : estimateTrips(summary.eastbound_observations) + estimateTrips(summary.westbound_observations)
             });
         } else {
             recentDays.push({
@@ -463,8 +525,9 @@ function processObservations(observations, samples, dailySummaries) {
                 vehicles: [],
                 firstSeen: null,
                 lastSeen: null,
-                ebCount: 0,
-                wbCount: 0
+                ebTrips: 0,
+                wbTrips: 0,
+                totalTrips: 0
             });
         }
     }

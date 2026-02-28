@@ -79,12 +79,16 @@ export const handler = async (event) => {
                     firstSeen: eastern,
                     lastSeen: eastern,
                     hours: new Set(),
-                    observations: 0
+                    observations: 0,
+                    directionSequence: [] // for trip counting
                 };
             }
             vehicleMap[obs.vehicle_id].lastSeen = eastern;
             vehicleMap[obs.vehicle_id].hours.add(hour);
             vehicleMap[obs.vehicle_id].observations++;
+            vehicleMap[obs.vehicle_id].directionSequence.push({
+                direction: obs.direction, time: eastern
+            });
         }
 
         // Format hourly breakdown (all 24 hours)
@@ -100,15 +104,41 @@ export const handler = async (event) => {
             });
         }
 
+        // Count trips per vehicle from direction sequences
+        // A trip = one continuous run in one direction. Direction change or >30 min gap = new trip.
+        function countVehicleTrips(dirSeq) {
+            let ebTrips = 0, wbTrips = 0;
+            let lastDir = null, lastTime = null;
+            for (const entry of dirSeq) {
+                const gap = lastTime ? (entry.time - lastTime) / (1000 * 60) : 0;
+                if (entry.direction !== lastDir || gap > 30) {
+                    if (entry.direction === 'Eastbound') ebTrips++;
+                    else if (entry.direction === 'Westbound') wbTrips++;
+                    lastDir = entry.direction;
+                }
+                lastTime = entry.time;
+            }
+            return { ebTrips, wbTrips, trips: ebTrips + wbTrips };
+        }
+
         // Format vehicle timelines
+        let totalEbTrips = 0, totalWbTrips = 0;
         const vehicleTimelines = Object.entries(vehicleMap)
-            .map(([id, data]) => ({
-                vehicleId: id,
-                firstSeen: formatTime(data.firstSeen),
-                lastSeen: formatTime(data.lastSeen),
-                hoursActive: Array.from(data.hours).sort((a, b) => a - b),
-                observations: data.observations
-            }))
+            .map(([id, data]) => {
+                const tripCounts = countVehicleTrips(data.directionSequence);
+                totalEbTrips += tripCounts.ebTrips;
+                totalWbTrips += tripCounts.wbTrips;
+                return {
+                    vehicleId: id,
+                    firstSeen: formatTime(data.firstSeen),
+                    lastSeen: formatTime(data.lastSeen),
+                    hoursActive: Array.from(data.hours).sort((a, b) => a - b),
+                    observations: data.observations,
+                    trips: tripCounts.trips,
+                    ebTrips: tripCounts.ebTrips,
+                    wbTrips: tripCounts.wbTrips
+                };
+            })
             .sort((a, b) => {
                 const aFirst = a.hoursActive[0] || 0;
                 const bFirst = b.hoursActive[0] || 0;
@@ -121,6 +151,9 @@ export const handler = async (event) => {
             body: JSON.stringify({
                 date,
                 totalObservations: observations.length,
+                ebTrips: totalEbTrips,
+                wbTrips: totalWbTrips,
+                totalTrips: totalEbTrips + totalWbTrips,
                 hourlyBreakdown,
                 vehicleTimelines
             })

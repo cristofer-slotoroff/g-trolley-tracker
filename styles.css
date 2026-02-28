@@ -2391,10 +2391,38 @@ footer p {
     flex-shrink: 0;
 }
 
-.day-detail-vehicle-obs {
-    font-size: 0.65rem;
-    color: var(--pcc-cream-dim);
+.day-detail-vehicle-trips {
+    font-size: 0.7rem;
+    color: var(--pcc-gold);
     margin-left: auto;
+    font-weight: 500;
+}
+
+/* Trip counts */
+.today-trips {
+    font-size: 0.9rem;
+    color: var(--pcc-cream);
+    margin-top: 6px;
+}
+
+.trip-breakdown {
+    font-size: 0.75rem;
+    color: var(--pcc-cream-dim);
+}
+
+.weekday-history-trips {
+    font-size: 0.75rem;
+    color: var(--pcc-gold);
+    margin-top: 2px;
+}
+
+.trip-count-sm {
+    font-size: 0.65rem;
+    color: var(--pcc-gold);
+    background: rgba(196, 168, 43, 0.15);
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
 }
 
 /* Week groups for service history */
