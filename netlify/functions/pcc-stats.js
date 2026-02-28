@@ -22,32 +22,34 @@ export const handler = async (event) => {
 
     try {
         const now = new Date();
-        const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        // Get all PCC observations from last 30 days (exclude buses)
+        // Supabase caps at 1000 rows per request regardless of .limit().
+        // Fetch the most recent 1000 PCC observations (descending = newest first).
+        // This ensures today's data is always included.
         const { data: observations, error } = await supabase
             .from('pcc_observations')
             .select('observed_at, vehicle_id, direction, next_stop_sequence')
-            .gte('observed_at', thirtyDaysAgo)
             .or('vehicle_type.eq.pcc,vehicle_type.is.null')
-            .order('observed_at', { ascending: true })
-            .limit(50000);
+            .order('observed_at', { ascending: false })
+            .limit(1000);
 
         if (error) throw error;
 
-        // Also get samples data for concurrent trolley counts
+        // Get recent samples (last 7 days to stay within 1000 row cap)
+        // ~288 samples/day × 7 = ~2016, but capped at 1000 = ~3.5 days
         const { data: samples, error: samplesError } = await supabase
             .from('pcc_samples')
             .select('sampled_at, pcc_count, vehicle_ids')
-            .gte('sampled_at', thirtyDaysAgo)
-            .order('sampled_at', { ascending: true })
-            .limit(50000);
+            .gte('sampled_at', sevenDaysAgo)
+            .order('sampled_at', { ascending: false })
+            .limit(1000);
 
         if (samplesError) {
             console.error('Samples query error:', samplesError);
         }
 
-        // Query ALL daily summaries (lightweight) for all-time stats
+        // Query ALL daily summaries (lightweight - one row per day) for all-time stats
         const { data: dailySummaries, error: summaryError } = await supabase
             .from('pcc_daily_summaries')
             .select('summary_date, vehicle_ids, total_observations, peak_concurrent_vehicles, first_observation_time, last_observation_time, eastbound_observations, westbound_observations')
@@ -405,7 +407,7 @@ function processObservations(observations, samples, dailySummaries) {
         .sort((a, b) => b.daysActive - a.daysActive);
 
     // ============================================================
-    // Service history (gap-filled recent days)
+    // Service history (gap-filled from first summary to today)
     // ============================================================
     const recentDays = [];
 
@@ -414,13 +416,13 @@ function processObservations(observations, samples, dailySummaries) {
         summaryByDate[s.summary_date] = s;
     }
 
-    const thirtyDaysAgoDate = new Date(now);
-    thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30);
-    const firstSummaryDate = dailySummaries.length > 0 ? new Date(dailySummaries[0].summary_date + 'T12:00:00') : thirtyDaysAgoDate;
-    const startDate = firstSummaryDate < thirtyDaysAgoDate ? thirtyDaysAgoDate : firstSummaryDate;
+    // Go back to the earliest daily summary (all-time, not just 30 days)
+    const firstSummaryDate = dailySummaries.length > 0
+        ? new Date(dailySummaries[0].summary_date + 'T12:00:00')
+        : new Date(now);
 
     const msPerDay = 24 * 60 * 60 * 1000;
-    const daysToShow = Math.ceil((now - startDate) / msPerDay) + 1;
+    const daysToShow = Math.ceil((now - firstSummaryDate) / msPerDay) + 1;
 
     for (let i = 0; i < daysToShow; i++) {
         const d = new Date(now);

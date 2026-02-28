@@ -4433,32 +4433,6 @@ async function fetchGLineSchedule(pickupName) {
     }
 }
 
-// Parse BusSchedules time format "7:19p" into Date object
-function parseScheduleTime(timeStr) {
-    if (!timeStr) return null;
-
-    const match = timeStr.match(/(\d{1,2}):(\d{2})([ap])/i);
-    if (!match) return null;
-
-    let hours = parseInt(match[1]);
-    const minutes = parseInt(match[2]);
-    const ampm = match[3].toLowerCase();
-
-    if (ampm === 'p' && hours !== 12) hours += 12;
-    if (ampm === 'a' && hours === 12) hours = 0;
-
-    const now = new Date();
-    const result = new Date(now);
-    result.setHours(hours, minutes, 0, 0);
-
-    // Handle times that have already passed (schedule for next occurrence)
-    if (result < now) {
-        result.setDate(result.getDate() + 1);
-    }
-
-    return result;
-}
-
 // Calculate real ETA for a trolley to reach a pickup point
 // Uses scheduled arrival time adjusted by the trolley's current lateness
 function calculateRealTrolleyETA(trolley, pickupSchedules, now) {
@@ -5615,23 +5589,43 @@ function renderHistoricalPatterns(stats) {
     const peakNote = document.getElementById('peak-concurrent-note');
 
     const serviceDays = stats.allTimeDaysWithService || stats.daysWithService;
-    subtitle.textContent = `Average trolleys per hour on service days (based on ${serviceDays} days with service):`;
+    subtitle.textContent = `Average observations per hour on service days (${serviceDays} days with service):`;
 
-    // Show avg concurrent trolleys by hour (service-days only)
-    const concurrencyData = stats.concurrencyPattern;
-    const maxAvg = Math.max(...concurrencyData.map(h => h.avgConcurrent), 1);
-    const relevantHours = concurrencyData.filter(h => h.hour >= 5 && h.hour <= 23);
+    // Prefer concurrency data; fall back to hourlyPatternServiceDays if concurrency is all zeros
+    const concurrencyData = stats.concurrencyPattern || [];
+    const hasConc = concurrencyData.some(h => h.avgConcurrent > 0);
+    const hourlySD = stats.hourlyPatternServiceDays || [];
 
-    container.innerHTML = relevantHours.map(h => {
-        const heightPct = (h.avgConcurrent / maxAvg) * 100;
-        const barClass = h.avgConcurrent > 0 ? 'concurrency-bar' : 'concurrency-bar empty';
-        return `
-            <div class="${barClass}" style="height: ${h.avgConcurrent > 0 ? Math.max(heightPct, 15) : 5}%" title="${h.label}: avg ${h.avgConcurrent}, max ${h.maxConcurrent}">
-                <span class="concurrency-count">${h.avgConcurrent > 0 ? h.avgConcurrent : ''}</span>
-                <span class="concurrency-label">${h.label}</span>
-            </div>
-        `;
-    }).join('');
+    if (hasConc) {
+        // Use concurrency (avg trolleys running simultaneously)
+        const maxAvg = Math.max(...concurrencyData.map(h => h.avgConcurrent), 1);
+        const relevantHours = concurrencyData.filter(h => h.hour >= 5 && h.hour <= 23);
+        container.innerHTML = relevantHours.map(h => {
+            const heightPct = (h.avgConcurrent / maxAvg) * 100;
+            const barClass = h.avgConcurrent > 0 ? 'concurrency-bar' : 'concurrency-bar empty';
+            return `
+                <div class="${barClass}" style="height: ${h.avgConcurrent > 0 ? Math.max(heightPct, 15) : 5}%" title="${h.label}: avg ${h.avgConcurrent}, max ${h.maxConcurrent}">
+                    <span class="concurrency-count">${h.avgConcurrent > 0 ? h.avgConcurrent : ''}</span>
+                    <span class="concurrency-label">${h.label}</span>
+                </div>
+            `;
+        }).join('');
+    } else if (hourlySD.length > 0) {
+        // Fallback: use avg observations per hour from hourlyPatternServiceDays
+        const relevantHours = hourlySD.filter(h => h.hour >= 5 && h.hour <= 23);
+        const maxVal = Math.max(...relevantHours.map(h => h.avgVehicles || 0), 1);
+        container.innerHTML = relevantHours.map(h => {
+            const val = h.avgVehicles || 0;
+            const heightPct = (val / maxVal) * 100;
+            const barClass = val > 0 ? 'concurrency-bar' : 'concurrency-bar empty';
+            return `
+                <div class="${barClass}" style="height: ${val > 0 ? Math.max(heightPct, 15) : 5}%" title="${h.label}: avg ${val} obs/day (${h.daysActive} days)">
+                    <span class="concurrency-count">${val > 0 ? val : ''}</span>
+                    <span class="concurrency-label">${h.label}</span>
+                </div>
+            `;
+        }).join('');
+    }
 
     // Peak concurrent note
     if (stats.peakConcurrent > 0) {
@@ -5646,14 +5640,20 @@ function renderHourlyChart(hourlyData) {
     const values = hourlyData.map(h => useAvg ? h.avgVehicles : h.observations);
     const maxVal = Math.max(...values, 1);
 
-    container.innerHTML = hourlyData.map((h, i) => {
-        const val = values[i];
-        const heightPct = (val / maxVal) * 100;
+    // Only show 5am-11pm for cleaner display
+    const filtered = hourlyData.filter(h => h.hour >= 5 && h.hour <= 23);
+    const filteredVals = filtered.map(h => useAvg ? h.avgVehicles : h.observations);
+    const filteredMax = Math.max(...filteredVals, 1);
+
+    container.innerHTML = filtered.map((h, i) => {
+        const val = filteredVals[i];
+        const heightPct = (val / filteredMax) * 100;
         const label = useAvg
-            ? `${h.label}: avg ${h.avgVehicles} vehicles (${h.daysActive} days)`
+            ? `${h.label}: avg ${h.avgVehicles} obs/day (${h.daysActive} days)`
             : `${h.label}: ${h.observations} observations`;
         return `
             <div class="hour-bar" style="height: ${Math.max(heightPct, 2)}%" title="${label}">
+                ${val > 0 ? `<span class="hour-bar-count">${val}</span>` : ''}
                 <span class="hour-bar-label">${h.label}</span>
             </div>
         `;
@@ -5667,7 +5667,8 @@ function renderDayOfWeekHistory(stats) {
     const sameDayHistory = stats.sameDayHistory || [];
     const dayName = todayData ? todayData.dayName : '';
 
-    header.textContent = `${dayName} History`;
+    const fullDayNames = { Sun: 'Sundays', Mon: 'Mondays', Tue: 'Tuesdays', Wed: 'Wednesdays', Thu: 'Thursdays', Fri: 'Fridays', Sat: 'Saturdays' };
+    header.textContent = `Previous ${fullDayNames[dayName] || dayName + 's'}`;
 
     // Format time from HH:MM:SS to readable
     const fmtTime = (t) => {
@@ -5693,8 +5694,8 @@ function renderDayOfWeekHistory(stats) {
                     <span class="weekday-history-vehicles">${todayData.vehicleIds.map(v => '#' + v).join(', ')}</span>
                     ${timeRange ? `<span class="weekday-history-time">${timeRange}</span>` : ''}
                     <div class="weekday-history-direction">
-                        <span class="direction-badge eb">EB ${todayData.ebCount}</span>
-                        <span class="direction-badge wb">WB ${todayData.wbCount}</span>
+                        <span class="direction-badge eb">\u2190 EB ${todayData.ebCount} obs</span>
+                        <span class="direction-badge wb">WB ${todayData.wbCount} obs \u2192</span>
                     </div>
                 </div>
             </div>`;
@@ -5710,7 +5711,7 @@ function renderDayOfWeekHistory(stats) {
 
     // Previous same-day entries
     if (sameDayHistory.length > 0) {
-        html += `<p class="stats-note" style="margin-top: 10px;">Previous ${dayName}s:</p>`;
+        html += `<p class="stats-note" style="margin-top: 10px;">Previous ${fullDayNames[dayName] || dayName + 's'}:</p>`;
         for (const entry of sameDayHistory) {
             const dateObj = new Date(entry.date + 'T12:00:00');
             const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -5725,14 +5726,14 @@ function renderDayOfWeekHistory(stats) {
                         <span class="weekday-history-vehicles">${vehicleList}</span>
                         ${timeRange ? `<span class="weekday-history-time">${timeRange}</span>` : ''}
                         <div class="weekday-history-direction">
-                            <span class="direction-badge eb">EB ${entry.ebCount}</span>
-                            <span class="direction-badge wb">WB ${entry.wbCount}</span>
+                            <span class="direction-badge eb">\u2190 EB ${entry.ebCount} obs</span>
+                            <span class="direction-badge wb">WB ${entry.wbCount} obs \u2192</span>
                         </div>
                     </div>
                 </div>`;
         }
     } else {
-        html += `<p class="stats-note" style="margin-top: 10px;">No previous ${dayName} data yet.</p>`;
+        html += `<p class="stats-note" style="margin-top: 10px;">No previous ${fullDayNames[dayName] || dayName + 's'} data yet.</p>`;
     }
 
     container.innerHTML = html;
@@ -5766,7 +5767,36 @@ function renderRecentDays(recentDays) {
         return;
     }
 
-    container.innerHTML = recentDays.map(day => {
+    const fmtTime = (t) => {
+        if (!t) return '';
+        if (t.includes('AM') || t.includes('PM') || t.includes('am') || t.includes('pm')) return t;
+        const [h, m] = t.split(':').map(Number);
+        const ampm = h >= 12 ? 'pm' : 'am';
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${h12}:${String(m).padStart(2, '0')}${ampm}`;
+    };
+
+    // Group days into weeks (Mon-Sun). First week = current week, always expanded.
+    const weeks = [];
+    let currentWeek = null;
+
+    for (const day of recentDays) {
+        const date = new Date(day.date + 'T12:00:00');
+        // Get Monday of this day's week
+        const dow = date.getDay();
+        const mondayOffset = dow === 0 ? -6 : 1 - dow; // Sunday is end of week
+        const monday = new Date(date);
+        monday.setDate(monday.getDate() + mondayOffset);
+        const weekKey = monday.toISOString().split('T')[0];
+
+        if (!currentWeek || currentWeek.key !== weekKey) {
+            currentWeek = { key: weekKey, days: [], monday };
+            weeks.push(currentWeek);
+        }
+        currentWeek.days.push(day);
+    }
+
+    function renderDayRow(day) {
         const date = new Date(day.date + 'T12:00:00');
         const dateStr = day.isToday
             ? 'Today'
@@ -5774,27 +5804,15 @@ function renderRecentDays(recentDays) {
         const hasService = day.observations > 0;
         const vehicleCount = day.vehicles.length;
 
-        // Format time range
         let timeRange = '';
         if (hasService && day.firstSeen && day.lastSeen) {
-            // Handle both HH:MM:SS and already-formatted times
-            const fmtTime = (t) => {
-                if (!t) return '';
-                if (t.includes('AM') || t.includes('PM') || t.includes('am') || t.includes('pm')) return t;
-                const [h, m] = t.split(':').map(Number);
-                const ampm = h >= 12 ? 'pm' : 'am';
-                const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                return `${h12}:${String(m).padStart(2, '0')}${ampm}`;
-            };
             timeRange = `${fmtTime(day.firstSeen)}\u2013${fmtTime(day.lastSeen)}`;
         }
 
-        // Direction info
         const dirInfo = (day.ebCount > 0 || day.wbCount > 0)
             ? `<span class="direction-badge-sm eb">EB${day.ebCount}</span><span class="direction-badge-sm wb">WB${day.wbCount}</span>`
             : '';
 
-        // Status text
         let statusText;
         if (hasService) {
             statusText = `${vehicleCount} PCC${vehicleCount !== 1 ? 's' : ''}${timeRange ? ' \u00b7 ' + timeRange : ''}`;
@@ -5804,12 +5822,10 @@ function renderRecentDays(recentDays) {
             statusText = 'No service';
         }
 
-        const isClickable = hasService || day.isToday;
-
         return `
             <div class="recent-day-row ${hasService ? 'has-service' : (day.isToday ? 'is-today' : 'no-service')}"
                  data-date="${day.date}"
-                 ${isClickable && hasService ? `onclick="toggleDayDetail('${day.date}')"` : ''}>
+                 ${hasService ? `onclick="toggleDayDetail('${day.date}')"` : ''}>
                 <div class="recent-day-header">
                     <span class="recent-day-date">${dateStr}</span>
                     <span class="recent-day-summary">
@@ -5821,7 +5837,33 @@ function renderRecentDays(recentDays) {
                 <div class="recent-day-detail" id="day-detail-${day.date}" style="display:none;"></div>
             </div>
         `;
-    }).join('');
+    }
+
+    let html = '';
+    weeks.forEach((week, idx) => {
+        const isCurrentWeek = idx === 0;
+        const weekEnd = new Date(week.monday);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        const weekLabel = isCurrentWeek ? 'This Week'
+            : `${week.monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} \u2013 ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        const serviceDaysInWeek = week.days.filter(d => d.observations > 0).length;
+        const weekSummary = `${serviceDaysInWeek}/${week.days.length} days with service`;
+
+        html += `
+            <div class="week-group ${isCurrentWeek ? 'expanded' : ''}">
+                <div class="week-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <span class="week-label">${weekLabel}</span>
+                    <span class="week-summary">${weekSummary}</span>
+                    <span class="week-toggle-icon">\u25BC</span>
+                </div>
+                <div class="week-days">
+                    ${week.days.map(renderDayRow).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
 }
 
 async function toggleDayDetail(date) {
@@ -5902,40 +5944,29 @@ function renderDayDetail(date, data) {
         `;
     }).join('');
 
-    // Vehicle timeline: show each vehicle with dot indicators for which hours it was active
-    const allHoursRange = relevantHours.map(h => h.hour);
-
-    // Build hour labels for the dot legend (show every 3rd)
-    const dotLegend = allHoursRange.map((h, i) => {
-        const label = data.hourlyBreakdown.find(hb => hb.hour === h)?.label || '';
-        return `<span class="dot-legend-label">${i % 3 === 0 ? label : ''}</span>`;
-    }).join('');
-
-    const vehicleTimeline = data.vehicleTimelines.map(v => {
-        const activeSet = new Set(v.hoursActive);
-        const dots = allHoursRange.map(h => {
-            const isActive = activeSet.has(h);
-            const hourLabel = data.hourlyBreakdown.find(hb => hb.hour === h)?.label || '';
-            return `<span class="timeline-dot ${isActive ? 'active' : ''}" title="${hourLabel}: ${isActive ? 'running' : 'not seen'}"></span>`;
-        }).join('');
+    // Vehicle list with time ranges
+    const vehicleList = data.vehicleTimelines.map(v => {
+        // Build simple hour-span text
+        const hoursStr = v.hoursActive.length > 0
+            ? v.hoursActive.map(h => {
+                const hData = data.hourlyBreakdown.find(hb => hb.hour === h);
+                return hData ? hData.label : '';
+            }).filter(Boolean).join(', ')
+            : '';
 
         return `
             <div class="day-detail-vehicle-row">
                 <span class="day-detail-vehicle-id">#${v.vehicleId}</span>
                 <span class="day-detail-vehicle-time">${v.firstSeen} \u2013 ${v.lastSeen}</span>
-                <div class="day-detail-vehicle-dots">${dots}</div>
+                <span class="day-detail-vehicle-obs">${v.observations} obs</span>
             </div>
         `;
     }).join('');
 
     detailEl.innerHTML = `
         <div class="day-detail-chart">${miniChart}</div>
-        <p class="stats-note" style="margin-top: 8px;">Each vehicle's active hours (<span class="timeline-dot active" style="display:inline-block;vertical-align:middle;"></span> = running):</p>
-        <div class="day-detail-dot-legend">
-            <span class="dot-legend-spacer"></span>
-            <div class="dot-legend-labels">${dotLegend}</div>
-        </div>
-        <div class="day-detail-vehicles">${vehicleTimeline}</div>
+        <p class="stats-note" style="margin-top: 8px;">Vehicles active this day:</p>
+        <div class="day-detail-vehicles">${vehicleList}</div>
     `;
 }
 

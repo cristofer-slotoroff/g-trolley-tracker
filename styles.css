@@ -2391,38 +2391,80 @@ footer p {
     flex-shrink: 0;
 }
 
-.timeline-dot.active {
-    background: var(--pcc-gold);
-}
-
-/* Dot legend for day detail */
-.day-detail-dot-legend {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 4px;
-    padding-left: 0;
-}
-
-.dot-legend-spacer {
-    min-width: 153px; /* Matches vehicle-id + vehicle-time width */
-    flex-shrink: 0;
-}
-
-.dot-legend-labels {
-    display: flex;
-    gap: 2px;
-    flex: 1;
-}
-
-.dot-legend-label {
-    width: 6px;
-    font-size: 0.45rem;
+.day-detail-vehicle-obs {
+    font-size: 0.65rem;
     color: var(--pcc-cream-dim);
-    text-align: center;
-    flex-shrink: 0;
-    overflow: visible;
+    margin-left: auto;
+}
+
+/* Week groups for service history */
+.week-group {
+    margin-bottom: 4px;
+}
+
+.week-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.week-header:hover {
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.week-label {
+    font-weight: 500;
+    color: var(--pcc-cream);
+    font-size: 0.85rem;
+}
+
+.week-summary {
+    flex: 1;
+    text-align: right;
+    color: var(--pcc-cream-dim);
+    font-size: 0.75rem;
+}
+
+.week-toggle-icon {
+    font-size: 0.6rem;
+    color: var(--pcc-cream-dim);
+    transition: transform 0.2s;
+}
+
+.week-group.expanded .week-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.week-days {
+    display: none;
+    padding: 4px 0 0 0;
+}
+
+.week-group.expanded .week-days {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Hour bar count labels */
+.hour-bar-count {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.5rem;
+    font-weight: bold;
+    color: var(--pcc-cream-dim);
     white-space: nowrap;
+}
+
+.hour-bar {
+    position: relative;
 }
 
 /* Stats Responsive */
