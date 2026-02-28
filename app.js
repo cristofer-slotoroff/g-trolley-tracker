@@ -5506,11 +5506,8 @@ function renderStats(stats) {
         renderTodaySection(stats.todayData);
     }
 
-    // Historical patterns (concurrency chart, service-days only)
-    renderHistoricalPatterns(stats);
-
-    // Activity by Hour (all-time, service-days only)
-    renderHourlyChart(stats.hourlyPatternServiceDays || stats.hourlyPattern);
+    // Trolleys by hour (merged single chart)
+    renderHourlyPatterns(stats);
 
     // Activity by Day (same day-of-week history)
     if (stats.todayData || stats.sameDayHistory) {
@@ -5583,45 +5580,45 @@ function renderTodaySection(todayData) {
     `;
 }
 
-function renderHistoricalPatterns(stats) {
+function renderHourlyPatterns(stats) {
     const container = document.getElementById('concurrency-chart');
-    const subtitle = document.getElementById('historical-subtitle');
+    const subtitle = document.getElementById('hourly-subtitle');
     const peakNote = document.getElementById('peak-concurrent-note');
 
     const serviceDays = stats.allTimeDaysWithService || stats.daysWithService;
-    subtitle.textContent = `Average trolleys per hour on service days (${serviceDays} days with service):`;
+    subtitle.textContent = `Based on ${serviceDays} days with PCC service. Each bar = avg trolleys in service during that hour.`;
 
-    // Prefer concurrency data; fall back to hourlyPatternServiceDays if concurrency is all zeros
+    // Prefer concurrency data; fall back to hourlyPatternServiceDays
     const concurrencyData = stats.concurrencyPattern || [];
     const hasConc = concurrencyData.some(h => h.avgConcurrent > 0);
     const hourlySD = stats.hourlyPatternServiceDays || [];
 
+    let chartData;
     if (hasConc) {
-        // Use concurrency (avg trolleys running simultaneously)
-        const maxAvg = Math.max(...concurrencyData.map(h => h.avgConcurrent), 1);
-        const relevantHours = concurrencyData.filter(h => h.hour >= 5 && h.hour <= 23);
-        container.innerHTML = relevantHours.map(h => {
-            const heightPct = (h.avgConcurrent / maxAvg) * 100;
-            const barClass = h.avgConcurrent > 0 ? 'concurrency-bar' : 'concurrency-bar empty';
-            return `
-                <div class="${barClass}" style="height: ${h.avgConcurrent > 0 ? Math.max(heightPct, 15) : 5}%" title="${h.label}: avg ${h.avgConcurrent}, max ${h.maxConcurrent}">
-                    <span class="concurrency-count">${h.avgConcurrent > 0 ? h.avgConcurrent : ''}</span>
-                    <span class="concurrency-label">${h.label}</span>
-                </div>
-            `;
-        }).join('');
+        chartData = concurrencyData.filter(h => h.hour >= 5 && h.hour <= 23).map(h => ({
+            label: h.label,
+            value: Math.round(h.avgConcurrent),
+            tooltip: `${h.label}: avg ${Math.round(h.avgConcurrent)} trolley${Math.round(h.avgConcurrent) !== 1 ? 's' : ''}, peak ${h.maxConcurrent}`
+        }));
     } else if (hourlySD.length > 0) {
-        // Fallback: use avg observations per hour from hourlyPatternServiceDays
-        const relevantHours = hourlySD.filter(h => h.hour >= 5 && h.hour <= 23);
-        const maxVal = Math.max(...relevantHours.map(h => h.avgVehicles || 0), 1);
-        container.innerHTML = relevantHours.map(h => {
-            const val = h.avgVehicles || 0;
-            const heightPct = (val / maxVal) * 100;
-            const barClass = val > 0 ? 'concurrency-bar' : 'concurrency-bar empty';
+        chartData = hourlySD.filter(h => h.hour >= 5 && h.hour <= 23).map(h => ({
+            label: h.label,
+            value: Math.round(h.avgVehicles || 0),
+            tooltip: `${h.label}: ~${Math.round(h.avgVehicles || 0)} trolley${Math.round(h.avgVehicles || 0) !== 1 ? 's' : ''} (${h.daysActive} service days)`
+        }));
+    } else {
+        chartData = [];
+    }
+
+    if (chartData.length > 0) {
+        const maxVal = Math.max(...chartData.map(d => d.value), 1);
+        container.innerHTML = chartData.map(d => {
+            const heightPct = (d.value / maxVal) * 100;
+            const barClass = d.value > 0 ? 'concurrency-bar' : 'concurrency-bar empty';
             return `
-                <div class="${barClass}" style="height: ${val > 0 ? Math.max(heightPct, 15) : 5}%" title="${h.label}: avg ${val} obs/day (${h.daysActive} days)">
-                    <span class="concurrency-count">${val > 0 ? val : ''}</span>
-                    <span class="concurrency-label">${h.label}</span>
+                <div class="${barClass}" style="height: ${d.value > 0 ? Math.max(heightPct, 15) : 5}%" title="${d.tooltip}">
+                    <span class="concurrency-count">${d.value > 0 ? d.value : ''}</span>
+                    <span class="concurrency-label">${d.label}</span>
                 </div>
             `;
         }).join('');
@@ -5631,33 +5628,6 @@ function renderHistoricalPatterns(stats) {
     if (stats.peakConcurrent > 0) {
         peakNote.textContent = `All-time peak: ${stats.peakConcurrent} trolley${stats.peakConcurrent !== 1 ? 's' : ''} at once`;
     }
-}
-
-function renderHourlyChart(hourlyData) {
-    const container = document.getElementById('hourly-chart');
-    // Use avgVehicles if available (service-days only), otherwise observations
-    const useAvg = hourlyData[0] && hourlyData[0].avgVehicles !== undefined;
-    const values = hourlyData.map(h => useAvg ? h.avgVehicles : h.observations);
-    const maxVal = Math.max(...values, 1);
-
-    // Only show 5am-11pm for cleaner display
-    const filtered = hourlyData.filter(h => h.hour >= 5 && h.hour <= 23);
-    const filteredVals = filtered.map(h => useAvg ? h.avgVehicles : h.observations);
-    const filteredMax = Math.max(...filteredVals, 1);
-
-    container.innerHTML = filtered.map((h, i) => {
-        const val = filteredVals[i];
-        const heightPct = (val / filteredMax) * 100;
-        const label = useAvg
-            ? `${h.label}: ~${h.avgVehicles} avg trolleys (${h.daysActive} service days)`
-            : `${h.label}: ${h.observations} sightings`;
-        return `
-            <div class="hour-bar" style="height: ${Math.max(heightPct, 2)}%" title="${label}">
-                ${val > 0 ? `<span class="hour-bar-count">${val}</span>` : ''}
-                <span class="hour-bar-label">${h.label}</span>
-            </div>
-        `;
-    }).join('');
 }
 
 function renderDayOfWeekHistory(stats) {
