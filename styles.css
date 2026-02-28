@@ -2395,6 +2395,36 @@ footer p {
     background: var(--pcc-gold);
 }
 
+/* Dot legend for day detail */
+.day-detail-dot-legend {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 4px;
+    padding-left: 0;
+}
+
+.dot-legend-spacer {
+    min-width: 153px; /* Matches vehicle-id + vehicle-time width */
+    flex-shrink: 0;
+}
+
+.dot-legend-labels {
+    display: flex;
+    gap: 2px;
+    flex: 1;
+}
+
+.dot-legend-label {
+    width: 6px;
+    font-size: 0.45rem;
+    color: var(--pcc-cream-dim);
+    text-align: center;
+    flex-shrink: 0;
+    overflow: visible;
+    white-space: nowrap;
+}
+
 /* Stats Responsive */
 @media (max-width: 500px) {
     .stats-toggle {

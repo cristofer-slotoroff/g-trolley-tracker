@@ -5517,13 +5517,20 @@ async function loadStats() {
 }
 
 function renderStats(stats) {
-    // Quick stats
-    document.getElementById('stat-days-tracked').textContent = stats.allTimeDaysWithService || stats.daysWithService;
-    document.getElementById('stat-typical-hours').textContent = stats.typicalHoursFormatted;
-    document.getElementById('stat-best-time').textContent = `${stats.bestDay}, ${stats.bestHourRange}`;
+    // Quick stats (with defensive checks for cached API responses)
+    document.getElementById('stat-days-tracked').textContent = stats.allTimeDaysWithService || stats.daysWithService || '--';
+    document.getElementById('stat-typical-hours').textContent = stats.typicalHoursFormatted || '--';
+    const bestTimeEl = document.getElementById('stat-best-time');
+    if (bestTimeEl) {
+        bestTimeEl.textContent = (stats.bestDay && stats.bestHourRange)
+            ? `${stats.bestDay}, ${stats.bestHourRange}`
+            : '--';
+    }
 
     // Today's Trolleys
-    renderTodaySection(stats.todayData);
+    if (stats.todayData) {
+        renderTodaySection(stats.todayData);
+    }
 
     // Historical patterns (concurrency chart, service-days only)
     renderHistoricalPatterns(stats);
@@ -5532,7 +5539,9 @@ function renderStats(stats) {
     renderHourlyChart(stats.hourlyPatternServiceDays || stats.hourlyPattern);
 
     // Activity by Day (same day-of-week history)
-    renderDayOfWeekHistory(stats);
+    if (stats.todayData || stats.sameDayHistory) {
+        renderDayOfWeekHistory(stats);
+    }
 
     // PCC Trolley Roster
     renderVehicleRoster(stats.allTimeVehicleStats || stats.vehicleStats);
@@ -5895,11 +5904,19 @@ function renderDayDetail(date, data) {
 
     // Vehicle timeline: show each vehicle with dot indicators for which hours it was active
     const allHoursRange = relevantHours.map(h => h.hour);
+
+    // Build hour labels for the dot legend (show every 3rd)
+    const dotLegend = allHoursRange.map((h, i) => {
+        const label = data.hourlyBreakdown.find(hb => hb.hour === h)?.label || '';
+        return `<span class="dot-legend-label">${i % 3 === 0 ? label : ''}</span>`;
+    }).join('');
+
     const vehicleTimeline = data.vehicleTimelines.map(v => {
         const activeSet = new Set(v.hoursActive);
         const dots = allHoursRange.map(h => {
             const isActive = activeSet.has(h);
-            return `<span class="timeline-dot ${isActive ? 'active' : ''}" title="${data.hourlyBreakdown.find(hb => hb.hour === h)?.label || ''}"></span>`;
+            const hourLabel = data.hourlyBreakdown.find(hb => hb.hour === h)?.label || '';
+            return `<span class="timeline-dot ${isActive ? 'active' : ''}" title="${hourLabel}: ${isActive ? 'running' : 'not seen'}"></span>`;
         }).join('');
 
         return `
@@ -5913,6 +5930,11 @@ function renderDayDetail(date, data) {
 
     detailEl.innerHTML = `
         <div class="day-detail-chart">${miniChart}</div>
+        <p class="stats-note" style="margin-top: 8px;">Each vehicle's active hours (<span class="timeline-dot active" style="display:inline-block;vertical-align:middle;"></span> = running):</p>
+        <div class="day-detail-dot-legend">
+            <span class="dot-legend-spacer"></span>
+            <div class="dot-legend-labels">${dotLegend}</div>
+        </div>
         <div class="day-detail-vehicles">${vehicleTimeline}</div>
     `;
 }
