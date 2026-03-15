@@ -301,7 +301,7 @@ const METRO_LINES = {
         name: 'Broad Street Line',
         color: '#F37021',
         mode: 'metro',
-        apiRoute: null, // No real-time API for subway
+        apiRoute: 'B1', // Real-time data now available (SEPTA Metro 2026)
         frequency: { peak: 5, offpeak: 8 }, // Train frequency in minutes
         // B line stations with ACTUAL travel times to Girard (from SEPTA schedule screenshots)
         // Girard station on B line connects directly to Broad-Girard on G
@@ -335,7 +335,7 @@ const METRO_LINES = {
         name: 'Market-Frankford Line',
         color: '#0070C0',
         mode: 'metro',
-        apiRoute: null, // No real-time API for subway
+        apiRoute: 'L1', // Real-time data now available (SEPTA Metro 2026)
         frequency: { peak: 5, offpeak: 8 }, // Train frequency in minutes
         // L line - Girard station connects to Front-Girard on G
         // ACTUAL travel times from SEPTA schedule data
@@ -3322,6 +3322,8 @@ let trolleyData = [];
 let tLineData = [];  // Real-time T line (T1-T5) vehicle positions
 let dLineData = [];  // Real-time D line (D1/D2 = 101/102) vehicle positions
 let mLineData = [];  // Real-time M line (M1 = NHSL) vehicle positions
+let lLineData = [];  // Real-time L line (MFL) vehicle positions
+let bLineData = [];  // Real-time B line (BSL) vehicle positions
 let trainData = [];
 let refreshTimer = null;
 
@@ -3449,6 +3451,8 @@ async function fetchTrolleyData() {
         const tLines = [];  // T1-T5 real-time positions
         const dLines = [];  // D1-D2 real-time positions
         const mLines = [];  // M1 (NHSL) real-time positions
+        const lLines = [];  // L1 (MFL) real-time positions
+        const bLines = [];  // B1 (BSL) real-time positions
 
         // Debug: Log all route IDs received from API
         const allRouteIds = (data.routes || []).flatMap(r => Object.keys(r));
@@ -3581,8 +3585,8 @@ async function fetchTrolleyData() {
                 // API returns either old route numbers (101, 102) or new Metro names (D1, D2)
                 // Map both formats to SEPTA Metro naming: D1, D2
                 const dLineMapping = {
-                    '101': 'D1', 'D1': 'D1',
-                    '102': 'D2', 'D2': 'D2'
+                    '101': 'D1', 'D1': 'D1', 'D1 BUS': 'D1',
+                    '102': 'D2', 'D2': 'D2', 'D2 BUS': 'D2'
                 };
 
                 if (dLineMapping[routeId]) {
@@ -3612,6 +3616,93 @@ async function fetchTrolleyData() {
 
                         dLines.push({
                             route: dLineRoute,  // Use mapped D1-D2 name
+                            vehicle: label,
+                            vehicleId: vehicle.VehicleID || label,
+                            blockId: vehicle.BlockID || null,
+                            destination: vehicle.destination || '',
+                            direction,
+                            lat: parseFloat(vehicle.lat),
+                            lng: parseFloat(vehicle.lng),
+                            nextStopId: vehicle.next_stop_id,
+                            nextStopSequence: vehicle.next_stop_sequence,
+                            nextStopName: vehicle.next_stop_name,
+                            late: vehicle.late || 0,
+                            tripId: vehicle.trip,
+                            timestamp: vehicle.timestamp
+                        });
+                    }
+                }
+
+                // Process L1 (Market-Frankford Line) for real-time tracking
+                // API now returns route: L1 (SEPTA Metro 2026)
+                if (routeId === 'L1' || routeId === 'MFL') {
+                    for (const vehicle of vehicles) {
+                        const label = String(vehicle.label || '');
+                        if (!label || label === 'None' || label === '0' || label === '' ||
+                            vehicle.late >= 998 || vehicle.next_stop_sequence == null) {
+                            continue;
+                        }
+
+                        const destination = (vehicle.destination || '').toUpperCase();
+
+                        // Determine direction based on destination
+                        // Westbound = toward Frankford TC (northeast geographically but "westbound" on MFL)
+                        // Eastbound = toward 69th Street TC
+                        let direction = 'Unknown';
+                        if (destination.includes('FRANKFORD') || destination.includes('ARROTT') ||
+                            destination.includes('CHURCH')) {
+                            direction = 'Westbound';  // Toward Frankford TC
+                        } else if (destination.includes('69TH') || destination.includes('69') ||
+                                   destination.includes('TERMINAL') || destination.includes('MILLBOURNE')) {
+                            direction = 'Eastbound';  // Toward 69th St TC
+                        }
+
+                        lLines.push({
+                            route: 'L1',
+                            vehicle: label,
+                            vehicleId: vehicle.VehicleID || label,
+                            blockId: vehicle.BlockID || null,
+                            destination: vehicle.destination || '',
+                            direction,
+                            lat: parseFloat(vehicle.lat),
+                            lng: parseFloat(vehicle.lng),
+                            nextStopId: vehicle.next_stop_id,
+                            nextStopSequence: vehicle.next_stop_sequence,
+                            nextStopName: vehicle.next_stop_name,
+                            late: vehicle.late || 0,
+                            tripId: vehicle.trip,
+                            timestamp: vehicle.timestamp
+                        });
+                    }
+                }
+
+                // Process B1 (Broad Street Line) for real-time tracking
+                // API now returns route: B1 (SEPTA Metro 2026)
+                if (routeId === 'B1' || routeId === 'BSL') {
+                    for (const vehicle of vehicles) {
+                        const label = String(vehicle.label || '');
+                        if (!label || label === 'None' || label === '0' || label === '' ||
+                            vehicle.late >= 998 || vehicle.next_stop_sequence == null) {
+                            continue;
+                        }
+
+                        const destination = (vehicle.destination || '').toUpperCase();
+
+                        // Determine direction based on destination
+                        // Southbound = toward Fern Rock TC (north geographically)
+                        // Northbound = toward NRG/AT&T (south geographically)
+                        let direction = 'Unknown';
+                        if (destination.includes('FERN ROCK') || destination.includes('OLNEY') ||
+                            destination.includes('LOGAN')) {
+                            direction = 'Northbound';  // Toward Fern Rock TC
+                        } else if (destination.includes('NRG') || destination.includes('AT&T') ||
+                                   destination.includes('OREGON') || destination.includes('SNYDER') ||
+                                   destination.includes('SPORTS')) {
+                            direction = 'Southbound';  // Toward NRG/Sports Complex
+                        }
+
+                        bLines.push({
+                            route: 'B1',
                             vehicle: label,
                             vehicleId: vehicle.VehicleID || label,
                             blockId: vehicle.BlockID || null,
@@ -3685,6 +3776,14 @@ async function fetchTrolleyData() {
         // Store M line data globally for use in routing
         mLineData = mLines;
         console.log(`[M-LINE] Fetched ${mLines.length} M line vehicles:`, mLines.map(m => `${m.route} #${m.vehicle} (Block ${m.blockId}) → ${m.destination}`));
+
+        // Store L line data globally for use in routing
+        lLineData = lLines;
+        console.log(`[L-LINE] Fetched ${lLines.length} L line vehicles:`, lLines.map(l => `${l.route} #${l.vehicle} → ${l.destination}`));
+
+        // Store B line data globally for use in routing
+        bLineData = bLines;
+        console.log(`[B-LINE] Fetched ${bLines.length} B line vehicles:`, bLines.map(b => `${b.route} #${b.vehicle} → ${b.destination}`));
 
         return trolleys;
     } catch (error) {
@@ -3769,7 +3868,45 @@ function hasMLineRealTimeData() {
 }
 
 /**
- * Enrich route option steps with real-time vehicle data from T/D/M lines
+ * Get real-time L line (MFL) vehicle data
+ * @returns {Array} Array of vehicles currently active on the L line
+ */
+function getLLineVehicles() {
+    if (!lLineData || lLineData.length === 0) {
+        return [];
+    }
+    return lLineData;
+}
+
+/**
+ * Check if real-time L line data is available
+ * @returns {boolean} True if real-time data is available
+ */
+function hasLLineRealTimeData() {
+    return getLLineVehicles().length > 0;
+}
+
+/**
+ * Get real-time B line (BSL) vehicle data
+ * @returns {Array} Array of vehicles currently active on the B line
+ */
+function getBLineVehicles() {
+    if (!bLineData || bLineData.length === 0) {
+        return [];
+    }
+    return bLineData;
+}
+
+/**
+ * Check if real-time B line data is available
+ * @returns {boolean} True if real-time data is available
+ */
+function hasBLineRealTimeData() {
+    return getBLineVehicles().length > 0;
+}
+
+/**
+ * Enrich route option steps with real-time vehicle data from T/D/M/L/B lines
  * This adds vehicleId, blockId, and isRealTime to metro steps
  * @param {Array} routeOptions - Array of route options to enrich
  */
@@ -3809,6 +3946,10 @@ function enrichMetroStepsWithVehicleData(routeOptions) {
                 vehicles = getDLineVehicles(line);
             } else if (line === 'M' || line === 'M1') {
                 vehicles = getMLineVehicles();
+            } else if (line === 'L' || line === 'L1') {
+                vehicles = getLLineVehicles();
+            } else if (line === 'B' || line === 'B1') {
+                vehicles = getBLineVehicles();
             }
 
             if (vehicles.length === 0) continue;
@@ -3822,18 +3963,25 @@ function enrichMetroStepsWithVehicleData(routeOptions) {
             if (vehicles.length === 0) continue;
 
             // Map step direction to vehicle direction
-            // Inbound/Outbound or specific directions like northbound/southbound
+            // L and B lines use cardinal directions; T, D, M use Inbound/Outbound
             let matchDirection = null;
             if (directionFilter) {
                 const dir = directionFilter.toLowerCase();
-                if (dir.includes('inbound') || dir.includes('east')) {
-                    matchDirection = 'Inbound';
-                } else if (dir.includes('outbound') || dir.includes('west')) {
-                    matchDirection = 'Outbound';
-                } else if (dir.includes('north')) {
-                    matchDirection = 'Inbound'; // B line northbound = toward Fern Rock
-                } else if (dir.includes('south')) {
-                    matchDirection = 'Outbound'; // B line southbound = toward NRG
+                if (line === 'L' || line === 'L1') {
+                    // L line vehicles use Westbound/Eastbound
+                    if (dir.includes('west')) matchDirection = 'Westbound';
+                    else if (dir.includes('east')) matchDirection = 'Eastbound';
+                } else if (line === 'B' || line === 'B1') {
+                    // B line vehicles use Northbound/Southbound
+                    if (dir.includes('north')) matchDirection = 'Northbound';
+                    else if (dir.includes('south')) matchDirection = 'Southbound';
+                } else {
+                    // T, D, M lines use Inbound/Outbound
+                    if (dir.includes('inbound') || dir.includes('east')) {
+                        matchDirection = 'Inbound';
+                    } else if (dir.includes('outbound') || dir.includes('west')) {
+                        matchDirection = 'Outbound';
+                    }
                 }
             }
 
