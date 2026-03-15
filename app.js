@@ -3779,11 +3779,19 @@ async function fetchTrolleyData() {
 
         // Store L line data globally for use in routing
         lLineData = lLines;
-        console.log(`[L-LINE] Fetched ${lLines.length} L line vehicles:`, lLines.map(l => `${l.route} #${l.vehicle} → ${l.destination}`));
+        if (lLines.length > 0) {
+            console.log(`🎉 [L-LINE] Real-time data ACTIVE! ${lLines.length} vehicles:`, lLines.map(l => `${l.route} #${l.vehicle} → ${l.destination}`));
+        } else {
+            console.log(`[L-LINE] API route L1 exists but no real vehicle data yet (SEPTA placeholders only)`);
+        }
 
         // Store B line data globally for use in routing
         bLineData = bLines;
-        console.log(`[B-LINE] Fetched ${bLines.length} B line vehicles:`, bLines.map(b => `${b.route} #${b.vehicle} → ${b.destination}`));
+        if (bLines.length > 0) {
+            console.log(`🎉 [B-LINE] Real-time data ACTIVE! ${bLines.length} vehicles:`, bLines.map(b => `${b.route} #${b.vehicle} → ${b.destination}`));
+        } else {
+            console.log(`[B-LINE] API route B1 exists but no real vehicle data yet (SEPTA placeholders only)`);
+        }
 
         return trolleys;
     } catch (error) {
