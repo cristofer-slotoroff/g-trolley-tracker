@@ -32,3 +32,6 @@ trips.txt
 # Development docs
 CLAUDE.md
 SEPTA_METRO_REFERENCE.md
+
+node_modules.nosync
+.superpowers/
