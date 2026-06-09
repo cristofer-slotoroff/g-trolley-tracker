@@ -2479,6 +2479,205 @@ footer p {
     gap: 4px;
 }
 
+/* Collapsible analytics subsections */
+.stats-subsection {
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(245, 241, 227, 0.08);
+}
+
+.subsection-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    background: transparent;
+    border: none;
+    color: var(--pcc-gold);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.subsection-icon {
+    font-size: 0.7rem;
+    color: var(--pcc-cream-dim);
+    transition: transform 0.2s;
+}
+
+.stats-subsection.expanded .subsection-icon {
+    transform: rotate(180deg);
+}
+
+.subsection-content {
+    display: none;
+    padding-top: 8px;
+}
+
+.stats-subsection.expanded .subsection-content {
+    display: block;
+}
+
+/* Ranked roster */
+.roster-vehicle {
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.roster-vehicle:hover {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.roster-vehicle.selected {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: var(--pcc-gold);
+}
+
+.roster-rank {
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: var(--pcc-cream-dim);
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 1px 7px;
+}
+
+.roster-vehicle.selected .roster-rank {
+    color: var(--pcc-gold);
+}
+
+/* Roster detail panel */
+.roster-detail {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border-left: 3px solid var(--pcc-gold);
+}
+
+.roster-detail-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.roster-detail-rank {
+    font-size: 0.7rem;
+    color: var(--pcc-cream-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.roster-detail-id {
+    font-weight: bold;
+    color: var(--pcc-gold);
+    font-size: 0.95rem;
+}
+
+.roster-detail-line {
+    font-size: 0.8rem;
+    color: var(--pcc-cream);
+    padding: 2px 0;
+}
+
+/* All-time stat rows */
+.alltime-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    margin-bottom: 6px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+}
+
+.alltime-stat-row.tappable {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.alltime-stat-row.tappable:hover {
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.alltime-stat-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--pcc-cream);
+}
+
+.alltime-stat-detail {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--pcc-cream-dim);
+    margin-top: 2px;
+}
+
+.alltime-stat-value {
+    font-weight: bold;
+    color: var(--pcc-gold);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+/* Month groups for service history */
+.month-group {
+    margin-bottom: 6px;
+}
+
+.month-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.month-header:hover {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.month-label {
+    font-weight: 600;
+    color: var(--pcc-gold);
+    font-size: 0.85rem;
+}
+
+.month-summary {
+    flex: 1;
+    text-align: right;
+    color: var(--pcc-cream-dim);
+    font-size: 0.75rem;
+}
+
+.month-group .week-toggle-icon {
+    transition: transform 0.2s;
+}
+
+.month-group.expanded > .month-header .week-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.month-weeks {
+    display: none;
+    padding: 4px 0 0 6px;
+}
+
+.month-group.expanded .month-weeks {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 /* Hour bar count labels */
 .hour-bar-count {
     position: absolute;
