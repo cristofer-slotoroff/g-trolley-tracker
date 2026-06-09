@@ -59,6 +59,25 @@ export const handler = async (event) => {
             console.error('Daily summaries query error:', summaryError);
         }
 
+        // All-time analytics views (created via supabase/analytics-views.sql).
+        // Small row counts: one per vehicle / per service day. Errors are
+        // non-fatal: frontend hides All-Time Stats and falls back to estimates.
+        const [vehicleViewRes, dailyTripsRes, shareRes] = await Promise.all([
+            supabase.from('vehicle_alltime_stats').select('*'),
+            supabase.from('daily_trip_stats').select('*')
+                .order('service_date', { ascending: true }).limit(1000),
+            supabase.from('daily_trolley_share').select('*')
+                .gte('service_date', '2026-02-01').limit(1000)
+        ]);
+        const viewData = {
+            vehicles: vehicleViewRes.error ? null : vehicleViewRes.data,
+            dailyTrips: dailyTripsRes.error ? null : dailyTripsRes.data,
+            trolleyShare: shareRes.error ? null : shareRes.data
+        };
+        if (vehicleViewRes.error) console.error('vehicle_alltime_stats error:', vehicleViewRes.error.message);
+        if (dailyTripsRes.error) console.error('daily_trip_stats error:', dailyTripsRes.error.message);
+        if (shareRes.error) console.error('daily_trolley_share error:', shareRes.error.message);
+
         if ((!observations || observations.length === 0) && (!dailySummaries || dailySummaries.length === 0)) {
             return {
                 statusCode: 200,
@@ -76,7 +95,7 @@ export const handler = async (event) => {
             };
         }
 
-        const stats = processObservations(observations || [], samples || [], dailySummaries || []);
+        const stats = processObservations(observations || [], samples || [], dailySummaries || [], viewData);
 
         return {
             statusCode: 200,
@@ -130,7 +149,7 @@ function toEasternTimeStr(dateObj) {
     }).format(dateObj);
 }
 
-function processObservations(observations, samples, dailySummaries) {
+function processObservations(observations, samples, dailySummaries, viewData = {}) {
     const now = new Date();
     const todayKey = toEasternDateKey(now);
     const todayDow = toEasternDayOfWeek(now);
@@ -250,6 +269,30 @@ function processObservations(observations, samples, dailySummaries) {
     function estimateTrips(obsCount) {
         if (!obsCount || obsCount === 0) return 0;
         return Math.max(1, Math.round(obsCount / 10));
+    }
+
+    // Exact per-day trips from the daily_trip_stats view (all history).
+    // Key: 'YYYY-MM-DD' -> { ebTrips, wbTrips, totalTrips }
+    const exactTripsByDate = {};
+    if (viewData.dailyTrips) {
+        for (const row of viewData.dailyTrips) {
+            exactTripsByDate[row.service_date] = {
+                ebTrips: row.eb_trips,
+                wbTrips: row.wb_trips,
+                totalTrips: row.total_trips
+            };
+        }
+    }
+    // Prefer: view (exact, all history) > live computation > estimate.
+    function tripsForDate(dateKey, ebObs, wbObs) {
+        if (exactTripsByDate[dateKey]) return exactTripsByDate[dateKey];
+        const live = countTripsForDate(dateKey);
+        if (live.totalTrips > 0) return live;
+        return {
+            ebTrips: estimateTrips(ebObs),
+            wbTrips: estimateTrips(wbObs),
+            totalTrips: estimateTrips(ebObs) + estimateTrips(wbObs)
+        };
     }
 
     const todayTrips = countTripsForDate(todayKey);
@@ -374,9 +417,7 @@ function processObservations(observations, samples, dailySummaries) {
             return d.getDay() === todayDow && s.total_observations > 0;
         })
         .map(s => {
-            // Use exact trips if we have raw observations for this date, otherwise estimate
-            const exactTrips = countTripsForDate(s.summary_date);
-            const hasExact = exactTrips.totalTrips > 0;
+            const trips = tripsForDate(s.summary_date, s.eastbound_observations, s.westbound_observations);
             return {
                 date: s.summary_date,
                 vehicles: s.vehicle_ids || [],
@@ -384,9 +425,9 @@ function processObservations(observations, samples, dailySummaries) {
                 lastSeen: s.last_observation_time,
                 ebCount: s.eastbound_observations || 0,
                 wbCount: s.westbound_observations || 0,
-                ebTrips: hasExact ? exactTrips.ebTrips : estimateTrips(s.eastbound_observations),
-                wbTrips: hasExact ? exactTrips.wbTrips : estimateTrips(s.westbound_observations),
-                totalTrips: hasExact ? exactTrips.totalTrips : estimateTrips(s.eastbound_observations) + estimateTrips(s.westbound_observations),
+                ebTrips: trips.ebTrips,
+                wbTrips: trips.wbTrips,
+                totalTrips: trips.totalTrips,
                 peakConcurrent: s.peak_concurrent_vehicles || 0,
                 observations: s.total_observations
             };
@@ -503,9 +544,7 @@ function processObservations(observations, samples, dailySummaries) {
                 totalTrips: todayTrips.totalTrips
             });
         } else if (summary) {
-            // Use exact trips if in observation window, otherwise estimate
-            const exactTrips = countTripsForDate(dateKey);
-            const hasExact = exactTrips.totalTrips > 0;
+            const trips = tripsForDate(dateKey, summary.eastbound_observations, summary.westbound_observations);
             recentDays.push({
                 date: dateKey,
                 isToday: false,
@@ -513,9 +552,9 @@ function processObservations(observations, samples, dailySummaries) {
                 vehicles: summary.vehicle_ids || [],
                 firstSeen: summary.first_observation_time,
                 lastSeen: summary.last_observation_time,
-                ebTrips: hasExact ? exactTrips.ebTrips : estimateTrips(summary.eastbound_observations),
-                wbTrips: hasExact ? exactTrips.wbTrips : estimateTrips(summary.westbound_observations),
-                totalTrips: hasExact ? exactTrips.totalTrips : estimateTrips(summary.eastbound_observations) + estimateTrips(summary.westbound_observations)
+                ebTrips: trips.ebTrips,
+                wbTrips: trips.wbTrips,
+                totalTrips: trips.totalTrips
             });
         } else {
             recentDays.push({
@@ -559,12 +598,67 @@ function processObservations(observations, samples, dailySummaries) {
         });
     }
 
+    // ============================================================
+    // Per-vehicle all-time stats (from vehicle_alltime_stats view)
+    // ============================================================
+    let vehicleAllTime = null;
+    if (viewData.vehicles && viewData.vehicles.length > 0) {
+        vehicleAllTime = viewData.vehicles.map(v => {
+            const firstSeen = new Date(v.first_seen_date + 'T12:00:00');
+            const weeksTracked = Math.max(1, (now - firstSeen) / (7 * 24 * 60 * 60 * 1000));
+            return {
+                vehicleId: v.vehicle_id,
+                daysActive: v.days_active,
+                totalTrips: v.total_trips,
+                firstSeen: v.first_seen_date,
+                lastSeen: v.last_seen_date,
+                daysPerWeek: Math.round((v.days_active / weeksTracked) * 10) / 10
+            };
+        }).sort((a, b) => b.daysActive - a.daysActive);
+    }
+
+    // ============================================================
+    // All-time records (the 6 stats). Null if views unavailable —
+    // frontend hides the section.
+    // ============================================================
+    let allTimeRecords = null;
+    if (vehicleAllTime && viewData.dailyTrips && viewData.dailyTrips.length > 0) {
+        const byTrips = [...vehicleAllTime].sort((a, b) => b.totalTrips - a.totalTrips);
+        const byNewest = [...vehicleAllTime].sort((a, b) => b.firstSeen.localeCompare(a.firstSeen));
+        const biggestDay = [...viewData.dailyTrips].sort((a, b) => b.total_trips - a.total_trips)[0];
+        const mostVehiclesDay = [...viewData.dailyTrips].sort((a, b) => b.vehicle_count - a.vehicle_count)[0];
+        allTimeRecords = {
+            workhorse: {
+                mostDays: vehicleAllTime[0],
+                mostTrips: byTrips[0]
+            },
+            newest: byNewest[0],
+            biggestDay: {
+                date: biggestDay.service_date,
+                totalTrips: biggestDay.total_trips,
+                ebTrips: biggestDay.eb_trips,
+                wbTrips: biggestDay.wb_trips
+            },
+            mostVehiclesDay: {
+                date: mostVehiclesDay.service_date,
+                count: mostVehiclesDay.vehicle_count,
+                vehicleIds: mostVehiclesDay.vehicle_ids
+            },
+            trueTrolleyDays: viewData.trolleyShare
+                ? viewData.trolleyShare.filter(r => r.is_true_trolley_day).length
+                : null,
+            totalTrips: viewData.dailyTrips.reduce((sum, r) => sum + r.total_trips, 0)
+        };
+    }
+
     return {
         totalObservations: observations.length,
         daysWithService: numServiceDays,
         uniqueVehicles: Object.keys(byVehicle).length,
         allTimeUniqueVehicles: Object.keys(allTimeVehicleDays).length,
         allTimeVehicleStats,
+        vehicleAllTime,
+        allTimeRecords,
         allTimeDaysWithService: totalDaysTracked,
         typicalStartHour: firstHour,
         typicalEndHour: lastHour,
