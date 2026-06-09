@@ -5614,6 +5614,14 @@ function toggleStats() {
     }
 }
 
+function toggleSubsection(id) {
+    const sub = document.getElementById(id);
+    if (!sub) return;
+    const expanded = sub.classList.toggle('expanded');
+    const btn = sub.querySelector('.subsection-toggle');
+    if (btn) btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+
 async function loadStats() {
     const loadingEl = document.getElementById('stats-loading');
     const dataEl = document.getElementById('stats-data');
@@ -5665,13 +5673,11 @@ function renderStats(stats) {
     // Trolleys by hour (merged single chart)
     renderHourlyPatterns(stats);
 
-    // Activity by Day (same day-of-week history)
-    if (stats.todayData || stats.sameDayHistory) {
-        renderDayOfWeekHistory(stats);
-    }
+    // All-Time Stats (hidden if backend views aren't available)
+    renderAllTimeStats(stats);
 
-    // PCC Trolley Roster
-    renderVehicleRoster(stats.allTimeVehicleStats || stats.vehicleStats);
+    // PCC Trolley Roster (ranked by days in service)
+    renderVehicleRoster(stats.vehicleAllTime || stats.allTimeVehicleStats || stats.vehicleStats);
 
     // Service history
     renderRecentDays(stats.recentDays);
@@ -5786,80 +5792,9 @@ function renderHourlyPatterns(stats) {
     }
 }
 
-function renderDayOfWeekHistory(stats) {
-    const container = document.getElementById('daily-chart');
-    const header = document.getElementById('day-history-header');
-    const todayData = stats.todayData;
-    const sameDayHistory = stats.sameDayHistory || [];
-    const dayName = todayData ? todayData.dayName : '';
-
-    const fullDayNames = { Sun: 'Sundays', Mon: 'Mondays', Tue: 'Tuesdays', Wed: 'Wednesdays', Thu: 'Thursdays', Fri: 'Fridays', Sat: 'Saturdays' };
-    header.textContent = `Previous ${fullDayNames[dayName] || dayName + 's'}`;
-
-    // Format time from HH:MM:SS to readable
-    const fmtTime = (t) => {
-        if (!t) return '';
-        // Handle both "HH:MM:SS" and already-formatted "H:MM AM" styles
-        if (t.includes('AM') || t.includes('PM') || t.includes('am') || t.includes('pm')) return t;
-        const [h, m] = t.split(':').map(Number);
-        const ampm = h >= 12 ? 'pm' : 'am';
-        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-        return `${h12}:${String(m).padStart(2, '0')}${ampm}`;
-    };
-
-    let html = '';
-
-    // Today's entry (highlighted)
-    if (todayData && todayData.pccCount > 0) {
-        const timeRange = todayData.firstSeen && todayData.lastSeen
-            ? `${todayData.firstSeen} \u2013 ${todayData.lastSeen}` : '';
-        const todayTotalTrips = todayData.totalTrips || 0;
-        html += `
-            <div class="weekday-history-row today-highlight">
-                <div class="weekday-history-date">Today</div>
-                <div class="weekday-history-details">
-                    <span class="weekday-history-vehicles">${todayData.vehicleIds.map(v => '#' + v).join(', ')}</span>
-                    ${timeRange ? `<span class="weekday-history-time">${timeRange}</span>` : ''}
-                    ${todayTotalTrips > 0 ? `<div class="weekday-history-trips">${todayTotalTrips} trip${todayTotalTrips !== 1 ? 's' : ''} (${todayData.ebTrips || 0} EB · ${todayData.wbTrips || 0} WB)</div>` : ''}
-                </div>
-            </div>`;
-    } else if (todayData) {
-        html += `
-            <div class="weekday-history-row today-highlight">
-                <div class="weekday-history-date">Today</div>
-                <div class="weekday-history-details">
-                    <span class="stats-note">No PCC service yet today</span>
-                </div>
-            </div>`;
-    }
-
-    // Previous same-day entries
-    if (sameDayHistory.length > 0) {
-        html += `<p class="stats-note" style="margin-top: 10px;">Previous ${fullDayNames[dayName] || dayName + 's'}:</p>`;
-        for (const entry of sameDayHistory) {
-            const dateObj = new Date(entry.date + 'T12:00:00');
-            const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            const vehicleList = entry.vehicles.map(v => '#' + v).join(', ');
-            const timeRange = entry.firstSeen && entry.lastSeen
-                ? `${fmtTime(entry.firstSeen)} \u2013 ${fmtTime(entry.lastSeen)}` : '';
-
-            const entryTotalTrips = entry.totalTrips || 0;
-            html += `
-                <div class="weekday-history-row">
-                    <div class="weekday-history-date">${dateStr}</div>
-                    <div class="weekday-history-details">
-                        <span class="weekday-history-vehicles">${vehicleList}</span>
-                        ${timeRange ? `<span class="weekday-history-time">${timeRange}</span>` : ''}
-                        ${entryTotalTrips > 0 ? `<div class="weekday-history-trips">${entryTotalTrips} trip${entryTotalTrips !== 1 ? 's' : ''} (${entry.ebTrips || 0} EB · ${entry.wbTrips || 0} WB)</div>` : ''}
-                    </div>
-                </div>`;
-        }
-    } else {
-        html += `<p class="stats-note" style="margin-top: 10px;">No previous ${fullDayNames[dayName] || dayName + 's'} data yet.</p>`;
-    }
-
-    container.innerHTML = html;
-}
+// Roster state for the shared detail panel
+let rosterData = [];
+let selectedRosterVehicle = null;
 
 function renderVehicleRoster(vehicleStats) {
     const container = document.getElementById('vehicle-roster');
@@ -5869,12 +5804,185 @@ function renderVehicleRoster(vehicleStats) {
         return;
     }
 
-    container.innerHTML = vehicleStats.map(v => `
-        <div class="roster-vehicle">
+    // Already sorted by daysActive desc from the backend; sort defensively.
+    rosterData = [...vehicleStats].sort((a, b) => (b.daysActive || 0) - (a.daysActive || 0));
+    selectedRosterVehicle = null;
+
+    container.innerHTML = rosterData.map((v, i) => `
+        <div class="roster-vehicle" data-vehicle="${v.vehicleId}" onclick="toggleRosterDetail('${v.vehicleId}')">
+            <span class="roster-rank">${i + 1}</span>
             <img src="Graphics/EB_PCC_App_Logo.svg" alt="PCC Trolley" class="roster-vehicle-icon">
             <span class="roster-vehicle-id">#${v.vehicleId}</span>
         </div>
     `).join('');
+}
+
+function formatRosterDate(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatLastRan(dateStr) {
+    if (!dateStr) return null;
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const fmt = (d) => d.toLocaleDateString('en-CA'); // YYYY-MM-DD local
+    if (dateStr === fmt(today)) return 'Today';
+    if (dateStr === fmt(yesterday)) return 'Yesterday';
+    return formatRosterDate(dateStr);
+}
+
+function toggleRosterDetail(vehicleId) {
+    const panel = document.getElementById('roster-detail');
+    if (!panel) return;
+
+    // Tap the selected trolley again: close the panel
+    if (selectedRosterVehicle === vehicleId) {
+        panel.style.display = 'none';
+        selectedRosterVehicle = null;
+        document.querySelectorAll('.roster-vehicle.selected').forEach(el => el.classList.remove('selected'));
+        return;
+    }
+
+    const idx = rosterData.findIndex(v => String(v.vehicleId) === String(vehicleId));
+    if (idx === -1) return;
+    const v = rosterData[idx];
+    selectedRosterVehicle = vehicleId;
+
+    document.querySelectorAll('.roster-vehicle.selected').forEach(el => el.classList.remove('selected'));
+    document.querySelector(`.roster-vehicle[data-vehicle="${vehicleId}"]`)?.classList.add('selected');
+
+    // Stats lines — only show what the data supports (fallback path lacks trips)
+    const lines = [];
+    lines.push(`${v.daysActive} day${v.daysActive !== 1 ? 's' : ''} in service${v.daysPerWeek ? ` &middot; ${v.daysPerWeek} days/week` : ''}`);
+    if (typeof v.totalTrips === 'number') {
+        lines.push(`${v.totalTrips.toLocaleString()} trip${v.totalTrips !== 1 ? 's' : ''} all-time`);
+    }
+    const firstSeen = formatRosterDate(v.firstSeen);
+    const lastRan = formatLastRan(v.lastSeen);
+    if (firstSeen) lines.push(`First seen ${firstSeen}`);
+    if (lastRan) lines.push(`Last ran: ${lastRan}`);
+
+    panel.innerHTML = `
+        <div class="roster-detail-header">
+            <span class="roster-detail-rank">#${idx + 1} of ${rosterData.length}</span>
+            <span class="roster-detail-id">Trolley #${v.vehicleId}</span>
+        </div>
+        <div class="roster-detail-stats">
+            ${lines.map(l => `<div class="roster-detail-line">${l}</div>`).join('')}
+        </div>
+    `;
+    panel.style.display = 'block';
+}
+
+function renderAllTimeStats(stats) {
+    const container = document.getElementById('alltime-stats');
+    const subsection = document.getElementById('subsection-alltime');
+    if (!container || !subsection) return;
+
+    const r = stats.allTimeRecords;
+    if (!r) {
+        subsection.style.display = 'none';
+        return;
+    }
+    subsection.style.display = '';
+
+    const fmtDate = (dateStr) => new Date(dateStr + 'T12:00:00')
+        .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+    const rows = [];
+
+    // 1. Workhorse trolley
+    const wd = r.workhorse.mostDays;
+    const wt = r.workhorse.mostTrips;
+    if (String(wd.vehicleId) === String(wt.vehicleId)) {
+        rows.push({
+            label: 'Workhorse trolley',
+            value: `#${wd.vehicleId}`,
+            detail: `${wd.daysActive} days in service &middot; ${wd.totalTrips.toLocaleString()} trips`
+        });
+    } else {
+        rows.push({
+            label: 'Workhorse trolley',
+            value: `#${wd.vehicleId} / #${wt.vehicleId}`,
+            detail: `Most days: #${wd.vehicleId} (${wd.daysActive}) &middot; Most trips: #${wt.vehicleId} (${wt.totalTrips.toLocaleString()})`
+        });
+    }
+
+    // 2. Newest trolley
+    rows.push({
+        label: 'Newest trolley',
+        value: `#${r.newest.vehicleId}`,
+        detail: `First seen ${fmtDate(r.newest.firstSeen)}`
+    });
+
+    // 3. Biggest day (tappable -> hourly detail)
+    rows.push({
+        label: 'Biggest day',
+        value: `${r.biggestDay.totalTrips} trips`,
+        detail: `${fmtDate(r.biggestDay.date)} (${r.biggestDay.ebTrips} EB &middot; ${r.biggestDay.wbTrips} WB) &mdash; tap for hourly detail`,
+        onclick: `toggleRecordDayDetail('${r.biggestDay.date}')`
+    });
+
+    // 4. Most trolleys in one day
+    rows.push({
+        label: 'Most trolleys in one day',
+        value: `${r.mostVehiclesDay.count} trolleys`,
+        detail: `${fmtDate(r.mostVehiclesDay.date)}: ${r.mostVehiclesDay.vehicleIds.map(v => '#' + v).join(', ')}`
+    });
+
+    // 5. True trolley days (only when bus data exists)
+    if (r.trueTrolleyDays !== null) {
+        rows.push({
+            label: 'True trolley days',
+            value: `${r.trueTrolleyDays} days`,
+            detail: 'Days mostly served by trolleys, not buses (tracked since Feb 2026)'
+        });
+    }
+
+    // 6. Total all-time trips
+    rows.push({
+        label: 'Total trips recorded',
+        value: r.totalTrips.toLocaleString(),
+        detail: 'Across all tracked days'
+    });
+
+    container.innerHTML = rows.map(row => `
+        <div class="alltime-stat-row${row.onclick ? ' tappable' : ''}"${row.onclick ? ` onclick="${row.onclick}"` : ''}>
+            <div class="alltime-stat-text">
+                <span class="alltime-stat-label">${row.label}</span>
+                <span class="alltime-stat-detail">${row.detail}</span>
+            </div>
+            <span class="alltime-stat-value">${row.value}</span>
+        </div>
+    `).join('') + `<div id="record-day-detail" class="recent-day-detail" style="display: none;"></div>`;
+}
+
+async function toggleRecordDayDetail(date) {
+    const el = document.getElementById('record-day-detail');
+    if (!el) return;
+    if (el.style.display !== 'none') {
+        el.style.display = 'none';
+        return;
+    }
+    el.style.display = 'block';
+    if (dayDetailCache[date]) {
+        renderDayDetailInto(el, dayDetailCache[date]);
+        return;
+    }
+    el.innerHTML = '<div class="day-detail-loading">Loading hourly detail...</div>';
+    try {
+        const response = await fetch(`/.netlify/functions/pcc-day-detail?date=${date}`);
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        dayDetailCache[date] = data;
+        renderDayDetailInto(el, data);
+    } catch (error) {
+        console.error('Record day detail error:', error);
+        el.innerHTML = '<p class="day-detail-empty">Unable to load detail.</p>';
+    }
 }
 
 // Day detail accordion state
@@ -5962,25 +6070,63 @@ function renderRecentDays(recentDays) {
         `;
     }
 
-    let html = '';
-    weeks.forEach((week, idx) => {
-        const isCurrentWeek = idx === 0;
+    // Group weeks into months (by the Monday's month).
+    // Current month open showing weeks (current week expanded);
+    // earlier months collapsed with a summary.
+    const months = [];
+    let currentMonth = null;
+    for (const week of weeks) {
+        const mKey = `${week.monday.getFullYear()}-${week.monday.getMonth()}`;
+        if (!currentMonth || currentMonth.key !== mKey) {
+            currentMonth = {
+                key: mKey,
+                label: week.monday.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                weeks: []
+            };
+            months.push(currentMonth);
+        }
+        currentMonth.weeks.push(week);
+    }
+
+    function renderWeek(week, isCurrentWeek) {
         const weekEnd = new Date(week.monday);
         weekEnd.setDate(weekEnd.getDate() + 6);
         const weekLabel = isCurrentWeek ? 'This Week'
-            : `${week.monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} \u2013 ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+            : `${week.monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
         const serviceDaysInWeek = week.days.filter(d => d.observations > 0).length;
         const weekSummary = `${serviceDaysInWeek}/${week.days.length} days with service`;
 
-        html += `
+        return `
             <div class="week-group ${isCurrentWeek ? 'expanded' : ''}">
                 <div class="week-header" onclick="this.parentElement.classList.toggle('expanded')">
                     <span class="week-label">${weekLabel}</span>
                     <span class="week-summary">${weekSummary}</span>
-                    <span class="week-toggle-icon">\u25BC</span>
+                    <span class="week-toggle-icon">▼</span>
                 </div>
                 <div class="week-days">
                     ${week.days.map(renderDayRow).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    let html = '';
+    months.forEach((month, mIdx) => {
+        const isCurrentMonth = mIdx === 0;
+        const allDays = month.weeks.flatMap(w => w.days);
+        const serviceDays = allDays.filter(d => d.observations > 0).length;
+        const totalTrips = allDays.reduce((sum, d) => sum + (d.totalTrips || 0), 0);
+        const monthSummary = `${serviceDays} service day${serviceDays !== 1 ? 's' : ''}${totalTrips > 0 ? ` · ${totalTrips.toLocaleString()} trips` : ''}`;
+
+        html += `
+            <div class="month-group ${isCurrentMonth ? 'expanded' : ''}">
+                <div class="month-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <span class="month-label">${month.label}</span>
+                    <span class="month-summary">${monthSummary}</span>
+                    <span class="week-toggle-icon">▼</span>
+                </div>
+                <div class="month-weeks">
+                    ${month.weeks.map((w, wIdx) => renderWeek(w, mIdx === 0 && wIdx === 0)).join('')}
                 </div>
             </div>
         `;
@@ -6042,6 +6188,10 @@ async function toggleDayDetail(date) {
 function renderDayDetail(date, data) {
     const detailEl = document.getElementById(`day-detail-${date}`);
     if (!detailEl) return;
+    renderDayDetailInto(detailEl, data);
+}
+
+function renderDayDetailInto(detailEl, data) {
 
     if (data.totalObservations === 0) {
         detailEl.innerHTML = '<p class="day-detail-empty">No PCC trolleys observed this day.</p>';
