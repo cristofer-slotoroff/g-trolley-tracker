@@ -39,68 +39,83 @@
 
         <section class="card intro-card">
             <p>Track any vintage PCC trolleys running on the SEPTA Metro G Line (formerly Route 15) right now and get directions to ride one from your origin point in the SEPTA metro network.</p>
-            <p>PCC trolleys tend to run from early morning into early evening. When no trolleys are running, you will see buses servicing the route. Check out "When Are Trolleys Usually Running?" to view analytics.</p>
+            <p>PCC trolleys tend to run from early morning into early evening. When no trolleys are running, you will see buses servicing the route. Tap "See Trolley Analytics" to explore service patterns, the trolley roster, and all-time records.</p>
         </section>
 
         <!-- Collapsible Stats Section -->
         <section class="card stats-card">
             <button class="stats-toggle" onclick="toggleStats()" aria-expanded="false" aria-controls="stats-content">
-                <span class="stats-toggle-text">When Are Trolleys Usually Running?</span>
+                <span class="stats-toggle-text">See Trolley Analytics</span>
                 <span class="stats-toggle-icon">▼</span>
             </button>
             <div id="stats-content" class="stats-content" hidden>
-                <p class="stats-intro">Based on daily tracking data in the app, here's when PCC trolleys typically run. Note: inclement weather and maintenance can affect service.</p>
-
                 <div id="stats-loading" class="stats-loading">Loading statistics...</div>
 
                 <div id="stats-data" class="stats-data" style="display: none;">
-                    <!-- Quick Stats -->
-                    <div class="stats-summary">
-                        <div class="stat-box">
-                            <span class="stat-value" id="stat-days-tracked">--</span>
-                            <span class="stat-label">Days Tracked</span>
+                    <!-- Subsection: When Are Trolleys Usually Running? (open by default) -->
+                    <div class="stats-subsection expanded" id="subsection-usual">
+                        <button class="subsection-toggle" onclick="toggleSubsection('subsection-usual')" aria-expanded="true" aria-controls="subsection-usual-content">
+                            <span>When Are Trolleys Usually Running?</span>
+                            <span class="subsection-icon">&#9660;</span>
+                        </button>
+                        <div class="subsection-content" id="subsection-usual-content">
+                            <p class="stats-intro">Based on daily tracking data in the app, here's when PCC trolleys typically run. Note: inclement weather and maintenance can affect service.</p>
+                            <div class="stats-summary">
+                                <div class="stat-box">
+                                    <span class="stat-value" id="stat-days-tracked">--</span>
+                                    <span class="stat-label">Days Tracked</span>
+                                </div>
+                                <div class="stat-box">
+                                    <span class="stat-value" id="stat-typical-hours">--</span>
+                                    <span class="stat-label">Typical Hours</span>
+                                </div>
+                                <div class="stat-box">
+                                    <span class="stat-value" id="stat-best-time">--</span>
+                                    <span class="stat-label">Best Time</span>
+                                </div>
+                            </div>
+                            <div class="stats-section today-section" id="today-section">
+                                <h3 id="today-header">Today's Trolleys</h3>
+                                <div id="today-content"></div>
+                            </div>
+                            <div class="stats-section">
+                                <h3>How Many Trolleys Run Each Hour?</h3>
+                                <p class="stats-note" id="hourly-subtitle"></p>
+                                <div id="concurrency-chart" class="concurrency-chart"></div>
+                                <p class="stats-note" id="peak-concurrent-note"></p>
+                            </div>
                         </div>
-                        <div class="stat-box">
-                            <span class="stat-value" id="stat-typical-hours">--</span>
-                            <span class="stat-label">Typical Hours</span>
+                    </div>
+
+                    <!-- Subsection: All-Time Stats (collapsed by default) -->
+                    <div class="stats-subsection" id="subsection-alltime">
+                        <button class="subsection-toggle" onclick="toggleSubsection('subsection-alltime')" aria-expanded="false" aria-controls="subsection-alltime-content">
+                            <span>All-Time Stats</span>
+                            <span class="subsection-icon">&#9660;</span>
+                        </button>
+                        <div class="subsection-content" id="subsection-alltime-content">
+                            <div id="alltime-stats"></div>
                         </div>
-                        <div class="stat-box">
-                            <span class="stat-value" id="stat-best-time">--</span>
-                            <span class="stat-label">Best Time</span>
-                        </div>
                     </div>
 
-                    <!-- Today's Trolleys -->
-                    <div class="stats-section today-section" id="today-section">
-                        <h3 id="today-header">Today's Trolleys</h3>
-                        <div id="today-content"></div>
-                    </div>
-
-                    <!-- Trolleys by Hour -->
-                    <div class="stats-section">
-                        <h3>How Many Trolleys Run Each Hour?</h3>
-                        <p class="stats-note" id="hourly-subtitle"></p>
-                        <div id="concurrency-chart" class="concurrency-chart"></div>
-                        <p class="stats-note" id="peak-concurrent-note"></p>
-                    </div>
-
-                    <!-- Activity by Day -->
-                    <div class="stats-section">
-                        <h3 id="day-history-header">Activity by Day</h3>
-                        <div id="daily-chart"></div>
-                    </div>
-
-                    <!-- PCC Trolley Roster -->
-                    <div class="stats-section">
+                    <!-- PCC Trolley Roster (always visible) -->
+                    <div class="stats-section roster-section">
                         <h3>PCC Trolley Roster</h3>
+                        <p class="stats-note">Ranked by days in service &mdash; tap a trolley for stats.</p>
                         <div id="vehicle-roster" class="vehicle-roster"></div>
+                        <div id="roster-detail" class="roster-detail" style="display: none;"></div>
                     </div>
 
-                    <!-- Service History -->
-                    <div class="stats-section">
-                        <h3>Service History</h3>
-                        <p class="stats-note">Tap a day to see hourly detail:</p>
-                        <div id="recent-days" class="recent-days"></div>
+                    <!-- Subsection: Service History (open by default) -->
+                    <div class="stats-subsection expanded" id="subsection-history">
+                        <button class="subsection-toggle" onclick="toggleSubsection('subsection-history')" aria-expanded="true" aria-controls="subsection-history-content">
+                            <span>Service History</span>
+                            <span class="subsection-icon">&#9660;</span>
+                        </button>
+                        <div class="subsection-content" id="subsection-history-content">
+                            <p class="stats-note">Tap a day to see hourly detail:</p>
+                            <div id="recent-days" class="recent-days"></div>
+                        </div>
                     </div>
                 </div>
 
