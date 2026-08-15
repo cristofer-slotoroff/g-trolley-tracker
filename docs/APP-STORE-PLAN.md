@@ -1,6 +1,9 @@
 # App Store plan: G Trolley Tracker
 
 Written 2026-08-15. Status: scoping only. Nothing built yet.
+Name decided 2026-08-15: **Philly Trolley App**. Do not relitigate.
+Why this name: room to grow. If SEPTA moves the PCC cars to other lines when the new Alstom trolleys arrive for testing (expected 2027), the app can follow them without a rename.
+App Store check 2026-08-15: no existing app named "Philly Trolley" (verified via the App Store search API).
 Facts below are tagged (verified) when read from the source, (inferred) when reasoned.
 
 ## Verdict
@@ -50,7 +53,7 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 ## What only Cris can do
 
 1. Enroll in the Apple Developer Program: $99, legal name shown as seller, about 48 hours to activate. Then enroll in the Small Business Program, sign the Paid Apps agreement, add banking and tax info (verified).
-2. Pick the app name. Suggestions: "G Trolley: Philly PCC Tracker" or "PCC Finder: Girard Trolley."
+2. App name: done. "Philly Trolley App."
 3. Install Xcode and keep an iPhone handy for testing.
 4. Later, if wanted: Google Play.
 
@@ -63,7 +66,7 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 
 ## Next move
 
-Cris: pick the name and start the $99 Apple enrollment, since the 48-hour clock is the longest wait.
+Cris: start the $99 Apple enrollment, since the 48-hour clock is the longest wait.
 Claude: build the Capacitor shell and the rename on a branch, then push and widget.
 
 ## Sources
