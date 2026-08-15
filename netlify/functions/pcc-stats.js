@@ -663,7 +663,7 @@ function processObservations(observations, samples, dailySummaries, viewData = {
         typicalStartHour: firstHour,
         typicalEndHour: lastHour,
         typicalHoursFormatted: firstHour !== null
-            ? `${formatHour(firstHour)}  to  ${formatHour(lastHour + 1)}` : 'No data yet',
+            ? `${formatHour(firstHour)} to ${formatHour(lastHour + 1)}` : 'No data yet',
         peakConcurrent: allTimePeakConcurrent,
         vehicleStats: Object.entries(byVehicle)
             .map(([id, data]) => ({
@@ -681,7 +681,7 @@ function processObservations(observations, samples, dailySummaries, viewData = {
         todayData,
         sameDayHistory,
         bestDay: dayNames[bestDow],
-        bestHourRange: `${formatHour(bestStartHour)}  to  ${formatHour(bestEndHour + 1)}`,
+        bestHourRange: `${formatHour(bestStartHour)} to ${formatHour(bestEndHour + 1)}`,
         totalEbObservations: totalEbObs,
         totalWbObservations: totalWbObs,
         recentDays,
