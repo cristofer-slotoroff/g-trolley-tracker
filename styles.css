@@ -1371,6 +1371,36 @@ footer p {
     color: var(--pcc-cream-dim);
 }
 
+footer .disclaimer {
+    color: var(--pcc-cream-dim);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    text-wrap: pretty;
+}
+
+footer .disclaimer a {
+    color: var(--pcc-gold);
+    text-decoration: none;
+}
+
+/* Native app shell (Capacitor iOS). Added 2026-08-15.
+   Keeps content clear of the notch and home indicator, hides web-only bits. */
+body.native {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.native .web-only {
+    display: none;
+}
+
+body.native img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 .pcc-info {
     color: rgba(245, 241, 227, 0.5);
 }
@@ -1894,6 +1924,10 @@ footer p {
     color: #E88892;
     background: rgba(114, 47, 55, 0.2);
     border-radius: 6px;
+}
+
+.stats-error p {
+    margin-bottom: 10px;
 }
 
 /* Summary Stats Boxes */

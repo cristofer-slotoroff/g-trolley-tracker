@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Track vintage PCC trolley cars on SEPTA Route G (Girard Line) in real-time. Plan your trip to catch a 1940s streetcar in Philadelphia.">
     <meta name="theme-color" content="#C4A82B">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -120,7 +120,8 @@
                 </div>
 
                 <div id="stats-error" class="stats-error" style="display: none;">
-                    Unable to load statistics. Check back later!
+                    <p>Unable to load statistics right now.</p>
+                    <button type="button" class="refresh-btn" onclick="loadStats()">Try again</button>
                 </div>
             </div>
         </section>
@@ -169,10 +170,12 @@
 
         <footer>
             <div class="support-section">
-                <p>Liking the app? <a href="https://buymeacoffee.com/thedeafeningcolors" target="_blank">Buy me a coffee</a>.</p>
-                <p>Feedback or bugs? Reach out on <a href="https://www.linkedin.com/in/cristoferslotoroff" target="_blank">LinkedIn</a>.</p>
+                <p class="web-only">Liking the app? <a href="https://buymeacoffee.com/thedeafeningcolors" target="_blank">Buy me a coffee</a>.</p>
+                <p>Feedback or bugs? Reach out on <a href="https://www.linkedin.com/in/cristoferslotoroff" target="_blank">LinkedIn</a> or visit the <a href="support.html">support page</a>.</p>
                 <p class="made-by">Made by Cris with love in Philly.</p>
             </div>
+            <p class="disclaimer">Not affiliated with SEPTA. Vehicle positions and schedules come from SEPTA's public data feeds.</p>
+            <p class="disclaimer"><a href="privacy.html">Privacy</a> &middot; <a href="support.html">Support</a></p>
         </footer>
     </div>
 

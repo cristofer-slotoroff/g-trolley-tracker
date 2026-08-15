@@ -1,8 +1,18 @@
 // PCC Trolley Tracker - Main Application
 
+// Native shell detection. Added 2026-08-15 for the Philly Trolley App (Capacitor iOS build).
+// The same files serve the website and the app; IS_NATIVE flips the few things that differ.
+// ?native=1 lets a browser preview native mode.
+const IS_NATIVE = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
+    || window.location.protocol === 'capacitor:'
+    || new URLSearchParams(window.location.search).get('native') === '1';
+const WEB_ORIGIN = 'https://septa-g-trolley-tracker.netlify.app';
+// Inside the app there is no local server, so function calls go to the live site.
+const FUNCTIONS_BASE = IS_NATIVE ? `${WEB_ORIGIN}/.netlify/functions` : '/.netlify/functions';
+
 // Configuration
 const CONFIG = {
-    API_BASE: '/.netlify/functions/septa-proxy',
+    API_BASE: `${FUNCTIONS_BASE}/septa-proxy`,
     REFRESH_INTERVAL: 60000,
     MINUTES_PER_STOP: 1.5,
     ESTIMATED_HEADWAY: 15
@@ -3329,6 +3339,16 @@ let refreshTimer = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    // Native app: product name in the header, hide web-only bits, add safe-area padding (via CSS).
+    if (IS_NATIVE) {
+        document.body.classList.add('native');
+        document.title = 'Philly Trolley App';
+        const h1 = document.querySelector('header h1');
+        const sub = document.querySelector('header .subtitle');
+        if (h1) h1.textContent = 'Philly Trolley App';
+        if (sub) sub.textContent = 'PCC trolleys on the SEPTA G Line';
+    }
+
     // Show test mode indicator if enabled
     if (TEST_MODE) {
         const banner = document.createElement('div');
@@ -5532,7 +5552,7 @@ function updateTrolleyDetails() {
                             : '';
                         return `
                             <span class="timeline-stop ${stop.position}${isNextImmediate ? ' next-immediate' : ''}${isTransfer ? ' transfer' : ''}">
-                                <span class="stop-top">${isCurrent ? `<span class="trolley-icon"><img src="${trolley.isPCC ? (trolley.direction === 'Eastbound' ? 'Graphics/EB_PCC_App_Logo.svg' : 'Graphics/WB PCC App Logo.svg') : (trolley.direction === 'Eastbound' ? 'Graphics/Septa_Bus_EB.svg' : 'Graphics/Septa_Bus_WB.svg')}" alt="${trolley.isPCC ? '🚋' : '🚌'}"></span>` : ''}</span>
+                                <span class="stop-top">${isCurrent ? `<span class="trolley-icon"><img src="${trolley.isPCC ? (trolley.direction === 'Eastbound' ? 'Graphics/EB_PCC_App_Logo.svg' : 'Graphics/WB PCC App Logo.svg') : (trolley.direction === 'Eastbound' ? 'Graphics/Septa_Bus_EB.svg' : 'Graphics/Septa_Bus_WB.svg')}" alt="${trolley.isPCC ? 'PCC trolley' : 'Bus'}"></span>` : ''}</span>
                                 <span class="stop-name">${stop.shortName}</span>
                                 <span class="stop-bottom">${isCurrent ? `<span class="direction-arrow ${dirClass}">${dirArrow}</span>` : ''}${transferBadges}</span>
                             </span>
@@ -5622,7 +5642,7 @@ function toggleSubsection(id) {
     if (btn) btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
 }
 
-async function loadStats() {
+async function loadStats(attempt = 1) {
     const loadingEl = document.getElementById('stats-loading');
     const dataEl = document.getElementById('stats-data');
     const errorEl = document.getElementById('stats-error');
@@ -5632,7 +5652,7 @@ async function loadStats() {
     errorEl.style.display = 'none';
 
     try {
-        const response = await fetch('/.netlify/functions/pcc-stats');
+        const response = await fetch(`${FUNCTIONS_BASE}/pcc-stats`);
         if (!response.ok) throw new Error('Failed to fetch stats');
 
         const stats = await response.json();
@@ -5649,6 +5669,11 @@ async function loadStats() {
 
     } catch (error) {
         console.error('Stats error:', error);
+        // One quiet retry covers a slow cold start; after that, show the error with a retry button. (2026-08-15)
+        if (attempt === 1) {
+            setTimeout(() => loadStats(2), 2000);
+            return;
+        }
         loadingEl.style.display = 'none';
         errorEl.style.display = 'block';
     }
@@ -5691,7 +5716,7 @@ function renderTodaySection(todayData) {
     // Format date for header
     const dateObj = new Date(todayData.date + 'T12:00:00');
     const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-    header.textContent = `Today's Trolleys \u2014 ${dateStr}`;
+    header.textContent = `Today's Trolleys: ${dateStr}`;
 
     if (todayData.pccCount === 0) {
         content.innerHTML = '<p class="stats-note">No PCC service observed yet today. Tracking in progress...</p>';
@@ -5705,7 +5730,7 @@ function renderTodaySection(todayData) {
 
     // Time range
     const timeRange = todayData.firstSeen && todayData.lastSeen
-        ? `${todayData.firstSeen} \u2013 ${todayData.lastSeen}`
+        ? `${todayData.firstSeen} to ${todayData.lastSeen}`
         : '';
 
     // Trip counts
@@ -5974,7 +5999,7 @@ async function toggleRecordDayDetail(date) {
     }
     el.innerHTML = '<div class="day-detail-loading">Loading hourly detail...</div>';
     try {
-        const response = await fetch(`/.netlify/functions/pcc-day-detail?date=${date}`);
+        const response = await fetch(`${FUNCTIONS_BASE}/pcc-day-detail?date=${date}`);
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
         dayDetailCache[date] = data;
@@ -6036,7 +6061,7 @@ function renderRecentDays(recentDays) {
 
         let timeRange = '';
         if (hasService && day.firstSeen && day.lastSeen) {
-            timeRange = `${fmtTime(day.firstSeen)}\u2013${fmtTime(day.lastSeen)}`;
+            timeRange = `${fmtTime(day.firstSeen)} to ${fmtTime(day.lastSeen)}`;
         }
 
         const tripCount = day.totalTrips || 0;
@@ -6173,7 +6198,7 @@ async function toggleDayDetail(date) {
     detailEl.innerHTML = '<div class="day-detail-loading">Loading hourly detail...</div>';
 
     try {
-        const response = await fetch(`/.netlify/functions/pcc-day-detail?date=${date}`);
+        const response = await fetch(`${FUNCTIONS_BASE}/pcc-day-detail?date=${date}`);
         if (!response.ok) throw new Error('Failed to fetch');
 
         const data = await response.json();
@@ -6223,7 +6248,7 @@ function renderDayDetailInto(detailEl, data) {
         return `
             <div class="day-detail-vehicle-row">
                 <span class="day-detail-vehicle-id">#${v.vehicleId}</span>
-                <span class="day-detail-vehicle-time">${v.firstSeen} \u2013 ${v.lastSeen}</span>
+                <span class="day-detail-vehicle-time">${v.firstSeen} to ${v.lastSeen}</span>
                 <span class="day-detail-vehicle-trips">${trips} trip${trips !== 1 ? 's' : ''}</span>
             </div>
         `;
@@ -6247,6 +6272,9 @@ function renderDayDetailInto(detailEl, data) {
 // ==========================================
 
 (function() {
+    // The native app does not log visits; the App Store reports its own usage. (2026-08-15)
+    if (IS_NATIVE) return;
+
     // Only log once per session to avoid over-counting refreshes
     if (sessionStorage.getItem('visit_logged')) return;
 

@@ -35,3 +35,7 @@ SEPTA_METRO_REFERENCE.md
 
 node_modules.nosync
 .superpowers/
+
+# Native app (Capacitor) build outputs
+native/node_modules/
+native/www/

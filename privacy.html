@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#C4A82B">
+    <title>Privacy Policy - Philly Trolley App</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="Graphics/favicon-32.png">
+    <style>
+        .doc { line-height: 1.6; }
+        .doc h2 { color: var(--pcc-gold); font-size: 1.1rem; margin: 22px 0 8px; }
+        .doc p, .doc li { margin-bottom: 10px; text-wrap: pretty; }
+        .doc ul { padding-left: 22px; }
+        .doc a { color: var(--pcc-gold); }
+        .back { display: inline-block; margin-top: 20px; color: var(--pcc-gold); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="Graphics/PCC App Logo.png" alt="Philly Trolley App" class="logo">
+            <h1>Privacy Policy</h1>
+            <p class="subtitle">Philly Trolley App and G Trolley Tracker website</p>
+        </header>
+
+        <section class="card doc">
+            <p>Last updated: August 15, 2026.</p>
+            <p>This app and website are made by one person in Philadelphia. They show where SEPTA's vintage PCC trolleys are running. They collect as little as possible and sell nothing.</p>
+
+            <h2>What the website collects</h2>
+            <ul>
+                <li>A random visitor ID stored in your browser, used only to count how many different people visit.</li>
+                <li>The date and time of your visit and whether you are on a phone or a computer.</li>
+                <li>Your saved origin stop, kept only in your browser so the page remembers it.</li>
+            </ul>
+            <p>No names, emails, accounts, or precise locations. No advertising, no cookies for tracking, and no data sold or shared with third parties.</p>
+
+            <h2>What the iPhone app collects</h2>
+            <ul>
+                <li>The app does not log visits.</li>
+                <li>If you turn on trolley alerts, a device token is stored so alerts can be delivered. Turning alerts off removes it from use.</li>
+                <li>Your saved origin stop stays on your phone.</li>
+            </ul>
+
+            <h2>Where data lives</h2>
+            <p>Visit counts and, when applicable, alert tokens are stored in a Supabase database. Vehicle positions and schedules come from SEPTA's public data feeds; those requests pass through this project's own server and are not tied to you.</p>
+
+            <h2>Retention and deletion</h2>
+            <p>Anonymous visit counts are kept to show usage over time. Because they contain no personal details, they cannot be matched to you. If you would like anything removed anyway, email the address below and it will be done.</p>
+
+            <h2>Contact</h2>
+            <p>Questions or requests: <a href="mailto:cristofer.slotoroff@gmail.com">cristofer.slotoroff@gmail.com</a></p>
+
+            <p>Not affiliated with SEPTA.</p>
+            <a class="back" href="index.html">&larr; Back to the tracker</a>
+        </section>
+    </div>
+</body>
+</html>
