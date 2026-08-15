@@ -5121,7 +5121,7 @@ async function updateConnections() {
                             ? `<div class="loop-eta">${stopsAway} stops away (~${loopETA} min, includes turnaround)</div>`
                             : '';
                         trolleyInfoHtml = `<div class="trolley-arrival-row wrong-direction">
-                            <strong>Trolley #${t.vehicle}</strong> heading ${dirText} — needs to loop back${loopInfo}
+                            <strong>Trolley #${t.vehicle}</strong> heading ${dirText}, needs to loop back${loopInfo}
                         </div>`;
                     } else {
                         trolleyInfoHtml = `<div class="trolley-arrival-row no-trolleys">No trolleys heading to this stop</div>`;
@@ -5854,7 +5854,7 @@ function toggleRosterDetail(vehicleId) {
     document.querySelectorAll('.roster-vehicle.selected').forEach(el => el.classList.remove('selected'));
     document.querySelector(`.roster-vehicle[data-vehicle="${vehicleId}"]`)?.classList.add('selected');
 
-    // Stats lines — only show what the data supports (fallback path lacks trips)
+    // Stats lines: only show what the data supports (fallback path lacks trips)
     const lines = [];
     lines.push(`${v.daysActive} day${v.daysActive !== 1 ? 's' : ''} in service${v.daysPerWeek ? ` &middot; ${v.daysPerWeek} days/week` : ''}`);
     if (typeof v.totalTrips === 'number') {
@@ -5922,7 +5922,7 @@ function renderAllTimeStats(stats) {
     rows.push({
         label: 'Biggest day',
         value: `${r.biggestDay.totalTrips} trips`,
-        detail: `${fmtDate(r.biggestDay.date)} (${r.biggestDay.ebTrips} EB &middot; ${r.biggestDay.wbTrips} WB) &mdash; tap for hourly detail`,
+        detail: `${fmtDate(r.biggestDay.date)} (${r.biggestDay.ebTrips} EB &middot; ${r.biggestDay.wbTrips} WB). Tap for hourly detail`,
         onclick: `toggleRecordDayDetail('${r.biggestDay.date}')`
     });
 
@@ -6092,7 +6092,7 @@ function renderRecentDays(recentDays) {
         const weekEnd = new Date(week.monday);
         weekEnd.setDate(weekEnd.getDate() + 6);
         const weekLabel = isCurrentWeek ? 'This Week'
-            : `${week.monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+            : `${week.monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} to ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
         const serviceDaysInWeek = week.days.filter(d => d.observations > 0).length;
         const weekSummary = `${serviceDaysInWeek}/${week.days.length} days with service`;
 
