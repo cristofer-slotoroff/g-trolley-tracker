@@ -2,6 +2,20 @@
 
 Newest entry first. The plan and its short progress log live in `docs/APP-STORE-PLAN.md`; store copy in `docs/APP-STORE-LISTING.md`.
 
+## 2026-08-16 (evening): research session, no code
+
+### Work completed
+
+- Researched the Alstom Citadis timeline, PCC fleet status, SEPTA vehicle numbering and API fields, and Manayunk transit history for the app's next phase. Findings and the ordered backlog are in `docs/APP-STORE-PLAN.md` under "Post-launch backlog".
+- Verified the 23xx PCC rule against the tracker's own data (all 8 logged PCC IDs are inside 2320 to 2337, no bus prefix starts with 2) and against a live scan of every SEPTA vehicle (one ID starting with 2 system-wide, PCC 2333).
+- Traced the 41 "9xxx" IDs logged as buses on G1: Route 10 K-cars from Callowhill tagged G1 on pull-outs along 59th St and Girard to the Lancaster junction, plus one real end-to-end G run by 9039 and 9082 on Feb 23, 2026. Confirmed with GTFS block IDs (G1 blocks 9001 to 9026, T1 9051 to 9069) that these are car numbers, not blocks. Special trips not logged into blocks (K-car 9000 retirement trip on Girard, March 15, 2026, photo found by Cris) do not appear in the feed.
+- Memory and plan file updated. Apple review still pending; no app or site changes this session.
+
+### Where to pick up next session
+
+- Apple review result first. Then the backlog in the plan file, in order (classification table with a kcar bucket, tracker widened to all trolley routes, "what's running on my line" screen, K-car-on-Girard alert).
+- Supabase queries were run by Cris in the SQL editor; the service key is a masked Netlify secret, so the CLI cannot read the tables. If a future session needs raw table access, ask Cris to run the query.
+
 ## 2026-08-16: submitted to Apple
 
 ### Work completed

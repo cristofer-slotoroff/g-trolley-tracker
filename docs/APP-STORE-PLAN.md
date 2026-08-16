@@ -134,6 +134,25 @@ Full session notes live in `SESSION_LOG.md` at the repo root.
 - 2026-08-15 (night): Push alerts built end to end (see "Alerts, how they work"). No-orphans pass over the whole app: pretty and balanced wrapping everywhere, tiles and buttons that fill their rows, phone step text wraps instead of clipping, metro and regional line buttons two per row on phones with names on one line, roster chips 8 per desktop row and 4 per phone row. Verified with Simulator screenshots of every screen and the live website on desktop.
 - 2026-08-15: Website gained a "Not affiliated with SEPTA" footer, privacy.html, support.html, a 404 page, 404 rules for internal folders, an analytics auto-retry with a Try again button, and the last dashes removed. Deployed to the live site.
 
+## Post-launch backlog (banked 2026-08-16, no code yet)
+
+Research that day (SEPTA site, FY27 budget, GTFS, live feed, and the tracker's own data) settled these. Full notes in SESSION_LOG.md.
+
+- Alstom Citadis timing: SEPTA's vehicles page now says manufacture 2027 to 2030, fleet delivery and deployment 2030 to 2034 (it said 2027 to 2032 until at least February 2026). Order of lines is T, then D, then G last. PCCs own the G into the 2030s. The M line is not a trolley line and is not in the order.
+- Fleet ID ranges are disjoint: T K-cars 9000 to 9111 (single-ended), D K-cars 100 to 128 (double-ended), G PCCs 2320 to 2337, trackless 800 to 837, buses 700s, 3000s, 4600s, 7300s, 8400s, 8600s. Citadis numbers unannounced (one railfan roster guesses 9500 to 9630). No SEPTA feed field states vehicle type; only the ID does. Planned substitutions use route IDs T_BUS, D1_BUS, D2_BUS, M1_BUS; unplanned ones show bus IDs under the trolley route.
+- The 23xx rule is correct: every ID ever logged as a PCC is inside 2320 to 2337 (8 cars: 2322, 2324, 2326, 2327, 2328, 2332, 2333, 2337) and no bus prefix starts with 2.
+- K-cars in the G1 feed: Route 10 cars from Callowhill run up 59th St and along Girard to the Lancaster junction on every pull-out and pull-in, and SEPTA's AVL tags them G1 for a few minutes. The tracker files them as buses (41 distinct cars since February, almost all 1 to 8 samples near 59th St or the junction). One real event: Feb 23, 2026, cars 9039 and 9082 ran the G end to end on G1 blocks. Special trips not logged into a block (K-car 9000's retirement trip on Girard, March 15, 2026) do not appear in the feed at all.
+
+To do, in order, after Apple review clears:
+
+1. Table-driven vehicle classification (explicit ranges: pcc, kcar, bus, unknown) in app.js and pcc-tracker.js, replacing startsWith('23'). Alert on any unknown 4-digit ID on a rail route (that is how the first Citadis test car will surface). Add a `kcar` vehicle_type so bus counts stop absorbing K-cars.
+2. Widen pcc-tracker.js from G1 only to T1 to T5, D1, D2, G1 and the _BUS routes (about 40k rows a day; aggregate later). Starts the per-line, per-vehicle dataset now.
+3. "What's running on my line" screen for T, D, G: rail cars vs buses live, per vehicle with next stop. Works today for planned and unplanned substitution.
+4. Rare-event push alert: a K-car with a G destination east of the Girard Ave bridge (longitude greater than about -75.19). "A Kawasaki is running on Girard right now."
+5. Later: per-vehicle reliability views once months of data exist (compare each vehicle's lateness against other vehicles on the same block and hour; SEPTA on-time is 1 minute early to 6 late at timepoints; SEPTA publishes route-level OTP only).
+
+Parked: Manayunk heritage line advocacy. The Venice Island track is the Reading's Venice Branch (standard gauge, so SEPTA broad-gauge cars cannot use it as is; last train April 2017; Norfolk Southern filed to discontinue in 2019; the city plans a trail over the Mule Bridge). Working templates elsewhere are Tampa (assessment district plus city) and Dallas (nonprofit plus DART and a BID).
+
 ## Sources
 
 - SEPTA developer terms: https://www3.septa.org/developer/ and https://wwww.septa.org/license-agreement/
