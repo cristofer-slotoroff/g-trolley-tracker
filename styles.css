@@ -1636,9 +1636,9 @@ body.native .web-only {
 }
 
 body.native header .logo {
-    width: 210px;
+    width: 150px;
     border-radius: 24px;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 
 .visually-hidden {

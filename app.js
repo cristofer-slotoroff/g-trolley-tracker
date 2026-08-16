@@ -3398,9 +3398,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const logo = document.querySelector('header .logo');
         const h1 = document.querySelector('header h1');
         const sub = document.querySelector('header .subtitle');
-        // The drawn logo carries the name, so the text heading stays for screen readers only.
         if (logo) { logo.src = 'Graphics/philly-trolleys-logo.png'; logo.alt = 'Philly Trolleys'; }
-        if (h1) { h1.textContent = 'Philly Trolleys'; h1.classList.add('visually-hidden'); }
+        if (h1) h1.textContent = 'Philly Trolleys';
         if (sub) sub.textContent = 'Vintage PCC Trolleys on the SEPTA G Line';
         initAlerts();
     }
