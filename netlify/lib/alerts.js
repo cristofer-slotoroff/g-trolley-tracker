@@ -95,7 +95,8 @@ async function claim(supabase, alertDate, alertType, vehicleIds) {
 
 async function deliver({ supabase, config, tokens, message, type, threadId, vehicleIds, alertDate, alertType }) {
     const payload = {
-        aps: { alert: { title: message.title, body: message.body }, sound: 'default', 'thread-id': threadId },
+        // content-available wakes the app so the widgets refresh as the alert lands.
+        aps: { alert: { title: message.title, body: message.body }, sound: 'default', 'thread-id': threadId, 'content-available': 1 },
         type,
         vehicles: vehicleIds
     };
@@ -258,7 +259,7 @@ export async function runStopAlerts({ supabase, vehicles, observedAt }) {
 
                 const message = stopAlertMessage({ vehicleId: car.vehicle_id, distance, stopName: sub.stop_name, direction: sub.direction });
                 const payload = {
-                    aps: { alert: { title: message.title, body: message.body }, sound: 'default', 'thread-id': 'stop-alert' },
+                    aps: { alert: { title: message.title, body: message.body }, sound: 'default', 'thread-id': 'stop-alert', 'content-available': 1 },
                     type: 'stop_alert',
                     vehicles: [car.vehicle_id]
                 };

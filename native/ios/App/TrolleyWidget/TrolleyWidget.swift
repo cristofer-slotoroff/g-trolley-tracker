@@ -73,8 +73,8 @@ struct TrolleyProvider: TimelineProvider {
         Task {
             let status = await StatusFeed.fetch()
             let entry = TrolleyEntry(date: Date(), status: status, failed: status == nil)
-            // Ask iOS to refresh in 15 minutes; it may stretch that when the phone is idle.
-            let next = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(900)
+            // Ask iOS to refresh in 10 minutes (alerts also trigger an immediate refresh through the app).
+            let next = Calendar.current.date(byAdding: .minute, value: 10, to: Date()) ?? Date().addingTimeInterval(600)
             completion(Timeline(entries: [entry], policy: .after(next)))
         }
     }

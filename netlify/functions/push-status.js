@@ -30,7 +30,7 @@ export const handler = async (event) => {
         }
         const result = await sendPushes({
             tokens,
-            payload: { aps: { alert: { title: 'Philly Trolleys test', body: 'Alerts are working. This is a test message.' }, sound: 'default' }, type: 'test' },
+            payload: { aps: { alert: { title: 'Philly Trolleys test', body: 'Alerts are working. This is a test message.' }, sound: 'default', 'content-available': 1 }, type: 'test' },
             config
         });
         return { statusCode: 200, headers, body: JSON.stringify({ test: true, sandbox: config.sandbox, ...result }) };
