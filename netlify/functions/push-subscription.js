@@ -35,7 +35,7 @@ export const handler = async (event) => {
     const platform = String(body.platform || 'ios');
     const enabled = body.enabled !== false;
     // 'first' = one alert a day; 'each' = every car that comes out. Added 2026-08-16.
-    const alertMode = body.alertMode === 'each' ? 'each' : 'first';
+    const alertMode = ['first', 'each', 'none'].includes(body.alertMode) ? body.alertMode : 'first';
 
     // Apple device tokens are hex strings (64 characters today; allow longer in case Apple changes it).
     if (!/^[a-f0-9]{32,256}$/i.test(token)) {

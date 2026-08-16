@@ -47,23 +47,27 @@
             <h2 class="section-title">Configure Your Trolley Alerts</h2>
             <label class="alert-toggle">
                 <input type="checkbox" id="alert-start-toggle" onchange="setStartAlert(this.checked)">
-                <span>Alert me when PCC Trolleys start running</span>
+                <span>Alert me when...</span>
             </label>
-            <div class="alert-modes" id="alert-modes" hidden>
-                <label class="alert-mode">
-                    <input type="radio" name="alert-mode" value="first" checked onchange="setAlertMode('first')">
-                    <span>First Trolley of the day</span>
+            <div class="alert-options" id="alert-options" hidden>
+                <label class="alert-option">
+                    <input type="checkbox" id="opt-first" onchange="onAlertOptionChange()">
+                    <span>Day's first PCC Trolley runs</span>
                 </label>
-                <label class="alert-mode">
-                    <input type="radio" name="alert-mode" value="each" onchange="setAlertMode('each')">
-                    <span>Every Trolley that starts running</span>
+                <label class="alert-option">
+                    <input type="checkbox" id="opt-each" onchange="onAlertOptionChange()">
+                    <span>Each new PCC Trolley runs</span>
+                </label>
+                <label class="alert-option">
+                    <input type="checkbox" id="opt-stop" onchange="onAlertOptionChange()">
+                    <span>PCC Trolleys approach my stop</span>
                 </label>
             </div>
-            <p class="alert-status" id="alert-status">One alert a day, when the first Trolley appears on the G Line.</p>
+            <p class="alert-status" id="alert-status">Turn this on to choose your alerts.</p>
 
             <div class="stop-alert" id="stop-alert" hidden>
-                <h3 class="stop-alert-title">Alert Me Near My Stop</h3>
-                <p class="stop-alert-intro">Save one G Line stop. When a PCC Trolley heading your way gets close, you get an alert.</p>
+                <h3 class="stop-alert-title">Configure My PCC Trolley Stop</h3>
+                <ul class="saved-stops" id="saved-stops"></ul>
                 <div class="stop-alert-row">
                     <span class="stop-alert-label">Direction</span>
                     <div class="stop-direction" role="group" aria-label="Direction">
@@ -76,7 +80,7 @@
                     <select id="stop-alert-stop" class="stop-alert-select"></select>
                 </div>
                 <div class="stop-alert-row">
-                    <label class="stop-alert-label" for="stop-alert-distance">Alert me when a Trolley is</label>
+                    <label class="stop-alert-label" for="stop-alert-distance">Alert me when PCC Trolleys are</label>
                     <select id="stop-alert-distance" class="stop-alert-select stop-alert-select-short">
                         <option value="3">3 stops away</option>
                         <option value="5" selected>5 stops away</option>
@@ -85,8 +89,7 @@
                     </select>
                 </div>
                 <div class="stop-alert-actions">
-                    <button type="button" class="stop-alert-save" id="stop-alert-save" onclick="saveStopAlert()">Save Stop Alert</button>
-                    <button type="button" class="stop-alert-remove" id="stop-alert-remove" onclick="removeStopAlert()" hidden>Remove</button>
+                    <button type="button" class="stop-alert-save" id="stop-alert-save" onclick="saveStopAlert()">Save My PCC Trolley Alerts</button>
                 </div>
                 <p class="alert-status" id="stop-alert-status"></p>
             </div>

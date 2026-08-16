@@ -22,6 +22,11 @@
     box-sizing: border-box;
 }
 
+/* The hidden attribute must win over any display rule (2026-08-16). */
+[hidden] {
+    display: none !important;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
     background: linear-gradient(135deg, var(--pcc-green-dark) 0%, var(--pcc-green) 100%);
@@ -1436,25 +1441,26 @@ body.native .native-only {
     accent-color: var(--pcc-gold);
 }
 
-.alert-modes {
+.alert-options {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px 18px;
+    flex-direction: column;
+    gap: 10px;
     margin: 0 0 12px 34px;
 }
 
-.alert-mode {
+.alert-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.9rem;
+    gap: 10px;
+    font-size: 0.95rem;
     color: var(--pcc-cream);
     cursor: pointer;
 }
 
-.alert-mode input[type="radio"] {
-    width: 18px;
-    height: 18px;
+.alert-option input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
     accent-color: var(--pcc-gold);
 }
 
@@ -1470,6 +1476,11 @@ body.native .native-only {
     color: #E88892;
 }
 
+.alert-status.confirmed {
+    color: var(--pcc-gold);
+    font-style: italic;
+}
+
 /* Stop alert picker (iPhone app only). Added 2026-08-16. */
 .stop-alert {
     margin-top: 16px;
@@ -1480,7 +1491,49 @@ body.native .native-only {
 .stop-alert-title {
     font-size: 1rem;
     color: var(--pcc-gold);
-    margin-bottom: 6px;
+    margin-bottom: 12px;
+}
+
+.saved-stops {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.saved-stops:empty {
+    display: none;
+}
+
+.saved-stop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(245, 241, 227, 0.15);
+    border-radius: 8px;
+    padding: 8px 10px 8px 12px;
+    font-size: 0.9rem;
+    color: var(--pcc-cream);
+}
+
+.saved-stop-text {
+    text-wrap: balance;
+}
+
+.saved-stop-remove {
+    flex-shrink: 0;
+    font: inherit;
+    font-size: 0.8rem;
+    background: rgba(114, 47, 55, 0.5);
+    color: var(--pcc-cream);
+    border: 1px solid rgba(245, 241, 227, 0.2);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
 }
 
 .stop-alert-intro {
@@ -1545,13 +1598,14 @@ body.native .native-only {
 .stop-alert-save {
     flex: 1;
     font: inherit;
-    font-weight: 600;
+    font-weight: 700;
     background: var(--pcc-gold);
     color: #1a1a1a;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 16px;
+    border: 2px solid var(--pcc-cream); /* white outline so it does not read as a section header */
+    border-radius: 10px;
+    padding: 12px 16px;
     cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
 .stop-alert-remove {

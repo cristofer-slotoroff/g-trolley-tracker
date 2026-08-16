@@ -6376,57 +6376,106 @@ function renderDayDetailInto(detailEl, data) {
 }
 
 // ==========================================
-// Trolley alerts (iPhone app only). Added 2026-08-15.
-// Talks to the Capacitor PushNotifications plugin, which the native shell
-// exposes on window.Capacitor.Plugins. The website never runs this.
+// Trolley alerts (iPhone app only). Added 2026-08-15, redesigned 2026-08-16.
+// Talks to the Capacitor PushNotifications plugin, which the native shell exposes on
+// window.Capacitor.Plugins. The website never runs this.
+//
+// One master switch ("Alert me when...") turns notifications on and registers the phone.
+// Three options, any combination:
+//   first  Day's first PCC Trolley runs        -> push_subscriptions.alert_mode 'first'
+//   each   Each new PCC Trolley runs           -> alert_mode 'each' (covers the first car too)
+//   stop   PCC Trolleys approach my stop       -> saved stops in push_stop_alerts (many per phone)
 // ==========================================
 
-const ALERT_PREF_KEY = 'pcc_alert_start';
-const ALERT_MODE_KEY = 'pcc_alert_mode'; // 'first' or 'each' (added 2026-08-16)
+const ALERT_PREF_KEY = 'pcc_alert_start';      // 'on' | 'off'
+const ALERT_OPTIONS_KEY = 'pcc_alert_options'; // JSON { first, each, stop }
 const PUSH_TOKEN_KEY = 'pcc_push_token';
-
-function alertMode() {
-    return localStorage.getItem(ALERT_MODE_KEY) === 'each' ? 'each' : 'first';
-}
-
-// Show the mode picker only while alerts are on, and reflect the saved choice.
-function syncAlertModeUI() {
-    const modes = document.getElementById('alert-modes');
-    if (!modes) return;
-    modes.hidden = !alertsWanted();
-    const chosen = alertMode();
-    modes.querySelectorAll('input[name="alert-mode"]').forEach(r => { r.checked = r.value === chosen; });
-    syncStopAlertUI();
-}
-
-async function setAlertMode(mode) {
-    localStorage.setItem(ALERT_MODE_KEY, mode === 'each' ? 'each' : 'first');
-    syncAlertModeUI();
-    const token = localStorage.getItem(PUSH_TOKEN_KEY);
-    if (alertsWanted() && token) await saveSubscription(token, true);
-}
+const SAVED_STOPS_KEY = 'pcc_saved_stops';     // JSON [{ id, direction, stopIndex, stopsAway }]
 
 function getPushPlugin() {
     const cap = window.Capacitor;
     return (cap && cap.Plugins && cap.Plugins.PushNotifications) || null;
 }
 
-function setAlertStatus(text, isError = false) {
+function alertsWanted() {
+    return localStorage.getItem(ALERT_PREF_KEY) === 'on';
+}
+
+function alertOptions() {
+    try {
+        const o = JSON.parse(localStorage.getItem(ALERT_OPTIONS_KEY) || 'null');
+        if (o && typeof o === 'object') return { first: !!o.first, each: !!o.each, stop: !!o.stop };
+    } catch (e) { /* fall through */ }
+    return { first: true, each: false, stop: false }; // sensible default the first time
+}
+
+function saveAlertOptions(o) {
+    localStorage.setItem(ALERT_OPTIONS_KEY, JSON.stringify({ first: !!o.first, each: !!o.each, stop: !!o.stop }));
+}
+
+// What the server should send for the daily alerts. "each" includes the first car, so it wins.
+function alertMode() {
+    const o = alertOptions();
+    if (o.each) return 'each';
+    if (o.first) return 'first';
+    return 'none';
+}
+
+// Plain text by default; pass { html: true } for the multi-line confirmation.
+function setAlertStatus(text, isError = false, opts = {}) {
     const el = document.getElementById('alert-status');
+    if (!el) return;
+    if (opts.html) el.innerHTML = text; else el.textContent = text;
+    el.classList.toggle('error', !!isError);
+    el.classList.toggle('confirmed', !isError && /Confirmed|^Saved/.test(text)); // italic gold
+}
+
+function setStopAlertStatus(text, isError = false) {
+    const el = document.getElementById('stop-alert-status');
     if (!el) return;
     el.textContent = text;
     el.classList.toggle('error', !!isError);
+    el.classList.toggle('confirmed', !isError && /Confirmed|^Saved/.test(text));
 }
 
-function alertsWanted() {
-    return localStorage.getItem(ALERT_PREF_KEY) === 'on';
+// First line: the confirmation. Following lines: each chosen alert on its own line, Title Case.
+function confirmationText() {
+    const o = alertOptions();
+    const parts = [];
+    if (o.each) parts.push('Each New PCC Trolley');
+    else if (o.first) parts.push("Day's First PCC Trolley");
+    if (o.stop) parts.push('PCC Trolleys Approaching My Stop');
+    if (!parts.length) return 'No alerts chosen yet. Check one or more boxes above.';
+    return `PCC Trolley Alerts Confirmed:<br>${parts.join('<br>')}`;
+}
+
+function showConfirmation() {
+    const text = confirmationText();
+    setAlertStatus(text, false, { html: /<br>/.test(text) });
+}
+
+// Reflect saved state in the checkboxes and show or hide the stop section.
+function syncAlertUI() {
+    const toggle = document.getElementById('alert-start-toggle');
+    const options = document.getElementById('alert-options');
+    const stopBox = document.getElementById('stop-alert');
+    if (!toggle || !options || !stopBox) return;
+    const on = alertsWanted();
+    const o = alertOptions();
+    toggle.checked = on;
+    options.hidden = !on;
+    document.getElementById('opt-first').checked = o.first;
+    document.getElementById('opt-each').checked = o.each;
+    document.getElementById('opt-stop').checked = o.stop;
+    stopBox.hidden = !(on && o.stop);
+    if (!stopBox.hidden) syncStopAlertUI();
+    if (!on) setAlertStatus('Turn this on to choose your alerts.');
 }
 
 async function initAlerts() {
     const toggle = document.getElementById('alert-start-toggle');
     if (!toggle) return;
-    toggle.checked = alertsWanted();
-    syncAlertModeUI();
+    syncAlertUI();
 
     const push = getPushPlugin();
     if (!push) {
@@ -6442,8 +6491,7 @@ async function initAlerts() {
     push.addListener('registrationError', (err) => {
         console.error('Push registration error:', err);
         localStorage.setItem(ALERT_PREF_KEY, 'off');
-        toggle.checked = false;
-        syncAlertModeUI();
+        syncAlertUI();
         setAlertStatus('Could not set up alerts on this phone. Try again later.', true);
     });
     // A tap on an alert, or an alert arriving while the app is open: refresh the live data.
@@ -6458,7 +6506,7 @@ async function initAlerts() {
                 await push.register();
             } else {
                 localStorage.setItem(ALERT_PREF_KEY, 'off');
-                toggle.checked = false;
+                syncAlertUI();
                 setAlertStatus('Notifications are turned off for this app in iPhone Settings. Turn them on there, then flip this switch again.', true);
             }
         } catch (e) {
@@ -6467,18 +6515,19 @@ async function initAlerts() {
     }
 }
 
+// Master switch.
 async function setStartAlert(on) {
-    const toggle = document.getElementById('alert-start-toggle');
     const push = getPushPlugin();
     if (!push) {
-        toggle.checked = false;
+        localStorage.setItem(ALERT_PREF_KEY, 'off');
+        syncAlertUI();
         setAlertStatus('Alerts work in the iPhone app.');
         return;
     }
 
     if (!on) {
         localStorage.setItem(ALERT_PREF_KEY, 'off');
-        syncAlertModeUI();
+        syncAlertUI();
         const token = localStorage.getItem(PUSH_TOKEN_KEY);
         if (token) await saveSubscription(token, false);
         else setAlertStatus('No alerts will be sent.');
@@ -6493,19 +6542,33 @@ async function setStartAlert(on) {
         }
         if (perm.receive !== 'granted') {
             localStorage.setItem(ALERT_PREF_KEY, 'off');
-            toggle.checked = false;
+            syncAlertUI();
             setAlertStatus('Notifications are turned off for this app in iPhone Settings. Turn them on there, then flip this switch again.', true);
             return;
         }
         localStorage.setItem(ALERT_PREF_KEY, 'on');
-        syncAlertModeUI();
+        syncAlertUI();
         await push.register(); // the 'registration' listener saves the token
     } catch (e) {
         console.error('Alert setup error:', e);
         localStorage.setItem(ALERT_PREF_KEY, 'off');
-        toggle.checked = false;
+        syncAlertUI();
         setAlertStatus('Could not set up alerts. Try again later.', true);
     }
+}
+
+// One of the three option boxes changed.
+async function onAlertOptionChange() {
+    const o = {
+        first: document.getElementById('opt-first').checked,
+        each: document.getElementById('opt-each').checked,
+        stop: document.getElementById('opt-stop').checked
+    };
+    saveAlertOptions(o);
+    syncAlertUI();
+    const token = localStorage.getItem(PUSH_TOKEN_KEY);
+    if (alertsWanted() && token) await saveSubscription(token, true);
+    else showConfirmation();
 }
 
 async function saveSubscription(token, enabled) {
@@ -6517,24 +6580,21 @@ async function saveSubscription(token, enabled) {
             body: JSON.stringify({ token, platform: 'ios', enabled, alertMode: alertMode() })
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        setAlertStatus(enabled
-            ? (alertMode() === 'each'
-                ? 'All set! PCC Trolley Alerts Confirmed. Every Trolley that starts running gets its own alert.'
-                : 'All set! PCC Trolley Alerts Confirmed. One alert a day, for the first Trolley.')
-            : 'No alerts will be sent.');
+        if (enabled) showConfirmation(); else setAlertStatus('No alerts will be sent.');
     } catch (e) {
         console.error('Subscription save error:', e);
         setAlertStatus('Could not reach the server to save your alert setting. It will retry next time you open the app.', true);
     }
 }
 
-// ---------- Stop alerts (iPhone app only). Added 2026-08-16. ----------
-// One saved stop per phone: direction, stop, and how many stops away to alert.
+// ---------- Saved stops (option 3). Many per phone: any direction, any stop. ----------
 
-const STOP_ALERT_KEY = 'pcc_stop_alert'; // JSON { direction, stopIndex, stopsAway, enabled }
+function savedStops() {
+    try { const l = JSON.parse(localStorage.getItem(SAVED_STOPS_KEY) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; }
+}
 
-function stopAlertPref() {
-    try { return JSON.parse(localStorage.getItem(STOP_ALERT_KEY) || 'null') || null; } catch (e) { return null; }
+function setSavedStops(list) {
+    localStorage.setItem(SAVED_STOPS_KEY, JSON.stringify(list));
 }
 
 // Readable stop name for the picker: prefer the "Girard Av & ..." entry for that stop.
@@ -6544,13 +6604,6 @@ function stopDisplayName(index) {
     const matches = G_LINE_STOPS_FULL.filter(st => st.shortName === simple.shortName);
     const preferred = matches.find(st => /Girard/.test(st.name)) || matches[0];
     return preferred ? preferred.name : simple.name;
-}
-
-function setStopAlertStatus(text, isError = false) {
-    const el = document.getElementById('stop-alert-status');
-    if (!el) return;
-    el.textContent = text;
-    el.classList.toggle('error', !!isError);
 }
 
 function currentStopDirection() {
@@ -6581,31 +6634,27 @@ function setStopDirection(direction) {
     populateStopAlertStops(direction, keep);
 }
 
-// Show the picker only while alerts are on; restore the saved choice.
+function renderSavedStops() {
+    const list = document.getElementById('saved-stops');
+    if (!list) return;
+    const stops = savedStops();
+    list.innerHTML = stops.map(st => `
+        <li class="saved-stop">
+            <span class="saved-stop-text">${stopDisplayName(st.stopIndex)} · ${st.direction} · ${st.stopsAway} stops away</span>
+            <button type="button" class="saved-stop-remove" onclick="removeStopAlert('${st.id}')">Remove</button>
+        </li>`).join('');
+}
+
 function syncStopAlertUI() {
-    const box = document.getElementById('stop-alert');
-    if (!box) return;
-    box.hidden = !alertsWanted();
-    if (box.hidden) return;
-    const pref = stopAlertPref();
-    const direction = pref && pref.direction === 'Westbound' ? 'Westbound' : 'Eastbound';
-    document.querySelectorAll('.stop-dir-btn').forEach(b => b.classList.toggle('active', b.dataset.dir === direction));
-    populateStopAlertStops(direction, pref ? pref.stopIndex : undefined);
-    const dist = document.getElementById('stop-alert-distance');
-    if (dist && pref && pref.stopsAway) dist.value = String(pref.stopsAway);
-    const remove = document.getElementById('stop-alert-remove');
-    if (remove) remove.hidden = !(pref && pref.enabled);
-    if (pref && pref.enabled) {
-        setStopAlertStatus(`Saved: ${stopDisplayName(pref.stopIndex)}, ${pref.direction}, ${pref.stopsAway} stops away.`);
-    } else {
-        setStopAlertStatus('');
-    }
+    const select = document.getElementById('stop-alert-stop');
+    if (select && !select.options.length) populateStopAlertStops(currentStopDirection());
+    renderSavedStops();
 }
 
 async function saveStopAlert() {
     const token = localStorage.getItem(PUSH_TOKEN_KEY);
     if (!alertsWanted() || !token) {
-        setStopAlertStatus('Turn on Trolley alerts above first.', true);
+        setStopAlertStatus('Turn on "Alert me when..." above first.', true);
         return;
     }
     const direction = currentStopDirection();
@@ -6621,9 +6670,15 @@ async function saveStopAlert() {
             body: JSON.stringify({ token, direction, stopIndex, stopName: stopDisplayName(stopIndex), stopsAway, enabled: true })
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        localStorage.setItem(STOP_ALERT_KEY, JSON.stringify({ direction, stopIndex, stopsAway, enabled: true }));
-        syncStopAlertUI();
-        setStopAlertStatus(`All set! You will hear when a PCC Trolley ${direction === 'Eastbound' ? 'heading east' : 'heading west'} is within ${stopsAway} stops of ${stopDisplayName(stopIndex)}.`);
+        const saved = await res.json();
+        const id = String(saved.id || `${direction}:${stopIndex}`);
+        const others = savedStops().filter(st => !(st.direction === direction && st.stopIndex === stopIndex));
+        setSavedStops([...others, { id, direction, stopIndex, stopsAway }]);
+        // Saving a stop implies the option is on.
+        const o = alertOptions(); o.stop = true; saveAlertOptions(o);
+        syncAlertUI();
+        setStopAlertStatus(`Saved. You will hear when a PCC Trolley ${direction === 'Eastbound' ? 'heading east' : 'heading west'} is within ${stopsAway} stops of ${stopDisplayName(stopIndex)}.`);
+        showConfirmation();
     } catch (e) {
         console.error('Stop alert save error:', e);
         setStopAlertStatus('Could not save right now. Try again in a moment.', true);
@@ -6632,18 +6687,19 @@ async function saveStopAlert() {
     }
 }
 
-async function removeStopAlert() {
+async function removeStopAlert(id) {
     const token = localStorage.getItem(PUSH_TOKEN_KEY);
-    const pref = stopAlertPref() || {};
-    localStorage.setItem(STOP_ALERT_KEY, JSON.stringify({ ...pref, enabled: false }));
-    syncStopAlertUI();
+    const stops = savedStops();
+    const target = stops.find(st => String(st.id) === String(id));
+    setSavedStops(stops.filter(st => String(st.id) !== String(id)));
+    renderSavedStops();
     setStopAlertStatus('Stop alert removed.');
-    if (!token) return;
+    if (!token || !target) return;
     try {
         await fetch(`${FUNCTIONS_BASE}/push-stop-alert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, enabled: false })
+            body: JSON.stringify({ token, direction: target.direction, stopIndex: target.stopIndex, enabled: false })
         });
     } catch (e) {
         console.error('Stop alert remove error:', e);

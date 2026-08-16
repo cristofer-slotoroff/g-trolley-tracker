@@ -162,7 +162,7 @@ export async function runAlerts({ supabase, pccObs, observedAt, recentMinutes = 
 
 // ---------------------------------------------------------------------------------------------
 // Stop alerts (added 2026-08-16): "tell me when a PCC car is N stops from my stop, heading my way".
-// One saved stop per phone (push_stop_alerts). Each car is alerted once per trip per phone
+// Any number of saved stops per phone (push_stop_alerts). Each car is alerted once per trip per saved stop
 // (push_stop_alerts_sent), so a car that lingers a few runs inside the window does not repeat.
 // ---------------------------------------------------------------------------------------------
 
@@ -185,7 +185,7 @@ export async function runStopAlerts({ supabase, vehicles, observedAt }) {
 
         const { data: subs, error: subsErr } = await supabase
             .from('push_stop_alerts')
-            .select('token, direction, stop_index, stop_name, stops_away')
+            .select('id, token, direction, stop_index, stop_name, stops_away')
             .eq('enabled', true);
         if (subsErr) {
             // Table not created yet or unreachable: nothing to do.
@@ -220,7 +220,7 @@ export async function runStopAlerts({ supabase, vehicles, observedAt }) {
                 const tripKey = car.trip ? String(car.trip) : `${car.direction}:${observedAt.toISOString().slice(0, 13)}`;
                 const { error: claimErr } = await supabase
                     .from('push_stop_alerts_sent')
-                    .insert({ token: sub.token, vehicle_id: car.vehicle_id, trip: tripKey });
+                    .insert({ token: sub.token, stop_alert_id: sub.id, vehicle_id: car.vehicle_id, trip: tripKey });
                 if (claimErr) {
                     if (claimErr.code !== '23505') console.error('Stop alerts: claim failed', claimErr);
                     continue;

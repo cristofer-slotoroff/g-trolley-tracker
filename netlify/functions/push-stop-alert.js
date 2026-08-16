@@ -29,28 +29,31 @@ export const handler = async (event) => {
     if (!/^[a-f0-9]{32,256}$/i.test(token)) return bad('Bad token');
 
     const enabled = body.enabled !== false;
+    const direction = body.direction === 'Westbound' ? 'Westbound' : (body.direction === 'Eastbound' ? 'Eastbound' : null);
+    const stopIndex = Number(body.stopIndex);
+    if (!direction) return bad('Bad direction');
+    if (!Number.isInteger(stopIndex) || stopIndex < 0 || stopIndex >= G_LINE_STOPS_SIMPLE.length) return bad('Bad stop');
+
+    // Remove one saved stop (a phone may have several). Added 2026-08-16.
     if (!enabled) {
         const { error } = await supabase.from('push_stop_alerts')
-            .update({ enabled: false, updated_at: new Date().toISOString() }).eq('token', token);
-        if (error) { console.error('push-stop-alert disable error:', error); return { statusCode: 500, headers, body: JSON.stringify({ error: 'Could not save' }) }; }
+            .delete().eq('token', token).eq('direction', direction).eq('stop_index', stopIndex);
+        if (error) { console.error('push-stop-alert delete error:', error); return { statusCode: 500, headers, body: JSON.stringify({ error: 'Could not save' }) }; }
         return { statusCode: 200, headers, body: JSON.stringify({ ok: true, enabled: false }) };
     }
 
-    const direction = body.direction === 'Westbound' ? 'Westbound' : (body.direction === 'Eastbound' ? 'Eastbound' : null);
-    const stopIndex = Number(body.stopIndex);
     const stopsAway = Number(body.stopsAway);
-    if (!direction) return bad('Bad direction');
-    if (!Number.isInteger(stopIndex) || stopIndex < 0 || stopIndex >= G_LINE_STOPS_SIMPLE.length) return bad('Bad stop');
     if (!Number.isInteger(stopsAway) || stopsAway < 1 || stopsAway > 20) return bad('Bad distance');
     const stopName = stopDisplayName(stopIndex) || String(body.stopName || '').slice(0, 80);
 
-    const { error } = await supabase.from('push_stop_alerts').upsert({
+    const { data, error } = await supabase.from('push_stop_alerts').upsert({
         token, direction, stop_index: stopIndex, stop_name: stopName, stops_away: stopsAway,
         enabled: true, updated_at: new Date().toISOString()
-    }, { onConflict: 'token' });
+    }, { onConflict: 'token,direction,stop_index' }).select('id').limit(1);
     if (error) {
         console.error('push-stop-alert upsert error:', error);
         return { statusCode: 500, headers, body: JSON.stringify({ error: 'Could not save' }) };
     }
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, enabled: true, direction, stopIndex, stopName, stopsAway }) };
+    const id = data && data[0] ? data[0].id : null;
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, enabled: true, id, direction, stopIndex, stopName, stopsAway }) };
 };

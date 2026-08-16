@@ -54,3 +54,20 @@ CREATE TABLE IF NOT EXISTS public.push_stop_alerts_sent (
 
 ALTER TABLE public.push_stop_alerts      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_stop_alerts_sent ENABLE ROW LEVEL SECURITY;
+
+-- 2026-08-16 (later): several saved stops per phone. Run once.
+ALTER TABLE public.push_stop_alerts DROP CONSTRAINT IF EXISTS push_stop_alerts_pkey;
+ALTER TABLE public.push_stop_alerts ADD COLUMN IF NOT EXISTS id bigserial;
+ALTER TABLE public.push_stop_alerts ADD PRIMARY KEY (id);
+ALTER TABLE public.push_stop_alerts DROP CONSTRAINT IF EXISTS push_stop_alerts_unique;
+ALTER TABLE public.push_stop_alerts ADD CONSTRAINT push_stop_alerts_unique UNIQUE (token, direction, stop_index);
+DROP TABLE IF EXISTS public.push_stop_alerts_sent;
+CREATE TABLE public.push_stop_alerts_sent (
+    token          text NOT NULL,
+    stop_alert_id  bigint NOT NULL,
+    vehicle_id     text NOT NULL,
+    trip           text NOT NULL,
+    sent_at        timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (token, stop_alert_id, vehicle_id, trip)
+);
+ALTER TABLE public.push_stop_alerts_sent ENABLE ROW LEVEL SECURITY;
