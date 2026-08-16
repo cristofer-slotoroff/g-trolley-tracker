@@ -65,9 +65,11 @@ export const handler = async (event) => {
         return { statusCode: 200, headers, body: JSON.stringify(out) };
     }
 
-    const [{ count: subscribers }, { data: last }] = await Promise.all([
+    const [{ count: subscribers }, { data: last }, stopSubs, stopSent] = await Promise.all([
         supabase.from('push_subscriptions').select('*', { count: 'exact', head: true }).eq('enabled', true),
-        supabase.from('push_alerts_sent').select('alert_date, alert_type, sent_at, recipients, failed').order('sent_at', { ascending: false }).limit(1)
+        supabase.from('push_alerts_sent').select('alert_date, alert_type, sent_at, recipients, failed').order('sent_at', { ascending: false }).limit(1),
+        supabase.from('push_stop_alerts').select('*', { count: 'exact', head: true }).eq('enabled', true),
+        supabase.from('push_stop_alerts_sent').select('vehicle_id, trip, sent_at').order('sent_at', { ascending: false }).limit(1)
     ]);
 
     return {
@@ -77,7 +79,9 @@ export const handler = async (event) => {
             apnsConfigured: !!config,
             sandbox: config ? config.sandbox : null,
             subscribers: subscribers ?? null,
-            lastAlert: (last && last[0]) || null
+            lastAlert: (last && last[0]) || null,
+            stopAlertSubscribers: stopSubs.error ? null : (stopSubs.count ?? null),
+            lastStopAlert: stopSent.error ? null : ((stopSent.data && stopSent.data[0]) || null)
         })
     };
 };
