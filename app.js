@@ -995,22 +995,22 @@ function populateLineSelector() {
         // Show Metro lines: B, L, M, D, T, G
         container.innerHTML = `
             <button class="line-btn line-B ${selectedLine === 'B' ? 'active' : ''}" data-line="B" onclick="setLine('B')">
-                <span class="line-letter">B</span> Broad St
+                <span class="line-letter">B</span> <span class="line-name">Broad St</span>
             </button>
             <button class="line-btn line-L ${selectedLine === 'L' ? 'active' : ''}" data-line="L" onclick="setLine('L')">
-                <span class="line-letter">L</span> Market-Frankford
+                <span class="line-letter">L</span> <span class="line-name">Market-Frankford</span>
             </button>
             <button class="line-btn line-M ${selectedLine === 'M' ? 'active' : ''}" data-line="M" onclick="setLine('M')">
-                <span class="line-letter">M</span> Norristown
+                <span class="line-letter">M</span> <span class="line-name">Norristown</span>
             </button>
             <button class="line-btn line-D ${selectedLine === 'D' ? 'active' : ''}" data-line="D" onclick="setLine('D')">
-                <span class="line-letter">D</span> <span class="line-name">Media-<br>Sharon Hill</span>
+                <span class="line-letter">D</span> <span class="line-name">Media-Sharon Hill</span>
             </button>
             <button class="line-btn line-T ${selectedLine === 'T' ? 'active' : ''}" data-line="T" onclick="setLine('T')">
-                <span class="line-letter">T</span> Trolleys
+                <span class="line-letter">T</span> <span class="line-name">Trolleys</span>
             </button>
             <button class="line-btn line-G ${selectedLine === 'G' ? 'active' : ''}" data-line="G" onclick="setLine('G')">
-                <span class="line-letter">G</span> Girard
+                <span class="line-letter">G</span> <span class="line-name">Girard</span>
             </button>
         `;
     } else {
