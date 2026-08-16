@@ -197,10 +197,12 @@ export async function runAlerts({ supabase, pccObs, observedAt, recentMinutes = 
 
 export function stopAlertMessage({ vehicleId, distance, stopName, direction }) {
     const heading = direction === 'Eastbound' ? 'heading east' : 'heading west';
+    const arrows = directionArrows(direction);
     let title;
     if (distance <= 0) title = `PCC Trolley #${vehicleId} is Arriving Now`;
     else if (distance === 1) title = `PCC Trolley #${vehicleId} is 1 Stop Away`;
     else title = `PCC Trolley #${vehicleId} is ${distance} Stops Away`;
+    if (arrows) title += ` ${arrows}`;
     return { title, body: `${stopName}, ${heading}` };
 }
 
