@@ -8,6 +8,7 @@
 // so overlapping tracker runs cannot double-send.
 
 import { apnsConfigFromEnv, sendPushes, serviceStartedMessage } from './apns.js';
+import { stopIndexFromId } from './g-stops.js';
 
 // Calendar date in Philadelphia for a given instant, as YYYY-MM-DD.
 export function easternDateString(date) {
@@ -156,5 +157,91 @@ export async function runAlerts({ supabase, pccObs, observedAt, recentMinutes = 
         }
     } catch (err) {
         console.error('Push alerts: unexpected error', err);
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Stop alerts (added 2026-08-16): "tell me when a PCC car is N stops from my stop, heading my way".
+// One saved stop per phone (push_stop_alerts). Each car is alerted once per trip per phone
+// (push_stop_alerts_sent), so a car that lingers a few runs inside the window does not repeat.
+// ---------------------------------------------------------------------------------------------
+
+
+export function stopAlertMessage({ vehicleId, distance, stopName, direction }) {
+    const heading = direction === 'Eastbound' ? 'heading east' : 'heading west';
+    let body;
+    if (distance <= 0) body = `Car ${vehicleId} is arriving at ${stopName} now, ${heading}.`;
+    else if (distance === 1) body = `Car ${vehicleId} is 1 stop from ${stopName}, ${heading}.`;
+    else body = `Car ${vehicleId} is ${distance} stops from ${stopName}, ${heading}.`;
+    return { title: 'PCC Trolley approaching', body };
+}
+
+// vehicles: [{ vehicle_id, direction, next_stop_id, trip }] for the PCC cars seen this run.
+export async function runStopAlerts({ supabase, vehicles, observedAt }) {
+    if (!vehicles || !vehicles.length) return;
+    try {
+        const config = apnsConfigFromEnv();
+        if (!config) return;
+
+        const { data: subs, error: subsErr } = await supabase
+            .from('push_stop_alerts')
+            .select('token, direction, stop_index, stop_name, stops_away')
+            .eq('enabled', true);
+        if (subsErr) {
+            // Table not created yet or unreachable: nothing to do.
+            if (!/push_stop_alerts/i.test(subsErr.message || '')) console.error('Stop alerts: lookup failed', subsErr);
+            return;
+        }
+        if (!subs || !subs.length) return;
+
+        // Positions of the cars on the west-to-east line.
+        const cars = vehicles
+            .map(v => ({ ...v, index: stopIndexFromId(v.next_stop_id) }))
+            .filter(v => v.index >= 0 && (v.direction === 'Eastbound' || v.direction === 'Westbound'));
+        if (!cars.length) return;
+
+        // Only send to phones whose subscription is still enabled for alerts at all.
+        const tokens = subs.map(s => s.token);
+        const { data: live } = await supabase
+            .from('push_subscriptions')
+            .select('token')
+            .in('token', tokens)
+            .eq('enabled', true);
+        const liveTokens = new Set((live || []).map(r => r.token));
+
+        for (const sub of subs) {
+            if (!liveTokens.has(sub.token)) continue;
+            for (const car of cars) {
+                if (car.direction !== sub.direction) continue;
+                const distance = sub.direction === 'Eastbound' ? sub.stop_index - car.index : car.index - sub.stop_index;
+                if (distance < 0 || distance > sub.stops_away) continue;
+
+                // Once per car per trip per phone. Fall back to a direction+hour key when SEPTA gives no trip id.
+                const tripKey = car.trip ? String(car.trip) : `${car.direction}:${observedAt.toISOString().slice(0, 13)}`;
+                const { error: claimErr } = await supabase
+                    .from('push_stop_alerts_sent')
+                    .insert({ token: sub.token, vehicle_id: car.vehicle_id, trip: tripKey });
+                if (claimErr) {
+                    if (claimErr.code !== '23505') console.error('Stop alerts: claim failed', claimErr);
+                    continue;
+                }
+
+                const message = stopAlertMessage({ vehicleId: car.vehicle_id, distance, stopName: sub.stop_name, direction: sub.direction });
+                const payload = {
+                    aps: { alert: { title: message.title, body: message.body }, sound: 'default', 'thread-id': 'stop-alert' },
+                    type: 'stop_alert',
+                    vehicles: [car.vehicle_id]
+                };
+                const result = await sendPushes({ tokens: [sub.token], payload, config });
+                console.log(`Stop alerts: car ${car.vehicle_id} ${distance} stops from ${sub.stop_name} (${sub.direction}): sent ${result.sent}, failed ${result.failed}`, result.errors.slice(0, 2));
+                if (result.unregistered.length) {
+                    await supabase.from('push_subscriptions')
+                        .update({ enabled: false, last_error: 'unregistered', updated_at: new Date().toISOString() })
+                        .in('token', result.unregistered);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Stop alerts: unexpected error', err);
     }
 }

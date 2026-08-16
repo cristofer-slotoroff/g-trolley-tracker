@@ -31,3 +31,26 @@ ALTER TABLE public.push_alerts_sent   ENABLE ROW LEVEL SECURITY;
 
 -- 2026-08-16: alert mode per phone. 'first' = one alert a day, 'each' = every car that starts running.
 ALTER TABLE public.push_subscriptions ADD COLUMN IF NOT EXISTS alert_mode text NOT NULL DEFAULT 'first';
+
+-- 2026-08-16: stop alerts. One saved stop per phone, plus a once-per-car-per-trip record.
+CREATE TABLE IF NOT EXISTS public.push_stop_alerts (
+    token       text PRIMARY KEY,
+    direction   text NOT NULL,
+    stop_index  integer NOT NULL,
+    stop_name   text NOT NULL,
+    stops_away  integer NOT NULL DEFAULT 5,
+    enabled     boolean NOT NULL DEFAULT true,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.push_stop_alerts_sent (
+    token       text NOT NULL,
+    vehicle_id  text NOT NULL,
+    trip        text NOT NULL,
+    sent_at     timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (token, vehicle_id, trip)
+);
+
+ALTER TABLE public.push_stop_alerts      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.push_stop_alerts_sent ENABLE ROW LEVEL SECURITY;

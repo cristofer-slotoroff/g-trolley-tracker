@@ -2,7 +2,7 @@
 // Runs every 5 minutes, records active PCC trolleys AND buses to Supabase
 
 import { createClient } from '@supabase/supabase-js';
-import { runAlerts } from '../lib/alerts.js';
+import { runAlerts, runStopAlerts } from '../lib/alerts.js';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -61,6 +61,7 @@ export const handler = async (event) => {
 
         const data = await response.json();
         const observations = [];
+        const alertVehicles = []; // PCC cars with the fields the stop alerts need (not stored)
         const observedAt = startTime;
 
         // Process routes array from API response
@@ -93,6 +94,14 @@ export const handler = async (event) => {
                     next_stop_sequence: vehicle.next_stop_sequence || null,
                     late_minutes: vehicle.late || 0
                 });
+                if (isPCCTrolley(label)) {
+                    alertVehicles.push({
+                        vehicle_id: label,
+                        direction: getDirection(vehicle.destination),
+                        next_stop_id: vehicle.next_stop_id,
+                        trip: vehicle.trip
+                    });
+                }
             }
         }
 
@@ -103,6 +112,7 @@ export const handler = async (event) => {
 
         // Alert decisions run before this run's sample is saved, so "earlier today" excludes it. See lib/alerts.js.
         await runAlerts({ supabase, pccObs, observedAt });
+        await runStopAlerts({ supabase, vehicles: alertVehicles, observedAt });
 
         // Always record a sample (even if nothing found) to track gaps/uptime
         const sampleRecord = {

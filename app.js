@@ -6396,6 +6396,7 @@ function syncAlertModeUI() {
     modes.hidden = !alertsWanted();
     const chosen = alertMode();
     modes.querySelectorAll('input[name="alert-mode"]').forEach(r => { r.checked = r.value === chosen; });
+    syncStopAlertUI();
 }
 
 async function setAlertMode(mode) {
@@ -6524,6 +6525,128 @@ async function saveSubscription(token, enabled) {
     } catch (e) {
         console.error('Subscription save error:', e);
         setAlertStatus('Could not reach the server to save your alert setting. It will retry next time you open the app.', true);
+    }
+}
+
+// ---------- Stop alerts (iPhone app only). Added 2026-08-16. ----------
+// One saved stop per phone: direction, stop, and how many stops away to alert.
+
+const STOP_ALERT_KEY = 'pcc_stop_alert'; // JSON { direction, stopIndex, stopsAway, enabled }
+
+function stopAlertPref() {
+    try { return JSON.parse(localStorage.getItem(STOP_ALERT_KEY) || 'null') || null; } catch (e) { return null; }
+}
+
+// Readable stop name for the picker: prefer the "Girard Av & ..." entry for that stop.
+function stopDisplayName(index) {
+    const simple = G_LINE_STOPS_SIMPLE[index];
+    if (!simple) return '';
+    const matches = G_LINE_STOPS_FULL.filter(st => st.shortName === simple.shortName);
+    const preferred = matches.find(st => /Girard/.test(st.name)) || matches[0];
+    return preferred ? preferred.name : simple.name;
+}
+
+function setStopAlertStatus(text, isError = false) {
+    const el = document.getElementById('stop-alert-status');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle('error', !!isError);
+}
+
+function currentStopDirection() {
+    const active = document.querySelector('.stop-dir-btn.active');
+    return active && active.dataset.dir === 'Westbound' ? 'Westbound' : 'Eastbound';
+}
+
+// Fill the stop dropdown in travel order for the chosen direction.
+function populateStopAlertStops(direction, selectedIndex) {
+    const select = document.getElementById('stop-alert-stop');
+    if (!select) return;
+    const order = G_LINE_STOPS_SIMPLE.map((_, i) => i);
+    if (direction === 'Westbound') order.reverse();
+    select.innerHTML = order.map(i => `<option value="${i}">${stopDisplayName(i)}</option>`).join('');
+    if (selectedIndex !== undefined && selectedIndex !== null && G_LINE_STOPS_SIMPLE[selectedIndex]) {
+        select.value = String(selectedIndex);
+    } else {
+        // Default to Broad-Girard, the busiest stop.
+        const broad = G_LINE_STOPS_SIMPLE.findIndex(st => st.shortName === 'Broad');
+        if (broad >= 0) select.value = String(broad);
+    }
+}
+
+function setStopDirection(direction) {
+    document.querySelectorAll('.stop-dir-btn').forEach(b => b.classList.toggle('active', b.dataset.dir === direction));
+    const select = document.getElementById('stop-alert-stop');
+    const keep = select && select.value !== '' ? Number(select.value) : undefined;
+    populateStopAlertStops(direction, keep);
+}
+
+// Show the picker only while alerts are on; restore the saved choice.
+function syncStopAlertUI() {
+    const box = document.getElementById('stop-alert');
+    if (!box) return;
+    box.hidden = !alertsWanted();
+    if (box.hidden) return;
+    const pref = stopAlertPref();
+    const direction = pref && pref.direction === 'Westbound' ? 'Westbound' : 'Eastbound';
+    document.querySelectorAll('.stop-dir-btn').forEach(b => b.classList.toggle('active', b.dataset.dir === direction));
+    populateStopAlertStops(direction, pref ? pref.stopIndex : undefined);
+    const dist = document.getElementById('stop-alert-distance');
+    if (dist && pref && pref.stopsAway) dist.value = String(pref.stopsAway);
+    const remove = document.getElementById('stop-alert-remove');
+    if (remove) remove.hidden = !(pref && pref.enabled);
+    if (pref && pref.enabled) {
+        setStopAlertStatus(`Saved: ${stopDisplayName(pref.stopIndex)}, ${pref.direction}, ${pref.stopsAway} stops away.`);
+    } else {
+        setStopAlertStatus('');
+    }
+}
+
+async function saveStopAlert() {
+    const token = localStorage.getItem(PUSH_TOKEN_KEY);
+    if (!alertsWanted() || !token) {
+        setStopAlertStatus('Turn on Trolley alerts above first.', true);
+        return;
+    }
+    const direction = currentStopDirection();
+    const stopIndex = Number(document.getElementById('stop-alert-stop').value);
+    const stopsAway = Number(document.getElementById('stop-alert-distance').value);
+    const button = document.getElementById('stop-alert-save');
+    button.disabled = true;
+    setStopAlertStatus('Saving...');
+    try {
+        const res = await fetch(`${FUNCTIONS_BASE}/push-stop-alert`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, direction, stopIndex, stopName: stopDisplayName(stopIndex), stopsAway, enabled: true })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        localStorage.setItem(STOP_ALERT_KEY, JSON.stringify({ direction, stopIndex, stopsAway, enabled: true }));
+        syncStopAlertUI();
+        setStopAlertStatus(`All set! You will hear when a PCC Trolley ${direction === 'Eastbound' ? 'heading east' : 'heading west'} is within ${stopsAway} stops of ${stopDisplayName(stopIndex)}.`);
+    } catch (e) {
+        console.error('Stop alert save error:', e);
+        setStopAlertStatus('Could not save right now. Try again in a moment.', true);
+    } finally {
+        button.disabled = false;
+    }
+}
+
+async function removeStopAlert() {
+    const token = localStorage.getItem(PUSH_TOKEN_KEY);
+    const pref = stopAlertPref() || {};
+    localStorage.setItem(STOP_ALERT_KEY, JSON.stringify({ ...pref, enabled: false }));
+    syncStopAlertUI();
+    setStopAlertStatus('Stop alert removed.');
+    if (!token) return;
+    try {
+        await fetch(`${FUNCTIONS_BASE}/push-stop-alert`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, enabled: false })
+        });
+    } catch (e) {
+        console.error('Stop alert remove error:', e);
     }
 }
 
