@@ -45,7 +45,7 @@ export function firstOfDayMessage(cars) {
         const dir = directionWord(ids[0].direction);
         return { title: `PCC Trolley #${ids[0].vehicle_id} now running${dir ? ' ' + dir : ''}`, body: 'First PCC of the day on the G Line.' };
     }
-    return { title: `PCC Trolleys ${ids.map(c => '#' + c.vehicle_id).join(', ')} now running`, body: `First PCC cars of the day on the G Line (${ids.length} Trolleys).` };
+    return { title: `PCC Trolleys ${ids.map(c => '#' + c.vehicle_id).join(', ')} now running`, body: `First PCCs of the day on the G Line (${ids.length} Trolleys).` };
 }
 
 // A car that just came out. car: { vehicle_id, direction }; allIds: every PCC id out right now.
@@ -55,7 +55,7 @@ export function carOnlineMessage(car, allIds) {
     const count = total === 1 ? '(1 Trolley)' : `(${total} Trolleys)`;
     return {
         title: `PCC Trolley #${car.vehicle_id} now running${arrows ? ' ' + arrows : ''} ${count}`,
-        body: `Cars out now: ${[...allIds].sort().map(id => '#' + id).join(', ')}`
+        body: `PCCs Out Now: ${[...allIds].sort().map(id => '#' + id).join(', ')}`
     };
 }
 

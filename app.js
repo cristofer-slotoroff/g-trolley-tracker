@@ -6705,6 +6705,33 @@ async function removeStopAlert(id) {
     }
 }
 
+// ---------- Share (added 2026-08-16). Native share sheet in the app; Web Share or copy link on the site. ----------
+const APP_STORE_URL = 'https://apps.apple.com/app/id6802036569';
+const SHARE_TEXT = "Philly Trolleys: see where SEPTA's vintage PCC Trolleys are running right now, and get alerts when they roll out.";
+
+async function sharePhillyTrolleys() {
+    const status = document.getElementById('share-status');
+    const say = (t) => { if (status) status.textContent = t; };
+    const cap = window.Capacitor;
+    const sharePlugin = cap && cap.Plugins && cap.Plugins.Share;
+    try {
+        if (IS_NATIVE && sharePlugin) {
+            await sharePlugin.share({ title: 'Philly Trolleys', text: SHARE_TEXT, url: APP_STORE_URL, dialogTitle: 'Share Philly Trolleys' });
+            return;
+        }
+        if (navigator.share) {
+            await navigator.share({ title: 'Philly Trolleys', text: SHARE_TEXT, url: APP_STORE_URL });
+            return;
+        }
+        await navigator.clipboard.writeText(`${SHARE_TEXT} ${APP_STORE_URL}`);
+        say('Link copied. Paste it anywhere.');
+    } catch (e) {
+        if (e && (e.name === 'AbortError' || /cancel/i.test(String(e.message || '')))) return; // user closed the sheet
+        console.error('Share error:', e);
+        say(`Share this link: ${APP_STORE_URL}`);
+    }
+}
+
 // ==========================================
 // Simple Analytics - Log page visits
 // ==========================================
