@@ -75,7 +75,7 @@ No login is needed. The app works offline by showing the last data it saw, label
 
 Required: iPhone 6.9 inch (1320 by 2868), at least three, up to ten. Apple scales these for smaller phones.
 
-Capture on the iPhone 17 Pro Max Simulator during service hours (a weekday between about 10am and 4pm Eastern), so real PCC cars appear:
+Captured 2026-08-16 on the iPhone 17 Pro Max Simulator with three PCC cars running: see `docs/store-screenshots/` (1320 by 2868, upload in numbered order). Retake any of them the same way if the app changes:
 
 1. Home with PCC trolleys running (the hero shot)
 2. Route options from a Metro station
