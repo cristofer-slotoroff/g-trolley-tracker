@@ -41,8 +41,17 @@ Newest entry first. The plan and its short progress log live in `docs/APP-STORE-
 - Apple enrollment cleared. APNs key made, Netlify variables set (base64 key, trolley site by ID), App ID registered with push. A real test alert reached the Simulator through Apple's servers. Team ID recorded in the Xcode project.
 - Lesson: `~/.netlify/state.json` links the home folder to the personal site; always pass `NETLIFY_SITE_ID`. And a value that starts with dashes must be base64-encoded for `netlify env:set`.
 
+### 2026-08-16, afternoon (autonomous stretch while Cris was out)
+
+- Store screenshots captured with three live trolleys on the iPhone 17 Pro Max Simulator (docs/store-screenshots).
+- Build 1 archived, exported with Xcode-account signing, uploaded with altool and an App Store Connect API key (App Manager keys cannot create distribution certificates, so signing and upload are separate steps).
+- App Store Connect filled through the API: text, categories, subtitle, privacy URL, age rating, $4.99 US price, US-only availability, copyright, manual release, content rights, screenshots, review notes drafted (phone number still needed), build attached to 1.0, internal TestFlight group created.
+- APNs sender now tries production first and falls back to sandbox per token; tokens dead in both are disabled. Verified with a 3-phone test send.
+- Redesigned alerts card (master switch, three checkboxes, several saved stops), alert wording per Cris, share button with the App Store link, About page, support form via Netlify Forms, new logo everywhere, lock screen widgets, safe-area fix on the site.
+
 ### Pick up next session
 
-1. Sign in to Xcode with the Apple ID once (Xcode, Settings, Accounts) so signing and TestFlight work.
+1. Cris in App Store Connect: add himself to the internal TestFlight group, answer App Privacy (Identifiers, Device ID, app functionality, not linked, no tracking), enter the review contact phone. Then say "submit".
+2. Sign in to Xcode with the Apple ID once (Xcode, Settings, Accounts) so signing and TestFlight work.
 2. Capture 6.9-inch store screenshots on the iPhone 17 Pro Max Simulator on a weekday between 10am and 4pm Eastern, when PCC cars are out (list in `docs/APP-STORE-LISTING.md`).
 3. TestFlight build to Cris's phone, confirm a real alert arrives, then submit.

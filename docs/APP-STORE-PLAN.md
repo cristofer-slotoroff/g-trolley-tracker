@@ -65,7 +65,21 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 - Duplicate app rule 4.3. No other app tracks PCC cars specifically. Low risk (inferred).
 - The real-time API has no published license of its own (verified). Many paid SEPTA apps use it and no record of SEPTA objecting was found (inferred).
 
-## Next move
+## Status 2026-08-16 afternoon: build 1 uploaded, listing filled by API
+
+Done through the App Store Connect API (key PWRCG89KNQ, App Manager role, in ~/.appstoreconnect/private_keys):
+- Build 1 (version 1.0) uploaded from an Xcode-signed IPA with `xcrun altool`, processed VALID, attached to version 1.0. Export compliance answered by the Info.plist flag (no encryption prompt).
+- Listing text (description, keywords, promo, support and marketing URLs), subtitle, privacy policy URL, categories (Navigation, Travel), age rating 4+, price $4.99 USD (proceeds $4.24), availability United States only, copyright, manual release, content rights, seven 6.9-inch screenshots in order.
+- Internal TestFlight group "Cris (internal)" created with access to all builds. Testers cannot be added by API; Cris adds himself in the UI.
+- APNs now tries production first and falls back to sandbox per token, so Xcode builds, TestFlight, and App Store installs all get alerts.
+
+Cris, in App Store Connect (appstoreconnect.apple.com, Philly Trolleys):
+1. TestFlight tab, Internal Testing, group "Cris (internal)", plus, add yourself. Install the TestFlight app on the iPhone, open it, install Philly Trolleys build 1, turn alerts on there.
+2. App Privacy (left menu), Get Started: "Yes, we collect data"; Identifiers, Device ID; used for App Functionality; not linked to the user; not used for tracking; Publish.
+3. Version 1.0, App Review Information: contact phone number (the rest is filled). Or send the number and I fill it.
+4. When happy with TestFlight: say "submit" and I submit version 1.0 for review through the API (or click Add for Review, then Submit, in the UI).
+
+## Next move (older)
 
 Cris, one step left:
 1. Supabase tables: done 2026-08-15. The Simulator's token saved and the app shows "You are set."
