@@ -136,14 +136,14 @@ struct TrolleyWidgetView: View {
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundStyle(TrolleyColors.gold)
                     .minimumScaleFactor(0.6)
-                Text(s.pccCount == 1 ? "out on the G Line" : "out on the G Line")
+                Text("out on the G Line")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(TrolleyColors.cream)
             } else {
                 Text("None out")
                     .font(.title3.weight(.bold))
                     .foregroundStyle(TrolleyColors.cream)
-                Text("Buses cover the G Line right now.")
+                Text("Buses only right now.")
                     .font(.caption2)
                     .foregroundStyle(TrolleyColors.creamDim)
             }
@@ -188,7 +188,7 @@ struct TrolleyWidgetView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 if entry.failed {
-                    Text("Could not reach the trolley feed. Tap to open the app.")
+                    Text("Trolley feed unreachable.\nTap to open the app.")
                         .font(.caption)
                         .foregroundStyle(TrolleyColors.creamDim)
                 } else if let s = entry.status, !s.vehicles.isEmpty {
@@ -212,10 +212,13 @@ struct TrolleyWidgetView: View {
                             .foregroundStyle(TrolleyColors.creamDim)
                     }
                 } else {
-                    Text("No PCC cars are out. Buses cover the G Line right now.")
+                    Text("No PCC cars out right now.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(TrolleyColors.cream)
+                    Text("Buses only at the moment.")
                         .font(.caption)
                         .foregroundStyle(TrolleyColors.creamDim)
-                    Text("PCC cars usually run mornings into early evening.")
+                    Text("Usually mornings\ninto early evening.")
                         .font(.caption2)
                         .foregroundStyle(TrolleyColors.creamDim.opacity(0.8))
                 }
