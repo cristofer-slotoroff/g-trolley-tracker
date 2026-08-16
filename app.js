@@ -1,6 +1,6 @@
 // PCC Trolley Tracker - Main Application
 
-// Native shell detection. Added 2026-08-15 for the Philly Trolley App (Capacitor iOS build).
+// Native shell detection. Added 2026-08-15 for the Philly Trolleys (Capacitor iOS build).
 // The same files serve the website and the app; IS_NATIVE flips the few things that differ.
 // ?native=1 lets a browser preview native mode.
 const IS_NATIVE = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
@@ -3342,10 +3342,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Native app: product name in the header, hide web-only bits, add safe-area padding (via CSS).
     if (IS_NATIVE) {
         document.body.classList.add('native');
-        document.title = 'Philly Trolley App';
+        document.title = 'Philly Trolleys';
+        const logo = document.querySelector('header .logo');
         const h1 = document.querySelector('header h1');
         const sub = document.querySelector('header .subtitle');
-        if (h1) h1.textContent = 'Philly Trolley App';
+        // The drawn logo carries the name, so the text heading stays for screen readers only.
+        if (logo) { logo.src = 'Graphics/philly-trolleys-logo.png'; logo.alt = 'Philly Trolleys'; }
+        if (h1) { h1.textContent = 'Philly Trolleys'; h1.classList.add('visually-hidden'); }
         if (sub) sub.textContent = 'PCC trolleys on the SEPTA G Line';
     }
 

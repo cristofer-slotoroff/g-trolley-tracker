@@ -1,7 +1,7 @@
 # App Store plan: G Trolley Tracker
 
 Written 2026-08-15. Status: shell built 2026-08-15 (see Progress log at the bottom). Apple enrollment pending.
-Name decided 2026-08-15: **Philly Trolley App**. Do not relitigate.
+Name decided 2026-08-15: **Philly Trolleys** (first pick was "Philly Trolley App"; changed the same evening to match the logo Cris drew). Do not relitigate.
 Why this name: room to grow. If SEPTA moves the PCC cars to other lines when the new Alstom trolleys arrive for testing (expected 2027), the app can follow them without a rename.
 App Store check 2026-08-15: no existing app named "Philly Trolley" (verified via the App Store search API).
 Facts below are tagged (verified) when read from the source, (inferred) when reasoned.
@@ -40,7 +40,7 @@ Recommended model: keep the website free. It is your Google and Gemini asset and
 6. Robustness. Show a clear "SEPTA data unavailable" screen instead of endless "Loading..." Apple removes apps that look broken (verified). Test in airplane mode.
 7. Phone fit. Safe-area padding for the notch, splash screen, full icon set, iPhone-only at first (skips iPad screenshots).
 8. Copy cleanup. Stray dashes in the app copy. Fixed 2026-08-15.
-9. Art, before launch (Cris): refresh the app logo (App Store needs a 1024 by 1024 square, no transparency, no rounded corners; iOS rounds it). Replace the bus icon (Graphics/Septa_Bus_EB.svg and _WB.svg), which shows the SEPTA logo and wordmark; a generic bus without SEPTA marks keeps the paid app clear of SEPTA's trademark clause. The PCC icons are clean.
+9. Art. Logo done 2026-08-15 (Cris drew it; icon uses a text-free crop, full logo shows in the app header). Still open: replace the bus icon (Graphics/Septa_Bus_EB.svg and _WB.svg), which shows the SEPTA logo and wordmark; a generic bus without SEPTA marks keeps the paid app clear of SEPTA's trademark clause. The PCC icons are clean.
 
 ## How it gets built
 
@@ -54,7 +54,7 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 ## What only Cris can do
 
 1. Enroll in the Apple Developer Program: $99, legal name shown as seller, about 48 hours to activate. Then enroll in the Small Business Program, sign the Paid Apps agreement, add banking and tax info (verified).
-2. App name: done. "Philly Trolley App."
+2. App name: done. "Philly Trolleys."
 3. Install Xcode and keep an iPhone handy for testing. Xcode installed 2026-08-15.
 4. Later, if wanted: Google Play.
 
@@ -67,8 +67,8 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 
 ## Next move
 
-Cris: Apple enrollment is pending (submitted 2026-08-15). When Xcode and the iOS Simulator finish downloading, say so.
-Claude: run the app in the Simulator, screenshot it, fix phone-fit issues, then push alerts and the widget.
+Cris: Apple enrollment is pending (submitted 2026-08-15). Draw a bus icon without SEPTA marks when convenient.
+Claude: push alerts next (the 4.2 feature with the most user value), then the widget, then offline cache.
 
 ## How to run the app (for reference)
 
@@ -79,7 +79,8 @@ Claude: run the app in the Simulator, screenshot it, fix phone-fit issues, then 
 ## Progress log
 
 - 2026-08-15: Plan written. Name banked. Apple enrollment submitted (pending). Xcode installed.
-- 2026-08-15: Capacitor shell built in `native/` (bundle ID com.cristoferslotoroff.phillytrolley, iPhone-only, portrait, light status bar, placeholder icon and splash). Same web files serve site and app; `IS_NATIVE` in app.js swaps the header to "Philly Trolley App", hides the coffee link, skips visit logging, and points function calls at the live site. Verified in Chrome with `?native=1`: live vehicles, routes, and analytics load from the live functions.
+- 2026-08-15: Capacitor shell built in `native/` (bundle ID com.cristoferslotoroff.phillytrolleys, iPhone-only, portrait, light status bar, placeholder icon and splash). Same web files serve site and app; `IS_NATIVE` in app.js swaps the header to "Philly Trolleys", hides the coffee link, skips visit logging, and points function calls at the live site. Verified in Chrome with `?native=1`: live vehicles, routes, and analytics load from the live functions.
+- 2026-08-15 (later): Name changed to "Philly Trolleys" to match the logo Cris drew. Icon (text-free crop), splash, and in-app header logo installed. Built with xcodebuild and run on the iPhone 17 Pro Simulator: live data loads, status bar and safe areas look right, home screen shows the "Philly Trolleys" icon.
 - 2026-08-15: Website gained a "Not affiliated with SEPTA" footer, privacy.html, support.html, a 404 page, 404 rules for internal folders, an analytics auto-retry with a Try again button, and the last dashes removed. Deployed to the live site.
 
 ## Sources
