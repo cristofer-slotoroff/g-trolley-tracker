@@ -36,6 +36,35 @@ export const handler = async (event) => {
         return { statusCode: 200, headers, body: JSON.stringify({ test: true, sandbox: config.sandbox, ...result }) };
     }
 
+    // ?diagnose=1 walks the daily-alert decision without sending anything.
+    if ((event.queryStringParameters || {}).diagnose) {
+        const out = { apnsConfigured: !!config, node: process.version };
+        try {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+            out.easternDate = dateStr;
+            const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' }).formatToParts(now);
+            const tz = (parts.find(p => p.type === 'timeZoneName') || {}).value || 'none';
+            out.tzName = tz;
+            const m = tz.match(/GMT([+-]\d+)/);
+            const offsetHours = m ? parseInt(m[1], 10) : -5;
+            const [y, mo, d] = dateStr.split('-').map(Number);
+            const midnight = new Date(Date.UTC(y, mo - 1, d, -offsetHours, 0, 0)).toISOString();
+            out.easternMidnightUtc = midnight;
+            const { data: earlier, error: earlierErr } = await supabase
+                .from('pcc_samples').select('sampled_at, pcc_count')
+                .gte('sampled_at', midnight).lt('sampled_at', now.toISOString()).gt('pcc_count', 0)
+                .order('sampled_at', { ascending: true }).limit(1);
+            out.firstPccSampleToday = earlierErr ? `error: ${earlierErr.message}` : (earlier && earlier[0]) || null;
+            const { data: claims, error: claimErr } = await supabase
+                .from('push_alerts_sent').select('*').eq('alert_date', dateStr);
+            out.claimsToday = claimErr ? `error: ${claimErr.message}` : claims;
+        } catch (e) {
+            out.exception = String(e && e.message || e);
+        }
+        return { statusCode: 200, headers, body: JSON.stringify(out) };
+    }
+
     const [{ count: subscribers }, { data: last }] = await Promise.all([
         supabase.from('push_subscriptions').select('*', { count: 'exact', head: true }).eq('enabled', true),
         supabase.from('push_alerts_sent').select('alert_date, alert_type, sent_at, recipients, failed').order('sent_at', { ascending: false }).limit(1)
