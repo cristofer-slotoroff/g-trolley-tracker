@@ -8,12 +8,34 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" sizes="32x32" href="Graphics/favicon-32.png">
     <style>
+        body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         .doc { line-height: 1.6; }
         .doc h2 { color: var(--pcc-gold); font-size: 1.1rem; margin: 22px 0 8px; }
-        .doc p, .doc li { margin-bottom: 10px; text-wrap: pretty; }
-        .doc ul { padding-left: 22px; }
+        .doc h2:first-child { margin-top: 0; }
+        .doc p { margin-bottom: 10px; text-wrap: pretty; }
         .doc a { color: var(--pcc-gold); }
-        .back { display: inline-block; margin-top: 20px; color: var(--pcc-gold); text-decoration: none; }
+        .faq { list-style: none; padding: 0; margin: 0; }
+        .faq li { margin-bottom: 16px; }
+        .faq-title { display: block; color: var(--pcc-gold); font-weight: 700; margin-bottom: 4px; }
+        .back-link { display: inline-block; color: var(--pcc-gold); text-decoration: none; }
+        .back-top { margin: 0 0 14px; }
+        .back-bottom { margin-top: 20px; }
+        .contact-form { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+        .contact-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; color: var(--pcc-cream-dim); }
+        .contact-form input, .contact-form textarea {
+            font: inherit; color: var(--pcc-cream); background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(245, 241, 227, 0.25); border-radius: 8px; padding: 10px 12px;
+        }
+        .contact-form textarea { min-height: 120px; resize: vertical; }
+        .contact-form button {
+            align-self: flex-start; font: inherit; font-weight: 600; cursor: pointer;
+            background: var(--pcc-gold); color: #1a1a1a; border: none; border-radius: 8px; padding: 10px 18px;
+        }
+        .contact-form button:disabled { opacity: 0.6; cursor: default; }
+        .form-note { font-size: 0.85rem; color: var(--pcc-cream-dim); text-wrap: balance; }
+        .form-note.ok { color: var(--pcc-cream); }
+        .form-note.error { color: #E88892; }
+        .honeypot { position: absolute; left: -9999px; }
     </style>
 </head>
 <body>
@@ -21,26 +43,88 @@
         <header>
             <img src="Graphics/philly-trolleys-logo.png" alt="Philly Trolleys" class="logo doc-logo">
             <h1>Support</h1>
-            <p class="subtitle">Philly Trolleys and G Trolley Tracker website</p>
+            <p class="subtitle">Philly Trolleys and the G Trolley Tracker Website</p>
         </header>
 
         <section class="card doc">
-            <h2>Get help</h2>
-            <p>Email <a href="mailto:cristofer.slotoroff@gmail.com">cristofer.slotoroff@gmail.com</a> or message <a href="https://www.linkedin.com/in/cristoferslotoroff" target="_blank">Cris on LinkedIn</a>. Bug reports with a screenshot and the time you saw the problem are the most helpful.</p>
+            <p class="back-top"><a class="back-link" href="index.html">&larr; Back to the tracker</a></p>
 
-            <h2>Common questions</h2>
-            <ul>
-                <li><strong>No trolleys showing.</strong> PCC cars usually run from early morning into early evening, and not every day. Buses cover the route the rest of the time. Open "See Trolley Analytics" to see typical hours.</li>
-                <li><strong>Times seem wrong.</strong> Positions come from SEPTA's public feed, which updates about once a minute and can lag. Arrival estimates are estimates.</li>
-                <li><strong>Data unavailable.</strong> SEPTA's feed sometimes goes quiet. Pull to refresh or try again in a few minutes.</li>
+            <h2>Common Questions</h2>
+            <ul class="faq">
+                <li>
+                    <span class="faq-title">App Shows No Trolleys</span>
+                    PCC Trolleys most often run from early morning through the early evening, but on some days Trolleys may run more or less often. Sometimes, no Trolleys run at all. Both buses and Trolleys cover the SEPTA Metro G route, and when there are no Trolleys running, you will see only buses.
+                </li>
+                <li>
+                    <span class="faq-title">Times Seem Inaccurate</span>
+                    All vehicle times, positions, and ID numbers come from SEPTA's public feed, which updates about once per minute. This feed occasionally lags. Arrival estimates are estimates. Note too that both SEPTA Metro heavy rapid transit lines, the B Subway Lines (B1, B2, B3, also called the Broad Street Line or BSL) and the L Line (the El, the Market-Frankford Line, or the MFL), are not given real-time tracking data by SEPTA. As a result, timing estimates for any directions involving the B or the L are educated guesses based on standard headways on those lines.
+                </li>
+                <li>
+                    <span class="faq-title">Data Is Unavailable</span>
+                    SEPTA's feed occasionally goes quiet. Try tapping Refresh or restarting the Philly Trolleys app after a few minutes. If the problem lasts more than 15 minutes, please use the form below to report it.
+                </li>
             </ul>
+
+            <h2>Get Help</h2>
+            <p>Message <a href="https://www.linkedin.com/in/cristoferslotoroff" target="_blank" rel="noopener">Cris on LinkedIn</a>, or send a note with the form. Bug reports with a screenshot and the time you saw the problem are the most helpful.</p>
+
+            <form class="contact-form" name="support" method="POST" data-netlify="true" netlify-honeypot="bot-field" onsubmit="return sendSupportForm(event)">
+                <input type="hidden" name="form-name" value="support">
+                <p class="honeypot"><label>Leave this empty <input name="bot-field"></label></p>
+                <label>Your name (optional)
+                    <input type="text" name="name" autocomplete="name">
+                </label>
+                <label>Your email, if you would like a reply (optional)
+                    <input type="email" name="email" autocomplete="email">
+                </label>
+                <label>Message
+                    <textarea name="message" required></textarea>
+                </label>
+                <button type="submit" id="support-send">Send</button>
+                <p class="form-note" id="support-note">Messages go straight to Cris.</p>
+            </form>
 
             <h2>Privacy</h2>
             <p>Read the <a href="privacy.html">privacy policy</a>.</p>
 
             <p>Not affiliated with SEPTA.</p>
-            <a class="back" href="index.html">&larr; Back to the tracker</a>
+            <p class="back-bottom"><a class="back-link" href="index.html">&larr; Back to the tracker</a></p>
         </section>
     </div>
+
+    <script>
+        // Sends the form to Netlify Forms without leaving the page. Works from the website and from
+        // inside the iPhone app (which posts to the live site). Added 2026-08-16.
+        async function sendSupportForm(event) {
+            event.preventDefault();
+            const form = event.target;
+            const note = document.getElementById('support-note');
+            const button = document.getElementById('support-send');
+            const data = new URLSearchParams(new FormData(form));
+            const target = (location.protocol === 'capacitor:' || location.protocol === 'file:')
+                ? 'https://septa-g-trolley-tracker.netlify.app/support.html'
+                : location.pathname;
+            button.disabled = true;
+            note.className = 'form-note';
+            note.textContent = 'Sending...';
+            try {
+                const res = await fetch(target, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: data.toString(),
+                    mode: target.startsWith('http') ? 'no-cors' : 'same-origin'
+                });
+                if (res.type !== 'opaque' && !res.ok) throw new Error('HTTP ' + res.status);
+                form.reset();
+                note.className = 'form-note ok';
+                note.textContent = 'Sent. Thank you.';
+            } catch (e) {
+                note.className = 'form-note error';
+                note.textContent = 'Could not send right now. Try again in a moment, or message Cris on LinkedIn.';
+                button.disabled = false;
+            }
+            return false;
+        }
+    </script>
 </body>
 </html>

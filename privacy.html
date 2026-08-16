@@ -8,12 +8,14 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" sizes="32x32" href="Graphics/favicon-32.png">
     <style>
+        body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         .doc { line-height: 1.6; }
         .doc h2 { color: var(--pcc-gold); font-size: 1.1rem; margin: 22px 0 8px; }
         .doc p, .doc li { margin-bottom: 10px; text-wrap: pretty; }
         .doc ul { padding-left: 22px; }
         .doc a { color: var(--pcc-gold); }
         .back { display: inline-block; margin-top: 20px; color: var(--pcc-gold); text-decoration: none; }
+        .back-top { display: inline-block; margin-bottom: 14px; color: var(--pcc-gold); text-decoration: none; }
     </style>
 </head>
 <body>
@@ -21,14 +23,15 @@
         <header>
             <img src="Graphics/philly-trolleys-logo.png" alt="Philly Trolleys" class="logo doc-logo">
             <h1>Privacy Policy</h1>
-            <p class="subtitle">Philly Trolleys and G Trolley Tracker website</p>
+            <p class="subtitle">Philly Trolleys and the G Trolley Tracker Website</p>
         </header>
 
         <section class="card doc">
-            <p>Last updated: August 15, 2026.</p>
+            <a class="back-top" href="index.html">&larr; Back to the tracker</a>
+            <p>Last updated: August 16, 2026.</p>
             <p>This app and website are made by one person in Philadelphia. They show where SEPTA's vintage PCC Trolleys are running. They collect as little as possible and sell nothing.</p>
 
-            <h2>What the website collects</h2>
+            <h2>What the Website Collects</h2>
             <ul>
                 <li>A random visitor ID stored in your browser, used only to count how many different people visit.</li>
                 <li>The date and time of your visit and whether you are on a phone or a computer.</li>
@@ -36,21 +39,21 @@
             </ul>
             <p>No names, emails, accounts, or precise locations. No advertising, no cookies for tracking, and no data sold or shared with third parties.</p>
 
-            <h2>What the iPhone app collects</h2>
+            <h2>What the iPhone App Collects</h2>
             <ul>
                 <li>The app does not log visits.</li>
                 <li>If you turn on trolley alerts, a device token is stored so alerts can be delivered. Turning alerts off removes it from use.</li>
                 <li>Your saved origin stop stays on your phone.</li>
             </ul>
 
-            <h2>Where data lives</h2>
+            <h2>Where Data Lives</h2>
             <p>Visit counts and, when applicable, alert tokens are stored in a Supabase database. Vehicle positions and schedules come from SEPTA's public data feeds; those requests pass through this project's own server and are not tied to you.</p>
 
-            <h2>Retention and deletion</h2>
-            <p>Anonymous visit counts are kept to show usage over time. Because they contain no personal details, they cannot be matched to you. If you would like anything removed anyway, email the address below and it will be done.</p>
+            <h2>Retention and Deletion</h2>
+            <p>Anonymous visit counts are kept to show usage over time. Because they contain no personal details, they cannot be matched to you. If you would like anything removed anyway, ask through the support form and it will be done.</p>
 
             <h2>Contact</h2>
-            <p>Questions or requests: <a href="mailto:cristofer.slotoroff@gmail.com">cristofer.slotoroff@gmail.com</a></p>
+            <p>Questions or requests: use the form on the <a href="support.html">support page</a>, or message <a href="https://www.linkedin.com/in/cristoferslotoroff" target="_blank" rel="noopener">Cris on LinkedIn</a>.</p>
 
             <p>Not affiliated with SEPTA.</p>
             <a class="back" href="index.html">&larr; Back to the tracker</a>

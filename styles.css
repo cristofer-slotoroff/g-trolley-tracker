@@ -1463,6 +1463,7 @@ body.native .native-only {
     color: var(--pcc-cream-dim);
     line-height: 1.5;
     text-wrap: balance;
+    text-align: center;
 }
 
 .alert-status.error {

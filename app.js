@@ -6032,13 +6032,13 @@ function renderAllTimeStats(stats) {
     const wt = r.workhorse.mostTrips;
     if (String(wd.vehicleId) === String(wt.vehicleId)) {
         rows.push({
-            label: 'Workhorse trolley',
+            label: 'Workhorse Trolley',
             value: `#${wd.vehicleId}`,
             detail: `${wd.daysActive} days in service &middot; ${wd.totalTrips.toLocaleString()} trips`
         });
     } else {
         rows.push({
-            label: 'Workhorse trolley',
+            label: 'Workhorse Trolley',
             value: `#${wd.vehicleId} / #${wt.vehicleId}`,
             detail: `Most days: #${wd.vehicleId} (${wd.daysActive}) &middot; Most trips: #${wt.vehicleId} (${wt.totalTrips.toLocaleString()})`
         });
@@ -6046,14 +6046,14 @@ function renderAllTimeStats(stats) {
 
     // 2. Newest trolley
     rows.push({
-        label: 'Newest trolley',
+        label: 'Newest Trolley',
         value: `#${r.newest.vehicleId}`,
         detail: `First seen ${fmtDate(r.newest.firstSeen)}`
     });
 
     // 3. Biggest day (tappable -> hourly detail)
     rows.push({
-        label: 'Biggest day',
+        label: 'Biggest Day',
         value: `${r.biggestDay.totalTrips} trips`,
         detail: `${fmtDate(r.biggestDay.date)} (${r.biggestDay.ebTrips} EB &middot; ${r.biggestDay.wbTrips} WB). Tap for hourly detail`,
         onclick: `toggleRecordDayDetail('${r.biggestDay.date}')`
@@ -6061,7 +6061,7 @@ function renderAllTimeStats(stats) {
 
     // 4. Most trolleys in one day
     rows.push({
-        label: 'Most trolleys in one day',
+        label: 'Most Trolleys in One Day',
         value: `${r.mostVehiclesDay.count} trolleys`,
         detail: `${fmtDate(r.mostVehiclesDay.date)}: ${r.mostVehiclesDay.vehicleIds.map(v => '#' + v).join(', ')}`
     });
@@ -6069,7 +6069,7 @@ function renderAllTimeStats(stats) {
     // 5. True trolley days (only when bus data exists)
     if (r.trueTrolleyDays !== null) {
         rows.push({
-            label: 'True trolley days',
+            label: 'True Trolley Days',
             value: `${r.trueTrolleyDays} days`,
             detail: 'Days mostly served by trolleys, not buses (tracked since Feb 2026)'
         });
@@ -6077,7 +6077,7 @@ function renderAllTimeStats(stats) {
 
     // 6. Total all-time trips
     rows.push({
-        label: 'Total trips recorded',
+        label: 'Total Trips Recorded',
         value: r.totalTrips.toLocaleString(),
         detail: 'Across all tracked days'
     });
