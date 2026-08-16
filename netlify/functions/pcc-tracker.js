@@ -72,7 +72,11 @@ async function maybeSendServiceStartedAlert(pccObs, observedAt) {
             .gt('pcc_count', 0)
             .limit(1);
         if (earlierErr) { console.error('Push alerts: sample lookup failed', earlierErr); return; }
-        if (earlier && earlier.length) return;
+        if (earlier && earlier.length) {
+            console.log('Push alerts: a PCC was already seen today, no alert');
+            return;
+        }
+        console.log(`Push alerts: first PCC sighting today (${pccObs.map(o => o.vehicle_id).join(', ')}), sending`);
 
         const vehicleIds = [...new Set(pccObs.map(o => o.vehicle_id))];
         const alertDate = easternDateString(observedAt);
@@ -176,8 +180,9 @@ export const handler = async (event) => {
                     vehicle_type: isPCCTrolley(label) ? 'pcc' : 'bus',
                     direction: getDirection(vehicle.destination),
                     destination: vehicle.destination || null,
-                    lat: vehicle.lat || null,
-                    lng: vehicle.lng || null,
+                    // Columns are varchar(10); SEPTA sometimes sends more decimals now, so round to 6 (fixed 2026-08-16).
+                    lat: vehicle.lat != null && vehicle.lat !== '' ? Number(vehicle.lat).toFixed(6) : null,
+                    lng: vehicle.lng != null && vehicle.lng !== '' ? Number(vehicle.lng).toFixed(6) : null,
                     next_stop_sequence: vehicle.next_stop_sequence || null,
                     late_minutes: vehicle.late || 0
                 });
