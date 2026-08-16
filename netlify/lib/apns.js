@@ -50,11 +50,26 @@ export function makeApnsJwt({ teamId, keyId, privateKey }, nowSeconds = Math.flo
     return `${signingInput}.${b64url(signature)}`;
 }
 
-// Send one payload to many device tokens over a single HTTP/2 connection.
-// Returns { sent, failed, unregistered } where unregistered lists tokens Apple says are gone.
-export function sendPushes({ tokens, payload, config, concurrency = 10, timeoutMs = 7000 }) {
+// Send one payload to many device tokens. Tokens from Xcode builds live in Apple's sandbox
+// environment; TestFlight and App Store tokens live in production. Apple answers
+// "BadDeviceToken" when a token is sent to the wrong one, so those are retried on the other
+// environment (added 2026-08-16). Returns { sent, failed, unregistered, errors }.
+export async function sendPushes({ tokens, payload, config, concurrency = 10, timeoutMs = 7000 }) {
+    const first = await sendPushesOnce({ tokens, payload, config, concurrency, timeoutMs });
+    if (!first.badTokens || !first.badTokens.length) return first;
+    const other = { ...config, sandbox: !config.sandbox };
+    const second = await sendPushesOnce({ tokens: first.badTokens, payload, config: other, concurrency, timeoutMs });
+    return {
+        sent: first.sent + second.sent,
+        failed: first.failed - first.badTokens.length + second.failed,
+        unregistered: [...first.unregistered, ...second.unregistered],
+        errors: [...first.errors.filter(e => !/BadDeviceToken/.test(e)), ...second.errors]
+    };
+}
+
+function sendPushesOnce({ tokens, payload, config, concurrency = 10, timeoutMs = 7000 }) {
     return new Promise((resolve) => {
-        const result = { sent: 0, failed: 0, unregistered: [], errors: [] };
+        const result = { sent: 0, failed: 0, unregistered: [], errors: [], badTokens: [] };
         if (!tokens.length) return resolve(result);
 
         const host = config.sandbox ? 'https://api.sandbox.push.apple.com' : 'https://api.push.apple.com';
@@ -118,6 +133,8 @@ export function sendPushes({ tokens, payload, config, concurrency = 10, timeoutM
                         result.errors.push(`${status} ${reason}`);
                         // 410 means the phone deleted the app or turned alerts off at the system level.
                         if (status === 410 || reason === 'Unregistered') result.unregistered.push(token);
+                        // Wrong environment for this token: the caller retries it on the other one.
+                        if (reason === 'BadDeviceToken') result.badTokens.push(token);
                     }
                     next();
                 });
