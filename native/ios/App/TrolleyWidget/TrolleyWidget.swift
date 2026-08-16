@@ -101,16 +101,65 @@ struct TrolleyWidgetView: View {
     }
 
     var body: some View {
-        Group {
-            switch family {
-            case .systemMedium: medium
-            default: small
+        switch family {
+        case .accessoryCircular:
+            lockCircular.containerBackground(for: .widget) { Color.clear }
+        case .accessoryRectangular:
+            lockRectangular.containerBackground(for: .widget) { Color.clear }
+        case .accessoryInline:
+            lockInline.containerBackground(for: .widget) { Color.clear }
+        case .systemMedium:
+            medium.containerBackground(for: .widget) { homeBackground }
+        default:
+            small.containerBackground(for: .widget) { homeBackground }
+        }
+    }
+
+    private var homeBackground: some View {
+        LinearGradient(colors: [TrolleyColors.greenDark, TrolleyColors.green],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    private var countText: String {
+        if entry.failed { return "?" }
+        return "\(entry.status?.pccCount ?? 0)"
+    }
+
+    // Lock screen, circle: the count with a tram symbol.
+    private var lockCircular: some View {
+        ZStack {
+            AccessoryWidgetBackground()
+            VStack(spacing: 0) {
+                Image(systemName: "tram.fill").font(.caption2)
+                Text(countText).font(.title2.weight(.bold))
             }
         }
-        .containerBackground(for: .widget) {
-            LinearGradient(colors: [TrolleyColors.greenDark, TrolleyColors.green],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    // Lock screen, rectangle: title line plus a short status.
+    private var lockRectangular: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 4) {
+                Image(systemName: "tram.fill")
+                Text("PCC Trolleys").font(.headline)
+            }
+            if entry.failed {
+                Text("Data unavailable").font(.caption)
+            } else if let s = entry.status, s.pccCount > 0 {
+                Text(s.pccCount == 1 ? "1 car out on the G Line" : "\(s.pccCount) cars out on the G Line").font(.caption)
+                Text(s.vehicles.prefix(3).map { "#" + $0.id }.joined(separator: "  ")).font(.caption2)
+            } else {
+                Text("None out right now").font(.caption)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // Lock screen, inline (the single line above the clock).
+    private var lockInline: some View {
+        if entry.failed { return Text("PCC Trolleys: no data") }
+        let n = entry.status?.pccCount ?? 0
+        return Text(n == 0 ? "No PCC Trolleys out" : (n == 1 ? "1 PCC Trolley out" : "\(n) PCC Trolleys out"))
     }
 
     // Small: the number, a label, the time.
@@ -241,7 +290,7 @@ struct TrolleyWidget: Widget {
         }
         .configurationDisplayName("PCC Trolleys Now")
         .description("How many vintage PCC Trolleys are out on the G Line right now, and which cars.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }
 }
 
