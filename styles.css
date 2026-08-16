@@ -1495,6 +1495,24 @@ body.native img {
     animation: pulse 2s infinite;
 }
 
+/* Offline state (2026-08-16): a still amber dot instead of the live green pulse. */
+.auto-refresh.offline .pulse {
+    background: var(--pcc-gold);
+    animation: none;
+}
+
+.auto-refresh.error {
+    color: #E88892;
+}
+
+.offline-message {
+    color: var(--pcc-cream-dim);
+    text-align: center;
+    padding: 18px 12px;
+    line-height: 1.5;
+    text-wrap: balance;
+}
+
 @keyframes pulse {
     0% { opacity: 1; }
     50% { opacity: 0.4; }

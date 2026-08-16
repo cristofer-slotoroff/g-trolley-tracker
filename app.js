@@ -18,6 +18,58 @@ const CONFIG = {
     ESTIMATED_HEADWAY: 15
 };
 
+// Offline support. Added 2026-08-16. The last good trolley list and analytics are kept in
+// localStorage so the app opens with content underground. ?offline=1 simulates no network.
+const SIMULATE_OFFLINE = new URLSearchParams(window.location.search).get('offline') === '1';
+let networkTrouble = false;
+
+// fetch() only throws for network-level failures (no connection, DNS, blocked). Track those.
+async function appFetch(url, options) {
+    if (SIMULATE_OFFLINE) {
+        networkTrouble = true;
+        throw new TypeError('Simulated offline');
+    }
+    try {
+        return await fetch(url, options);
+    } catch (error) {
+        networkTrouble = true;
+        throw error;
+    }
+}
+
+const CACHE_KEYS = { trolleys: 'pcc_cache_trolleys', stats: 'pcc_cache_stats' };
+
+function cacheSave(key, data) {
+    try {
+        localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data }));
+    } catch (e) {
+        // Storage full or blocked; the app still works, just without a saved copy.
+    }
+}
+
+function cacheLoad(key) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && parsed.savedAt ? parsed : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function isOffline() {
+    return SIMULATE_OFFLINE || networkTrouble || navigator.onLine === false;
+}
+
+// "9:52 PM" if saved today, otherwise "Aug 15, 9:52 PM".
+function formatSavedAt(timestamp) {
+    const d = new Date(timestamp);
+    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const sameDay = d.toDateString() === new Date().toDateString();
+    return sameDay ? time : `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${time}`;
+}
+
 // Test mode - add ?test=1 to URL to show all G line vehicles (not just PCC trolleys)
 // This helps test routing when no PCC cars are running
 const TEST_MODE = new URLSearchParams(window.location.search).get('test') === '1';
@@ -3444,6 +3496,7 @@ async function refreshData() {
     const btn = document.getElementById('refresh-btn');
     btn.disabled = true;
     btn.textContent = '↻ Loading...';
+    networkTrouble = false;
 
     try {
         const [trolleys, trains] = await Promise.all([
@@ -3451,23 +3504,51 @@ async function refreshData() {
             fetchTrainData()
         ]);
 
+        if (isOffline()) {
+            showOfflineState();
+            return;
+        }
+
         trolleyData = trolleys;
         trainData = trains;
+        cacheSave(CACHE_KEYS.trolleys, trolleyData);
 
         updateUI();
         updateLastRefresh();
     } catch (error) {
         console.error('Error refreshing data:', error);
-        showError('Unable to fetch data. Please try again.');
+        if (isOffline()) showOfflineState();
+        else showError('Unable to fetch data. Please try again.');
     } finally {
         btn.disabled = false;
         btn.textContent = '↻ Refresh';
     }
 }
 
+// No network: show the last trolley list we saved, labeled with its time. Route options need
+// live train times, so they stay hidden until the connection is back. (2026-08-16)
+function showOfflineState() {
+    const section = document.getElementById('connections-section');
+    if (section) section.style.display = 'none';
+
+    const cached = cacheLoad(CACHE_KEYS.trolleys);
+    if (cached && Array.isArray(cached.data)) {
+        trolleyData = cached.data;
+        updateTrolleyDetails();
+        updateLastRefresh({ offline: true, savedAt: cached.savedAt });
+        return;
+    }
+
+    const list = document.getElementById('trolley-list');
+    if (list) {
+        list.innerHTML = '<div class="offline-message">No connection, and nothing saved yet. Trolley positions will appear once you are back online.</div>';
+    }
+    updateLastRefresh({ offline: true, savedAt: null });
+}
+
 async function fetchTrolleyData() {
     try {
-        const response = await fetch(`${CONFIG.API_BASE}?type=trolleys`);
+        const response = await appFetch(`${CONFIG.API_BASE}?type=trolleys`);
         if (!response.ok) throw new Error('API error');
 
         const data = await response.json();
@@ -4228,7 +4309,7 @@ async function fetchTrainData() {
         try {
             const station = encodeURIComponent(stationConfig.api_name || selectedStation);
             console.log('Fetching RR arrivals for:', station);
-            const response = await fetch(`${CONFIG.API_BASE}?type=arrivals&station=${station}&results=10`);
+            const response = await appFetch(`${CONFIG.API_BASE}?type=arrivals&station=${station}&results=10`);
             if (!response.ok) throw new Error('API error');
 
             const data = await response.json();
@@ -4360,7 +4441,7 @@ async function fetchMetroSchedule(stopId, routeFilter = null) {
 
     try {
         console.log(`Fetching metro schedule for stop ${stopId}, filter: ${routeFilter}`);
-        const response = await fetch(`${CONFIG.API_BASE}?type=schedule&stop_id=${stopId}`);
+        const response = await appFetch(`${CONFIG.API_BASE}?type=schedule&stop_id=${stopId}`);
         if (!response.ok) throw new Error(`API error: ${response.status}`);
 
         const data = await response.json();
@@ -4472,7 +4553,7 @@ async function fetchRRTravelTime(origin, dest) {
         const url = `${CONFIG.API_BASE}?type=nexttoarrive&origin=${encodeURIComponent(apiOrigin)}&dest=${encodeURIComponent(apiDest)}&count=3`;
         console.log('Fetching RR travel time:', origin, '→', dest, '(API:', apiOrigin, '→', apiDest, ')');
 
-        const response = await fetch(url);
+        const response = await appFetch(url);
         if (!response.ok) throw new Error('API error');
 
         const data = await response.json();
@@ -4573,8 +4654,8 @@ async function fetchGLineSchedule(pickupName) {
     try {
         // Fetch schedules for both directions
         const [eastboundRes, westboundRes] = await Promise.all([
-            fetch(`${CONFIG.API_BASE}?type=schedule&stop_id=${stopInfo.eastbound}`),
-            fetch(`${CONFIG.API_BASE}?type=schedule&stop_id=${stopInfo.westbound}`)
+            appFetch(`${CONFIG.API_BASE}?type=schedule&stop_id=${stopInfo.eastbound}`),
+            appFetch(`${CONFIG.API_BASE}?type=schedule&stop_id=${stopInfo.westbound}`)
         ]);
 
         const eastboundData = eastboundRes.ok ? await eastboundRes.json() : {};
@@ -5597,8 +5678,19 @@ function updateTrolleyDetails() {
     }).join('');
 }
 
-function updateLastRefresh() {
+function updateLastRefresh(state = {}) {
     const element = document.getElementById('last-update');
+    if (!element) return;
+    if (state.offline) {
+        const when = state.savedAt ? `showing ${formatSavedAt(state.savedAt)} data` : 'nothing saved yet';
+        element.innerHTML = `
+            <span class="auto-refresh offline">
+                <span class="pulse"></span>
+                Offline • ${when}
+            </span>
+        `;
+        return;
+    }
     const now = new Date();
     element.innerHTML = `
         <span class="auto-refresh">
@@ -5609,8 +5701,10 @@ function updateLastRefresh() {
 }
 
 function showError(message) {
-    const container = document.getElementById('pcc-alert');
-    container.innerHTML = `<div class="error-message">${message}</div>`;
+    // Shown in the status bar; the older #pcc-alert box no longer exists in the page. (2026-08-16)
+    const element = document.getElementById('last-update');
+    if (!element) return;
+    element.innerHTML = `<span class="auto-refresh error">${message}</span>`;
 }
 
 // ==========================================
@@ -5656,7 +5750,7 @@ async function loadStats(attempt = 1) {
     errorEl.style.display = 'none';
 
     try {
-        const response = await fetch(`${FUNCTIONS_BASE}/pcc-stats`);
+        const response = await appFetch(`${FUNCTIONS_BASE}/pcc-stats`);
         if (!response.ok) throw new Error('Failed to fetch stats');
 
         const stats = await response.json();
@@ -5667,6 +5761,7 @@ async function loadStats(attempt = 1) {
         }
 
         renderStats(stats);
+        cacheSave(CACHE_KEYS.stats, stats);
         loadingEl.style.display = 'none';
         dataEl.style.display = 'block';
         statsLoaded = true;
@@ -5674,8 +5769,17 @@ async function loadStats(attempt = 1) {
     } catch (error) {
         console.error('Stats error:', error);
         // One quiet retry covers a slow cold start; after that, show the error with a retry button. (2026-08-15)
-        if (attempt === 1) {
+        if (attempt === 1 && !isOffline()) {
             setTimeout(() => loadStats(2), 2000);
+            return;
+        }
+        // Offline or the server is down: show the saved analytics if we have them. (2026-08-16)
+        const cached = cacheLoad(CACHE_KEYS.stats);
+        if (cached && cached.data) {
+            renderStats(cached.data);
+            loadingEl.textContent = `Showing saved analytics from ${formatSavedAt(cached.savedAt)}. Live numbers return when you are back online.`;
+            loadingEl.style.display = 'block';
+            dataEl.style.display = 'block';
             return;
         }
         loadingEl.style.display = 'none';
@@ -6003,7 +6107,7 @@ async function toggleRecordDayDetail(date) {
     }
     el.innerHTML = '<div class="day-detail-loading">Loading hourly detail...</div>';
     try {
-        const response = await fetch(`${FUNCTIONS_BASE}/pcc-day-detail?date=${date}`);
+        const response = await appFetch(`${FUNCTIONS_BASE}/pcc-day-detail?date=${date}`);
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
         dayDetailCache[date] = data;
@@ -6202,7 +6306,7 @@ async function toggleDayDetail(date) {
     detailEl.innerHTML = '<div class="day-detail-loading">Loading hourly detail...</div>';
 
     try {
-        const response = await fetch(`${FUNCTIONS_BASE}/pcc-day-detail?date=${date}`);
+        const response = await appFetch(`${FUNCTIONS_BASE}/pcc-day-detail?date=${date}`);
         if (!response.ok) throw new Error('Failed to fetch');
 
         const data = await response.json();
