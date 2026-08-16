@@ -70,7 +70,16 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 Cris, one step left:
 1. Supabase tables: done 2026-08-15. The Simulator's token saved and the app shows "You are set."
 2. When Apple enrollment clears: Certificates, Identifiers and Profiles, then Keys, create a key with Apple Push Notifications service (APNs) enabled, download the .p8 once, note the Key ID and your Team ID. Set Netlify env vars APNS_TEAM_ID, APNS_KEY_ID, APNS_PRIVATE_KEY (paste the .p8 contents), APNS_SANDBOX=true. Also open the Xcode project once and pick your team under Signing so the Push capability registers.
-Claude: offline cache next, then store listing (screenshots, description, privacy labels), then TestFlight once Apple clears.
+Claude: capture store screenshots during service hours (weekday, about 10am to 4pm), then TestFlight once Apple clears.
+
+## Offline mode (built 2026-08-16)
+
+- The app saves the last trolley list and analytics it fetched. With no connection it shows them, labeled "Offline, showing 9:52 PM data" with an amber dot, and hides route options (those need live train times). With nothing saved yet it says so plainly. Analytics fall back to the saved copy with a note.
+- `?offline=1` on the web preview simulates no network. Verified both states in Chrome; live mode re-verified on the Simulator.
+
+## Store listing (drafted 2026-08-16)
+
+- All copy, keywords, URLs, privacy label answers, and review notes are in `docs/APP-STORE-LISTING.md`.
 
 ## Widget, how it works (built 2026-08-15)
 
@@ -97,6 +106,7 @@ Claude: offline cache next, then store listing (screenshots, description, privac
 - 2026-08-15: Plan written. Name banked. Apple enrollment submitted (pending). Xcode installed.
 - 2026-08-15: Capacitor shell built in `native/` (bundle ID com.cristoferslotoroff.phillytrolleys, iPhone-only, portrait, light status bar, placeholder icon and splash). Same web files serve site and app; `IS_NATIVE` in app.js swaps the header to "Philly Trolleys", hides the coffee link, skips visit logging, and points function calls at the live site. Verified in Chrome with `?native=1`: live vehicles, routes, and analytics load from the live functions.
 - 2026-08-15 (later): Name changed to "Philly Trolleys" to match the logo Cris drew. Icon (text-free crop), splash, and in-app header logo installed. Built with xcodebuild and run on the iPhone 17 Pro Simulator: live data loads, status bar and safe areas look right, home screen shows the "Philly Trolleys" icon.
+- 2026-08-16: Offline mode built and verified. Store listing copy drafted (docs/APP-STORE-LISTING.md).
 - 2026-08-16 (early): Home screen widget built and verified on the Simulator (see "Widget, how it works"). Supabase alert tables created by Cris; the app's alert toggle saves its token ("You are set").
 - 2026-08-15 (night): Push alerts built end to end (see "Alerts, how they work"). No-orphans pass over the whole app: pretty and balanced wrapping everywhere, tiles and buttons that fill their rows, phone step text wraps instead of clipping, metro and regional line buttons two per row on phones with names on one line, roster chips 8 per desktop row and 4 per phone row. Verified with Simulator screenshots of every screen and the live website on desktop.
 - 2026-08-15: Website gained a "Not affiliated with SEPTA" footer, privacy.html, support.html, a 404 page, 404 rules for internal folders, an analytics auto-retry with a Try again button, and the last dashes removed. Deployed to the live site.
