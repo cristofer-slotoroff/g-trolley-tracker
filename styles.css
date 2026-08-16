@@ -2635,7 +2635,7 @@ body.native img {
 /* Ranked roster */
 .roster-vehicle {
     cursor: pointer;
-    padding: 6px 8px;
+    padding: 6px 4px; /* narrow enough for 8 chips per desktop row (2026-08-15) */
     border-radius: 8px;
     border: 1px solid transparent;
     transition: background 0.2s, border-color 0.2s;
