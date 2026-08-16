@@ -1380,7 +1380,6 @@ footer .disclaimer {
     color: var(--pcc-cream-dim);
     font-size: 0.78rem;
     line-height: 1.5;
-    text-wrap: pretty;
 }
 
 footer .disclaimer a {
@@ -1435,7 +1434,7 @@ body.native .native-only {
     font-size: 0.85rem;
     color: var(--pcc-cream-dim);
     line-height: 1.5;
-    text-wrap: pretty;
+    text-wrap: balance;
 }
 
 .alert-status.error {
