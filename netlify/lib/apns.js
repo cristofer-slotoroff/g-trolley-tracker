@@ -5,6 +5,7 @@
 //   APNS_TEAM_ID      10-character Team ID (Membership page)
 //   APNS_KEY_ID       10-character Key ID of an APNs auth key
 //   APNS_PRIVATE_KEY  the .p8 file contents (BEGIN PRIVATE KEY ... END PRIVATE KEY), newlines as \n are fine
+//   APNS_PRIVATE_KEY_B64  alternative: the .p8 file base64-encoded on one line (easier to set from a shell)
 //   APNS_TOPIC        the app bundle ID (defaults to com.cristoferslotoroff.phillytrolleys)
 //   APNS_SANDBOX      "true" while testing builds run from Xcode; "false" for TestFlight and App Store builds
 //
@@ -22,7 +23,11 @@ function b64url(input) {
 export function apnsConfigFromEnv(env = process.env) {
     const teamId = env.APNS_TEAM_ID;
     const keyId = env.APNS_KEY_ID;
-    const privateKey = (env.APNS_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+    let privateKey = (env.APNS_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+    if (!privateKey && env.APNS_PRIVATE_KEY_B64) {
+        try { privateKey = Buffer.from(env.APNS_PRIVATE_KEY_B64.trim(), 'base64').toString('utf8'); } catch (e) { privateKey = ''; }
+    }
+    if (privateKey && !privateKey.includes('BEGIN PRIVATE KEY')) privateKey = '';
     if (!teamId || !keyId || !privateKey) return null;
     return {
         teamId,
