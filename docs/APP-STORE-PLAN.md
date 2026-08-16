@@ -69,7 +69,7 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 
 Cris, one step left:
 1. Supabase tables: done 2026-08-15. The Simulator's token saved and the app shows "You are set."
-2. When Apple enrollment clears: Certificates, Identifiers and Profiles, then Keys, create a key with Apple Push Notifications service (APNs) enabled, download the .p8 once, note the Key ID and your Team ID. Set Netlify env vars APNS_TEAM_ID, APNS_KEY_ID, APNS_PRIVATE_KEY (paste the .p8 contents), APNS_SANDBOX=true. Also open the Xcode project once and pick your team under Signing so the Push capability registers.
+2. Apple enrollment cleared 2026-08-15. Team ID 7QZM9CC55X, APNs Key ID NMAT9J755Z (key file kept in ~/Downloads). Netlify env vars set on the trolley site (ID 07efeb5a-8dce-4252-adca-30b4c097f865): APNS_TEAM_ID, APNS_KEY_ID, APNS_SANDBOX=true, APNS_PRIVATE_KEY_B64. Note: `~/.netlify/state.json` links the home folder to the personal site, so always pass NETLIFY_SITE_ID when using the CLI. Still to do: open the Xcode project once and pick the team under Signing so the Push capability registers on the App ID.
 Claude: capture store screenshots during service hours (weekday, about 10am to 4pm), then TestFlight once Apple clears.
 
 ## Offline mode (built 2026-08-16)
