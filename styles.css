@@ -3049,6 +3049,10 @@ body.native img {
         gap: 6px;
     }
 
+    .roster-vehicle {
+        flex: 1 1 22%; /* four chips per row on phones: 8 cars make two even rows (2026-08-16) */
+    }
+
     .stat-box {
         padding: 10px 6px;
     }
