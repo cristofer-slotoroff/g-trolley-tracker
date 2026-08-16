@@ -67,8 +67,8 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 
 ## Next move
 
-Cris, two small steps:
-1. Supabase SQL Editor: paste and run `supabase/push-alerts.sql` (creates the two alert tables). Until then the app's alert toggle says it could not reach the server.
+Cris, one step left:
+1. Supabase tables: done 2026-08-15. The Simulator's token saved and the app shows "You are set."
 2. When Apple enrollment clears: Certificates, Identifiers and Profiles, then Keys, create a key with Apple Push Notifications service (APNs) enabled, download the .p8 once, note the Key ID and your Team ID. Set Netlify env vars APNS_TEAM_ID, APNS_KEY_ID, APNS_PRIVATE_KEY (paste the .p8 contents), APNS_SANDBOX=true. Also open the Xcode project once and pick your team under Signing so the Push capability registers.
 Claude: home screen widget next, then offline cache, then store listing.
 
