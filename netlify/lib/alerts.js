@@ -7,7 +7,7 @@
 // Every alert is "claimed" in push_alerts_sent (primary key alert_date + alert_type) before sending,
 // so overlapping tracker runs cannot double-send.
 
-import { apnsConfigFromEnv, sendPushes, serviceStartedMessage } from './apns.js';
+import { apnsConfigFromEnv, sendPushes } from './apns.js';
 import { stopIndexFromId } from './g-stops.js';
 
 // Calendar date in Philadelphia for a given instant, as YYYY-MM-DD.
@@ -27,9 +27,36 @@ export function easternMidnightIso(date) {
     return new Date(Date.UTC(y, mo - 1, d, -offsetHours, 0, 0)).toISOString();
 }
 
-export function carOnlineMessage(vehicleId, totalOut) {
-    const tail = totalOut > 1 ? ` ${totalOut} cars are out now.` : '';
-    return { title: 'PCC Trolley out', body: `Car ${vehicleId} just started running on the G Line.${tail}` };
+// Alert wording (Cris, 2026-08-16). Title carries the news; the body adds one detail line.
+function directionWord(direction) {
+    return direction === 'Eastbound' || direction === 'Westbound' ? direction : '';
+}
+
+function directionArrows(direction) {
+    if (direction === 'Eastbound') return 'EB \u25B6';   // EB ▶
+    if (direction === 'Westbound') return '\u25C0 WB';   // ◀ WB
+    return '';
+}
+
+// First PCC of the day. cars: [{ vehicle_id, direction }]
+export function firstOfDayMessage(cars) {
+    const ids = [...new Map(cars.map(c => [c.vehicle_id, c])).values()].sort((a, b) => a.vehicle_id.localeCompare(b.vehicle_id));
+    if (ids.length === 1) {
+        const dir = directionWord(ids[0].direction);
+        return { title: `PCC Trolley #${ids[0].vehicle_id} now running${dir ? ' ' + dir : ''}`, body: 'First PCC of the day on the G Line.' };
+    }
+    return { title: `PCC Trolleys ${ids.map(c => '#' + c.vehicle_id).join(', ')} now running`, body: `First PCC cars of the day on the G Line (${ids.length} Trolleys).` };
+}
+
+// A car that just came out. car: { vehicle_id, direction }; allIds: every PCC id out right now.
+export function carOnlineMessage(car, allIds) {
+    const arrows = directionArrows(car.direction);
+    const total = allIds.length;
+    const count = total === 1 ? '(1 Trolley)' : `(${total} Trolleys)`;
+    return {
+        title: `PCC Trolley #${car.vehicle_id} now running${arrows ? ' ' + arrows : ''} ${count}`,
+        body: `Cars out now: ${[...allIds].sort().map(id => '#' + id).join(', ')}`
+    };
 }
 
 async function loadSubscribers(supabase, mode) {
@@ -131,7 +158,7 @@ export async function runAlerts({ supabase, pccObs, observedAt, recentMinutes = 
             if (await claim(supabase, alertDate, 'service_started', currentIds)) {
                 const tokens = await loadSubscribers(supabase, 'first');
                 await deliver({
-                    supabase, config, tokens, message: serviceStartedMessage(currentIds),
+                    supabase, config, tokens, message: firstOfDayMessage(pccObs),
                     type: 'service_started', threadId: 'service-started', vehicleIds: currentIds,
                     alertDate, alertType: 'service_started'
                 });
@@ -149,8 +176,9 @@ export async function runAlerts({ supabase, pccObs, observedAt, recentMinutes = 
             if (!(await claim(supabase, alertDate, alertType, [id]))) continue;
             if (eachTokens === null) eachTokens = await loadSubscribers(supabase, 'each');
             console.log(`Push alerts: car ${id} came out, ${eachTokens.length} phones on each-car mode`);
+            const car = pccObs.find(o => o.vehicle_id === id) || { vehicle_id: id, direction: '' };
             await deliver({
-                supabase, config, tokens: eachTokens, message: carOnlineMessage(id, currentIds.length),
+                supabase, config, tokens: eachTokens, message: carOnlineMessage(car, currentIds),
                 type: 'car_online', threadId: 'car-online', vehicleIds: [id],
                 alertDate, alertType
             });
@@ -169,11 +197,11 @@ export async function runAlerts({ supabase, pccObs, observedAt, recentMinutes = 
 
 export function stopAlertMessage({ vehicleId, distance, stopName, direction }) {
     const heading = direction === 'Eastbound' ? 'heading east' : 'heading west';
-    let body;
-    if (distance <= 0) body = `Car ${vehicleId} is arriving at ${stopName} now, ${heading}.`;
-    else if (distance === 1) body = `Car ${vehicleId} is 1 stop from ${stopName}, ${heading}.`;
-    else body = `Car ${vehicleId} is ${distance} stops from ${stopName}, ${heading}.`;
-    return { title: 'PCC Trolley approaching', body };
+    let title;
+    if (distance <= 0) title = `PCC Trolley #${vehicleId} is Arriving Now`;
+    else if (distance === 1) title = `PCC Trolley #${vehicleId} is 1 Stop Away`;
+    else title = `PCC Trolley #${vehicleId} is ${distance} Stops Away`;
+    return { title, body: `${stopName}, ${heading}` };
 }
 
 // vehicles: [{ vehicle_id, direction, next_stop_id, trip }] for the PCC cars seen this run.
