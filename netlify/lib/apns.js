@@ -59,10 +59,12 @@ export async function sendPushes({ tokens, payload, config, concurrency = 10, ti
     if (!first.badTokens || !first.badTokens.length) return first;
     const other = { ...config, sandbox: !config.sandbox };
     const second = await sendPushesOnce({ tokens: first.badTokens, payload, config: other, concurrency, timeoutMs });
+    // Rejected by both environments: the token is dead (old build, reinstalled app). Treat as unregistered.
+    const dead = second.badTokens || [];
     return {
         sent: first.sent + second.sent,
         failed: first.failed - first.badTokens.length + second.failed,
-        unregistered: [...first.unregistered, ...second.unregistered],
+        unregistered: [...first.unregistered, ...second.unregistered, ...dead],
         errors: [...first.errors.filter(e => !/BadDeviceToken/.test(e)), ...second.errors]
     };
 }
