@@ -4,7 +4,7 @@
 set -e
 cd "$(dirname "$0")"
 rm -rf www && mkdir -p www
-for f in index.html app.js styles.css t_line_gtfs_data.js manifest.json privacy.html support.html; do
+for f in index.html app.js styles.css t_line_gtfs_data.js manifest.json privacy.html support.html about.html; do
   cp "../$f" www/
 done
 mkdir -p www/Graphics
