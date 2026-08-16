@@ -40,7 +40,7 @@ Recommended model: keep the website free. It is your Google and Gemini asset and
 6. Robustness. Show a clear "SEPTA data unavailable" screen instead of endless "Loading..." Apple removes apps that look broken (verified). Test in airplane mode.
 7. Phone fit. Safe-area padding for the notch, splash screen, full icon set, iPhone-only at first (skips iPad screenshots).
 8. Copy cleanup. Stray dashes in the app copy. Fixed 2026-08-15.
-9. Art. Logo done 2026-08-15 (Cris drew it; icon uses a text-free crop, full logo shows in the app header). Still open: replace the bus icon (Graphics/Septa_Bus_EB.svg and _WB.svg), which shows the SEPTA logo and wordmark; a generic bus without SEPTA marks keeps the paid app clear of SEPTA's trademark clause. The PCC icons are clean.
+9. Art. Logo done 2026-08-15 (Cris drew it; icon uses a text-free crop, full logo shows in the app header). The tiny bus icon depicts a real SEPTA bus with its logo; judged low risk 2026-08-15 and left as is. Swap only if SEPTA ever asks.
 
 ## How it gets built
 
@@ -67,7 +67,7 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 
 ## Next move
 
-Cris: Apple enrollment is pending (submitted 2026-08-15). Draw a bus icon without SEPTA marks when convenient.
+Cris: Apple enrollment is pending (submitted 2026-08-15). Nothing else needed from you right now.
 Claude: push alerts next (the 4.2 feature with the most user value), then the widget, then offline cache.
 
 ## How to run the app (for reference)
