@@ -32,6 +32,7 @@ What you get:
 - Trolley alerts, your way: one notification a day when the first PCC car appears, or one for every car that starts running
 - Stop alerts: save your G Line stop and direction, and get a notification when a PCC car is a few stops away
 - Home screen and lock screen widgets showing how many PCC cars are out and which ones
+- Share the app with a friend straight from the footer
 - Service analytics: typical hours, busiest days, the car roster, and the record books
 - Works underground: the app remembers the last positions and analytics it saw and shows them, labeled with their time, until you are back online
 
