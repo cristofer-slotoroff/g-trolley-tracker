@@ -53,7 +53,7 @@ Philly Trolleys is an independent project made in Philadelphia. It is not affili
 
 Answer "Yes, we collect data" and declare one item:
 
-- Identifiers, Device ID: collected, used for App Functionality (push alerts), not linked to the user's identity, not used for tracking. This is the push token, stored only when the user turns alerts on.
+- Identifiers, Device ID: collected, used for App Functionality (push alerts), not linked to the user's identity, not used for tracking. This is the push token, stored only after the user turns on alerts.
 
 Nothing else is collected in the app: no analytics, no location, no contact info.
 
@@ -64,7 +64,7 @@ Philly Trolleys is an independent tracker for SEPTA's vintage PCC trolley cars o
 
 The PCC cars run roughly 6am to 8pm Eastern on most days. Outside those hours the app shows the buses covering the route and says so. Analytics, the widget, and the alert toggle work at any hour.
 
-Trolley alerts are opt-in. Turning the toggle on requests notification permission and sends one alert per day when the first PCC car appears.
+Trolley alerts are optional. Turning on the toggle requests notification permission and sends one alert per day when the first PCC car appears.
 
 No login is needed. The app works offline by showing the last data it saw, labeled with its time.
 ```
