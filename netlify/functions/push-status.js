@@ -14,11 +14,22 @@ export const handler = async (event) => {
 
     if (testToken) {
         if (!config) return { statusCode: 503, headers, body: JSON.stringify({ error: 'APNs not configured' }) };
-        if (!/^[a-f0-9]{32,256}$/i.test(testToken)) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Bad token' }) };
-        const { data: rows } = await supabase.from('push_subscriptions').select('token').eq('token', testToken.toLowerCase()).limit(1);
-        if (!rows || !rows.length) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Unknown token' }) };
+        let tokens;
+        if (testToken === 'all') {
+            // Sending to everyone needs the APNs Key ID as a light guard against strangers.
+            if ((event.queryStringParameters || {}).key !== process.env.APNS_KEY_ID) {
+                return { statusCode: 403, headers, body: JSON.stringify({ error: 'Key required' }) };
+            }
+            const { data: rows } = await supabase.from('push_subscriptions').select('token').eq('enabled', true);
+            tokens = (rows || []).map(r => r.token);
+        } else {
+            if (!/^[a-f0-9]{32,256}$/i.test(testToken)) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Bad token' }) };
+            const { data: rows } = await supabase.from('push_subscriptions').select('token').eq('token', testToken.toLowerCase()).limit(1);
+            if (!rows || !rows.length) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Unknown token' }) };
+            tokens = [testToken.toLowerCase()];
+        }
         const result = await sendPushes({
-            tokens: [testToken.toLowerCase()],
+            tokens,
             payload: { aps: { alert: { title: 'Philly Trolleys test', body: 'Alerts are working. This is a test message.' }, sound: 'default' }, type: 'test' },
             config
         });
