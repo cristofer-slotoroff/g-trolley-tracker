@@ -67,8 +67,17 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 
 ## Next move
 
-Cris: Apple enrollment is pending (submitted 2026-08-15). Nothing else needed from you right now.
-Claude: push alerts next (the 4.2 feature with the most user value), then the widget, then offline cache.
+Cris, two small steps:
+1. Supabase SQL Editor: paste and run `supabase/push-alerts.sql` (creates the two alert tables). Until then the app's alert toggle says it could not reach the server.
+2. When Apple enrollment clears: Certificates, Identifiers and Profiles, then Keys, create a key with Apple Push Notifications service (APNs) enabled, download the .p8 once, note the Key ID and your Team ID. Set Netlify env vars APNS_TEAM_ID, APNS_KEY_ID, APNS_PRIVATE_KEY (paste the .p8 contents), APNS_SANDBOX=true. Also open the Xcode project once and pick your team under Signing so the Push capability registers.
+Claude: home screen widget next, then offline cache, then store listing.
+
+## Alerts, how they work (built 2026-08-15)
+
+- App: "Trolley Alerts" card with one toggle. Turning it on asks iOS for permission, gets a device token from Apple, and posts it to the push-subscription function. Turning it off marks the token disabled. Verified on the Simulator: permission prompt, token issued, server called.
+- Server: the 5-minute tracker checks whether today (Philadelphia time) already had a PCC sighting. If this run is the first, it claims the day in push_alerts_sent (a duplicate claim from a parallel run is ignored), loads opted-in tokens, and sends "PCC trolleys are out. Cars 2332 and 2333 are on the G Line right now." straight to Apple over HTTP/2 with a signed token. No third-party push service. Tokens Apple reports as gone are disabled.
+- Without the APNs env vars the tracker logs "APNs not configured" and skips, so nothing breaks before setup.
+- Testing: `xcrun simctl push <udid> com.cristoferslotoroff.phillytrolleys file.apns` shows an alert on the Simulator once permission is granted.
 
 ## How to run the app (for reference)
 
@@ -81,6 +90,7 @@ Claude: push alerts next (the 4.2 feature with the most user value), then the wi
 - 2026-08-15: Plan written. Name banked. Apple enrollment submitted (pending). Xcode installed.
 - 2026-08-15: Capacitor shell built in `native/` (bundle ID com.cristoferslotoroff.phillytrolleys, iPhone-only, portrait, light status bar, placeholder icon and splash). Same web files serve site and app; `IS_NATIVE` in app.js swaps the header to "Philly Trolleys", hides the coffee link, skips visit logging, and points function calls at the live site. Verified in Chrome with `?native=1`: live vehicles, routes, and analytics load from the live functions.
 - 2026-08-15 (later): Name changed to "Philly Trolleys" to match the logo Cris drew. Icon (text-free crop), splash, and in-app header logo installed. Built with xcodebuild and run on the iPhone 17 Pro Simulator: live data loads, status bar and safe areas look right, home screen shows the "Philly Trolleys" icon.
+- 2026-08-15 (night): Push alerts built end to end (see "Alerts, how they work"). No-orphans pass over the whole app: pretty and balanced wrapping everywhere, tiles and buttons that fill their rows, phone step text wraps instead of clipping, metro and regional line buttons two per row on phones with names on one line, roster chips 8 per desktop row and 4 per phone row. Verified with Simulator screenshots of every screen and the live website on desktop.
 - 2026-08-15: Website gained a "Not affiliated with SEPTA" footer, privacy.html, support.html, a 404 page, 404 rules for internal folders, an analytics auto-retry with a Try again button, and the last dashes removed. Deployed to the live site.
 
 ## Sources
