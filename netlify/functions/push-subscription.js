@@ -45,16 +45,20 @@ export const handler = async (event) => {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unsupported platform' }) };
     }
 
-    const { error } = await supabase
-        .from('push_subscriptions')
-        .upsert({
-            token: token.toLowerCase(),
-            platform,
-            enabled,
-            alert_mode: alertMode,
-            updated_at: new Date().toISOString(),
-            last_error: null
-        }, { onConflict: 'token' });
+    const row = {
+        token: token.toLowerCase(),
+        platform,
+        enabled,
+        alert_mode: alertMode,
+        updated_at: new Date().toISOString(),
+        last_error: null
+    };
+    let { error } = await supabase.from('push_subscriptions').upsert(row, { onConflict: 'token' });
+    if (error && /alert_mode/i.test(error.message || '')) {
+        // Column not created yet: save without the mode rather than fail the phone.
+        delete row.alert_mode;
+        ({ error } = await supabase.from('push_subscriptions').upsert(row, { onConflict: 'token' }));
+    }
 
     if (error) {
         console.error('push-subscription upsert error:', error);

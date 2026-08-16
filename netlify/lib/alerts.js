@@ -32,12 +32,21 @@ export function carOnlineMessage(vehicleId, totalOut) {
 }
 
 async function loadSubscribers(supabase, mode) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
         .from('push_subscriptions')
         .select('token')
         .eq('enabled', true)
         .eq('platform', 'ios')
         .eq('alert_mode', mode);
+    if (error && /alert_mode/i.test(error.message || '')) {
+        // The alert_mode column is not in the database yet: treat every phone as "first" mode.
+        if (mode !== 'first') return [];
+        ({ data, error } = await supabase
+            .from('push_subscriptions')
+            .select('token')
+            .eq('enabled', true)
+            .eq('platform', 'ios'));
+    }
     if (error) {
         console.error(`Push alerts: subscriber lookup (${mode}) failed`, error);
         return [];
