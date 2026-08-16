@@ -16,7 +16,7 @@ Character limits are Apple's. Everything below follows the house copy rules (no 
 
 ## Promotional text (170 max)
 
-`See where Philadelphia's 1940s PCC Trolleys are running right now, get an alert when the first one rolls out each day, and check the widget from your home screen.`
+`See where Philadelphia's 1940s PCC Trolleys are running right now, get alerts when they roll out or near your stop, and check the widget from your home or lock screen.`
 
 ## Description (4000 max)
 
@@ -29,8 +29,9 @@ What you get:
 
 - Live trolley positions on the G Line, refreshed every minute
 - Directions to the nearest pickup point from any Metro or Regional Rail station, with live train and trolley times
-- Trolley alerts: one notification a day, when the first PCC car appears
-- A home screen widget showing how many PCC cars are out and which ones
+- Trolley alerts, your way: one notification a day when the first PCC car appears, or one for every car that starts running
+- Stop alerts: save your G Line stop and direction, and get a notification when a PCC car is a few stops away
+- Home screen and lock screen widgets showing how many PCC cars are out and which ones
 - Service analytics: typical hours, busiest days, the car roster, and the record books
 - Works underground: the app remembers the last positions and analytics it saw and shows them, labeled with their time, until you are back online
 
