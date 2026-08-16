@@ -103,6 +103,8 @@ Claude: capture store screenshots during service hours (weekday, about 10am to 4
 
 ## Progress log
 
+Full session notes live in `SESSION_LOG.md` at the repo root.
+
 - 2026-08-15: Plan written. Name banked. Apple enrollment submitted (pending). Xcode installed.
 - 2026-08-15: Capacitor shell built in `native/` (bundle ID com.cristoferslotoroff.phillytrolleys, iPhone-only, portrait, light status bar, placeholder icon and splash). Same web files serve site and app; `IS_NATIVE` in app.js swaps the header to "Philly Trolleys", hides the coffee link, skips visit logging, and points function calls at the live site. Verified in Chrome with `?native=1`: live vehicles, routes, and analytics load from the live functions.
 - 2026-08-15 (later): Name changed to "Philly Trolleys" to match the logo Cris drew. Icon (text-free crop), splash, and in-app header logo installed. Built with xcodebuild and run on the iPhone 17 Pro Simulator: live data loads, status bar and safe areas look right, home screen shows the "Philly Trolleys" icon.
