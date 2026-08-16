@@ -1625,9 +1625,14 @@ body.native .native-only {
 
 /* Native app shell (Capacitor iOS). Added 2026-08-15.
    Keeps content clear of the notch and home indicator, hides web-only bits. */
-body.native {
+/* Safe areas apply to the website too: added to the home screen, it also draws under the
+   Dynamic Island (2026-08-16). Zero in a normal browser tab. */
+body {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+}
+
+body.native {
     -webkit-tap-highlight-color: transparent;
 }
 
