@@ -11,6 +11,23 @@ Newest entry first. The plan and its short progress log live in `docs/APP-STORE-
 - Traced the 41 "9xxx" IDs logged as buses on G1: Route 10 K-cars from Callowhill tagged G1 on pull-outs along 59th St and Girard to the Lancaster junction, plus one real end-to-end G run by 9039 and 9082 on Feb 23, 2026. Confirmed with GTFS block IDs (G1 blocks 9001 to 9026, T1 9051 to 9069) that these are car numbers, not blocks. Special trips not logged into blocks (K-car 9000 retirement trip on Girard, March 15, 2026, photo found by Cris) do not appear in the feed.
 - Memory and plan file updated. Apple review still pending; no app or site changes this session.
 
+### Where this falls in the plan
+
+- The launch plan is complete except for Apple's decision. This session shaped what comes after launch: the app's runway on the G is longer than feared (Citadis reach the G last, in the 2030s), and the mixed-fleet period arrives first on the T and D lines, so the expansion path is the per-line "what's running" view built on the tracker's existing feed pull.
+
+### Roadblocks and challenges
+
+- The Supabase service key is a masked Netlify secret, so the CLI cannot read tables; Cris ran the queries in the SQL editor and pasted results.
+- The session's web search budget ran out partway through (four research agents), so later checks used direct fetches and SEPTA's GTFS and live feed instead.
+- Two false leads on the 9xxx IDs (placeholder rows, then block numbers) before GTFS block ranges and coordinates settled it.
+
+### Successes and new understandings
+
+- SEPTA's own vehicles page now dates Citadis delivery and deployment to 2030 to 2034 (was 2027 to 2032 until at least February 2026); order of lines is T, D, then G.
+- No SEPTA feed field states vehicle type; ID ranges are disjoint and reliable, and the 23xx PCC rule is verified against seven months of data and a live system-wide scan.
+- The 9xxx IDs on G1 are Route 10 K-cars crossing G track on Callowhill pull-outs, plus one real G run on Feb 23, 2026. Special trips outside a block do not appear in the feed.
+- The Venice Island track is the Reading's Venice Branch, standard gauge, so the heritage line idea is parked as advocacy, not app work.
+
 ### Where to pick up next session
 
 - Apple review result first. Then the backlog in the plan file, in order (classification table with a kcar bucket, tracker widened to all trolley routes, "what's running on my line" screen, K-car-on-Girard alert).
