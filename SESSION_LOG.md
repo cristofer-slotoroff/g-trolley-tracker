@@ -2,6 +2,42 @@
 
 Newest entry first. The plan and its short progress log live in `docs/APP-STORE-PLAN.md`; store copy in `docs/APP-STORE-LISTING.md`.
 
+## 2026-08-16: submitted to Apple
+
+### Work completed
+
+- Apple developer account activated; APNs key, App ID with push, Netlify settings, App Store Connect API key (App Manager) all in place. Team ID 7QZM9CC55X, App Store Apple ID 6802036569.
+- Alerts, end to end: first of the day, each new car, and stop alerts (several saved stops per phone, direction, distance); wording per Cris; verified with real pushes to the Simulator and to Cris's iPhone, on sandbox and production paths.
+- App: redesigned alerts card, About page, support contact form (Netlify Forms), new logo, lock screen widgets, share button, widgets that refresh when an alert lands, offline mode, safe-area fixes, Title Case headings, "PCC Trolleys" capitalization, no-orphans pass.
+- Website: promo strip for the iPhone app ($4.99 one time, no subscription) that reveals itself when the store listing goes live; Smart App Banner; safe-area padding for the home screen version.
+- Store: seven 6.9-inch screenshots with three live trolleys; listing text, categories, subtitle, privacy URL, age rating 4+, price, US-only availability, copyright, manual release, review contact and notes, all set through the API. Build 1 then build 2 uploaded (Xcode-account signing plus altool with the API key). Cris tested build 1 through TestFlight on his phone.
+- Submitted: version 1.0, build 2, Waiting for Review since 2:34 PM ET. Release is manual.
+
+### Where this falls in the plan
+
+- Every phase of the plan is done except Apple's decision and the release. Google Play stays banked.
+
+### Roadblocks and challenges
+
+- Netlify keeps an unchanged function bundle across deploys, so the tracker ignored the new APNs settings until its file changed; the morning's first-of-day alert was missed for that reason. Same again for APNS_SANDBOX: force a bundle change after any env change.
+- Netlify CLI links the home folder to the personal site; always pass NETLIFY_SITE_ID. A value beginning with dashes cannot be passed to env:set; the .p8 went in base64.
+- The App Manager API key cannot create distribution certificates; sign with the Xcode login, upload with the key.
+- Internal TestFlight testers cannot be added by API; Cris added himself in the UI.
+- Simulator taps land only when the Simulator is frontmost, and its window moves; re-read the AXGroup position before tapping. Momentum scrolls need a slow drag with a hold.
+- pcc_observations.vehicle_id is varchar(10); some run rejects a batch. The tracker now retries row by row and logs the culprit; the culprit had not appeared in the log by end of day.
+
+### Successes and new understandings
+
+- The whole App Store Connect setup can be driven by API in one sitting: localizations, app info, age rating (new 2026 fields), price schedules with ${local} ids, availability needs all 175 territories, screenshot upload flow, review submission.
+- The Simulator issues real device tokens; with the production-first-then-sandbox fallback, one server setting serves Xcode, TestFlight, and App Store installs.
+- content-available on visible pushes plus a background mode lets the app refresh widgets the moment an alert arrives.
+
+### Where to pick up next session
+
+1. Apple's review email. Approved: "release" (API or the Release button). Rejected: paste the reason, fix, resubmit.
+2. First update after approval: tap-to-refresh icon on the home screen widget; check the tracker log for the over-long vehicle id.
+3. After launch: watch push-status and Netlify credits; consider Google Play.
+
 ## 2026-08-15 to 2026-08-16: from web app to App Store candidate
 
 ### Work completed
