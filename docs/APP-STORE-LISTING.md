@@ -6,7 +6,7 @@ Character limits are Apple's. Everything below follows the house copy rules (no 
 ## Names
 
 - App name (30 max): `Philly Trolleys`
-- Subtitle (30 max): `Vintage PCC trolley tracker`
+- Subtitle (30 max): `Vintage PCC Trolley tracker`
 - Bundle ID: `com.cristoferslotoroff.phillytrolleys`
 - SKU: `phillytrolleys-ios`
 - Primary category: Navigation. Secondary: Travel.
@@ -16,12 +16,12 @@ Character limits are Apple's. Everything below follows the house copy rules (no 
 
 ## Promotional text (170 max)
 
-`See where Philadelphia's 1940s PCC trolleys are running right now, get an alert when the first one rolls out each day, and check the widget from your home screen.`
+`See where Philadelphia's 1940s PCC Trolleys are running right now, get an alert when the first one rolls out each day, and check the widget from your home screen.`
 
 ## Description (4000 max)
 
 ```
-Philly Trolleys shows you where SEPTA's vintage PCC streetcars are running on the G Line (Girard Avenue) right now, so you can plan a ride on a piece of Philadelphia transit history.
+Philly Trolleys shows you where SEPTA's vintage PCC Trolleys are running on the G Line (Girard Avenue) right now, so you can plan a ride on a piece of Philadelphia transit history.
 
 The PCC cars share the route with buses and do not run every day. This app tracks the trolleys specifically, tells you which cars are out, where each one is heading, and how to reach the line from any SEPTA Metro or Regional Rail station.
 

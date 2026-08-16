@@ -119,7 +119,7 @@ struct TrolleyWidgetView: View {
             HStack(spacing: 6) {
                 Image(systemName: "tram.fill")
                     .foregroundStyle(TrolleyColors.gold)
-                Text("PCC trolleys")
+                Text("PCC Trolleys")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(TrolleyColors.creamDim)
             }
@@ -162,7 +162,7 @@ struct TrolleyWidgetView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "tram.fill")
                         .foregroundStyle(TrolleyColors.gold)
-                    Text("PCC trolleys")
+                    Text("PCC Trolleys")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(TrolleyColors.creamDim)
                 }
@@ -240,7 +240,7 @@ struct TrolleyWidget: Widget {
             TrolleyWidgetView(entry: entry)
         }
         .configurationDisplayName("PCC Trolleys Now")
-        .description("How many vintage PCC trolleys are out on the G Line right now, and which cars.")
+        .description("How many vintage PCC Trolleys are out on the G Line right now, and which cars.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

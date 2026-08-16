@@ -59,6 +59,12 @@ header h1 {
     color: var(--pcc-gold);
 }
 
+/* The app subtitle must stay on one line on every phone width (2026-08-16). */
+body.native .subtitle {
+    white-space: nowrap;
+    font-size: min(1rem, 4.1vw);
+}
+
 /* Status Bar */
 .status-bar {
     display: flex;

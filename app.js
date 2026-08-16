@@ -3401,7 +3401,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // The drawn logo carries the name, so the text heading stays for screen readers only.
         if (logo) { logo.src = 'Graphics/philly-trolleys-logo.png'; logo.alt = 'Philly Trolleys'; }
         if (h1) { h1.textContent = 'Philly Trolleys'; h1.classList.add('visually-hidden'); }
-        if (sub) sub.textContent = 'PCC trolleys on the SEPTA G Line';
+        if (sub) sub.textContent = 'Vintage PCC Trolleys on the SEPTA G Line';
         initAlerts();
     }
 
@@ -3409,7 +3409,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (TEST_MODE) {
         const banner = document.createElement('div');
         banner.id = 'test-mode-banner';
-        banner.innerHTML = 'TEST MODE: Showing all G line vehicles (not just PCC trolleys)';
+        banner.innerHTML = 'TEST MODE: Showing all G line vehicles (not just PCC Trolleys)';
         banner.style.cssText = 'background: #ff6b6b; color: white; padding: 8px 16px; text-align: center; font-weight: bold; font-size: 14px; position: sticky; top: 0; z-index: 1000;';
         document.body.insertBefore(banner, document.body.firstChild);
         console.log('TEST MODE ENABLED - showing all G line vehicles');
@@ -4923,7 +4923,7 @@ async function updateConnections() {
         if (unfilteredCount > 0 && !showBusesWithTrolleys && checkboxIsVisible) {
             container.innerHTML = `
                 <div class="no-trolleys" style="margin: 0;">
-                    <div class="no-trolleys-title">No PCC trolley routes available right now</div>
+                    <div class="no-trolleys-title">No PCC Trolley routes available right now</div>
                     <div class="no-trolleys-subtitle">Check "See buses on the G Line too?" above to view bus routes.</div>
                 </div>
             `;
@@ -5171,7 +5171,7 @@ async function updateConnections() {
             } else {
                 // No catchable trolleys
                 if (trolleyData.length === 0) {
-                    trolleyInfoHtml = `<div class="trolley-arrival-row no-trolleys">No PCC trolleys currently detected</div>`;
+                    trolleyInfoHtml = `<div class="trolley-arrival-row no-trolleys">No PCC Trolleys currently detected</div>`;
                 } else if (pickupTrolleys.length > 0) {
                     // Trolleys exist but user would miss them all
                     trolleyInfoHtml = `<div class="trolley-arrival-row no-trolleys">No trolleys catchable (next one arrives before you)</div>`;
@@ -5581,7 +5581,7 @@ function updateTrolleyDetails() {
     if (vehiclesToShow.length === 0) {
         container.innerHTML = `
             <div class="no-trolleys">
-                <div class="no-trolleys-title" style="color: #ffd54f;">Bummer. No PCC trolley cars are running at this time :(</div>
+                <div class="no-trolleys-title" style="color: #ffd54f;">Bummer. No PCC Trolley cars are running at this time :(</div>
                 <div class="no-trolleys-subtitle">No buses detected either. Check back later!</div>
             </div>
         `;
@@ -5591,7 +5591,7 @@ function updateTrolleyDetails() {
     // Build the "Bummer" message HTML if needed
     const bummerHtml = showBummerMessage ? `
         <div class="no-trolleys" style="margin-bottom: 16px;">
-            <div class="no-trolleys-title" style="color: #ffd54f;">Bummer. No PCC trolley cars are running at this time :(</div>
+            <div class="no-trolleys-title" style="color: #ffd54f;">Bummer. No PCC Trolley cars are running at this time :(</div>
             <div class="no-trolleys-subtitle">Until there's at least one trolley in service, you'll only see buses below.</div>
         </div>
     ` : '';
@@ -5637,7 +5637,7 @@ function updateTrolleyDetails() {
                             : '';
                         return `
                             <span class="timeline-stop ${stop.position}${isNextImmediate ? ' next-immediate' : ''}${isTransfer ? ' transfer' : ''}">
-                                <span class="stop-top">${isCurrent ? `<span class="trolley-icon"><img src="${trolley.isPCC ? (trolley.direction === 'Eastbound' ? 'Graphics/EB_PCC_App_Logo.svg' : 'Graphics/WB PCC App Logo.svg') : (trolley.direction === 'Eastbound' ? 'Graphics/Septa_Bus_EB.svg' : 'Graphics/Septa_Bus_WB.svg')}" alt="${trolley.isPCC ? 'PCC trolley' : 'Bus'}"></span>` : ''}</span>
+                                <span class="stop-top">${isCurrent ? `<span class="trolley-icon"><img src="${trolley.isPCC ? (trolley.direction === 'Eastbound' ? 'Graphics/EB_PCC_App_Logo.svg' : 'Graphics/WB PCC App Logo.svg') : (trolley.direction === 'Eastbound' ? 'Graphics/Septa_Bus_EB.svg' : 'Graphics/Septa_Bus_WB.svg')}" alt="${trolley.isPCC ? 'PCC Trolley' : 'Bus'}"></span>` : ''}</span>
                                 <span class="stop-name">${stop.shortName}</span>
                                 <span class="stop-bottom">${isCurrent ? `<span class="direction-arrow ${dirClass}">${dirArrow}</span>` : ''}${transferBadges}</span>
                             </span>
@@ -6327,7 +6327,7 @@ function renderDayDetail(date, data) {
 function renderDayDetailInto(detailEl, data) {
 
     if (data.totalObservations === 0) {
-        detailEl.innerHTML = '<p class="day-detail-empty">No PCC trolleys observed this day.</p>';
+        detailEl.innerHTML = '<p class="day-detail-empty">No PCC Trolleys observed this day.</p>';
         return;
     }
 
@@ -6492,7 +6492,7 @@ async function saveSubscription(token, enabled) {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         setAlertStatus(enabled
-            ? 'You are set. The first PCC of each day will trigger an alert.'
+            ? 'All set! PCC Trolley Alerts Confirmed.'
             : 'No alerts will be sent.');
     } catch (e) {
         console.error('Subscription save error:', e);

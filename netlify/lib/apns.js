@@ -141,5 +141,5 @@ export function serviceStartedMessage(vehicleIds) {
     if (ids.length === 1) body = `Car ${ids[0]} is on the G Line right now.`;
     else if (ids.length === 2) body = `Cars ${ids[0]} and ${ids[1]} are on the G Line right now.`;
     else body = `${ids.length} cars are on the G Line right now: ${ids.join(', ')}.`;
-    return { title: 'PCC trolleys are out', body };
+    return { title: 'PCC Trolleys are out', body };
 }
