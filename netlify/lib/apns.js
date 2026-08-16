@@ -7,7 +7,8 @@
 //   APNS_PRIVATE_KEY  the .p8 file contents (BEGIN PRIVATE KEY ... END PRIVATE KEY), newlines as \n are fine
 //   APNS_PRIVATE_KEY_B64  alternative: the .p8 file base64-encoded on one line (easier to set from a shell)
 //   APNS_TOPIC        the app bundle ID (defaults to com.cristoferslotoroff.phillytrolleys)
-//   APNS_SANDBOX      "true" while testing builds run from Xcode; "false" for TestFlight and App Store builds
+//   APNS_SANDBOX      which environment to try first: "false" (production) once TestFlight or App Store
+//                     builds exist; the other environment is tried automatically for rejected tokens
 //
 // Uses Node's built-in http2 and crypto modules only.
 
