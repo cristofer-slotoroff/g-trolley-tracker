@@ -75,6 +75,11 @@ export const handler = async (event) => {
                 if (!label || label === 'None' || label === '0' || label === '') {
                     continue;
                 }
+                // vehicle_id is varchar(10) in the database; log and skip anything longer (2026-08-16).
+                if (label.length > 10) {
+                    console.warn('PCC Tracker: skipping vehicle with an unexpectedly long label:', JSON.stringify(vehicle).slice(0, 300));
+                    continue;
+                }
 
                 observations.push({
                     observed_at: observedAt.toISOString(),
@@ -135,11 +140,18 @@ export const handler = async (event) => {
                 .insert(observations);
 
             if (error) {
-                console.error('Supabase insert error:', error);
-                throw error;
+                // One bad row should not cost the whole batch: retry row by row and log the culprit (2026-08-16).
+                console.error('Supabase batch insert error, retrying rows one at a time:', error.message);
+                let saved = 0;
+                for (const row of observations) {
+                    const { error: rowErr } = await supabase.from('pcc_observations').insert(row);
+                    if (rowErr) console.error('PCC Tracker: row rejected:', rowErr.message, JSON.stringify(row));
+                    else saved++;
+                }
+                console.log(`PCC Tracker: Inserted ${saved} of ${observations.length} observations after row-by-row retry`);
+            } else {
+                console.log(`PCC Tracker: Inserted ${observations.length} observations (${pccObs.length} PCC, ${busObs.length} bus)`);
             }
-
-            console.log(`PCC Tracker: Inserted ${observations.length} observations (${pccObs.length} PCC, ${busObs.length} bus)`);
         } else {
             console.log('PCC Tracker: No G1 vehicles currently running (normal during off-hours)');
         }
