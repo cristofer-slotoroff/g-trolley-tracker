@@ -2300,7 +2300,7 @@ body.native img {
 .vehicle-roster {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px; /* 8 chips fit one desktop row, 4 + 4 on phones (2026-08-15) */
     justify-content: center;
 }
 
@@ -2309,7 +2309,7 @@ body.native img {
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    flex: 1 1 60px; /* last-row chips stretch to fill the row; no stranded tile (2026-08-15) */
+    flex: 1 1 56px; /* last-row chips stretch to fill the row; no stranded tile (2026-08-15) */
 }
 
 .roster-vehicle-icon {
