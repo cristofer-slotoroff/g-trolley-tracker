@@ -6705,6 +6705,25 @@ async function removeStopAlert(id) {
     }
 }
 
+// ---------- App promo on the website (added 2026-08-16). Shows once the App Store listing exists. ----------
+(function () {
+    if (IS_NATIVE) return;
+    const promo = document.getElementById('app-promo');
+    if (!promo) return;
+    const CACHE = 'pcc_app_live';
+    if (localStorage.getItem(CACHE) === 'yes') { promo.hidden = false; return; }
+    // Apple's public lookup answers with the app record only when it is live in the store.
+    fetch('https://itunes.apple.com/lookup?id=6802036569&country=us')
+        .then(r => r.json())
+        .then(d => {
+            if (d && d.resultCount > 0) {
+                localStorage.setItem(CACHE, 'yes');
+                promo.hidden = false;
+            }
+        })
+        .catch(() => { /* not live yet, or offline: stay hidden */ });
+})();
+
 // ---------- Share (added 2026-08-16). Native share sheet in the app; Web Share or copy link on the site. ----------
 const APP_STORE_URL = 'https://apps.apple.com/app/id6802036569';
 const SHARE_TEXT = "Philly Trolleys: see where SEPTA's vintage PCC Trolleys are running right now, and get alerts when they roll out.";
