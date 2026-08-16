@@ -36,8 +36,13 @@ Newest entry first. The plan and its short progress log live in `docs/APP-STORE-
 - Apple's sandbox answered the HTTP/2 push probe in 133 ms with the expected 403 for a fake key, so the sender is known good before the real key arrives.
 - `text-wrap` is inherited, so one rule on `body` covers runtime-built text; `balance` on short blocks is what actually removes two-word last lines.
 
+### Late addition, 2026-08-16
+
+- Apple enrollment cleared. APNs key made, Netlify variables set (base64 key, trolley site by ID), App ID registered with push. A real test alert reached the Simulator through Apple's servers. Team ID recorded in the Xcode project.
+- Lesson: `~/.netlify/state.json` links the home folder to the personal site; always pass `NETLIFY_SITE_ID`. And a value that starts with dashes must be base64-encoded for `netlify env:set`.
+
 ### Pick up next session
 
-1. When Apple enrollment clears: Cris creates the APNs key, sets `APNS_TEAM_ID`, `APNS_KEY_ID`, `APNS_PRIVATE_KEY`, `APNS_SANDBOX=true` in Netlify, opens the Xcode project once and picks his team under Signing.
+1. Sign in to Xcode with the Apple ID once (Xcode, Settings, Accounts) so signing and TestFlight work.
 2. Capture 6.9-inch store screenshots on the iPhone 17 Pro Max Simulator on a weekday between 10am and 4pm Eastern, when PCC cars are out (list in `docs/APP-STORE-LISTING.md`).
 3. TestFlight build to Cris's phone, confirm a real alert arrives, then submit.
