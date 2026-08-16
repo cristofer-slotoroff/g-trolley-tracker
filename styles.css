@@ -1383,6 +1383,43 @@ footer .disclaimer a {
     text-decoration: none;
 }
 
+/* Trolley alerts card (iPhone app only). Added 2026-08-15. */
+.native-only {
+    display: none;
+}
+
+body.native .native-only {
+    display: block;
+}
+
+.alert-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.95rem;
+    color: var(--pcc-cream);
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.alert-toggle input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    accent-color: var(--pcc-gold);
+}
+
+.alert-status {
+    font-size: 0.85rem;
+    color: var(--pcc-cream-dim);
+    line-height: 1.5;
+    text-wrap: pretty;
+}
+
+.alert-status.error {
+    color: #E88892;
+}
+
 /* Native app shell (Capacitor iOS). Added 2026-08-15.
    Keeps content clear of the notch and home indicator, hides web-only bits. */
 body.native {

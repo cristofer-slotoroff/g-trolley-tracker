@@ -6,6 +6,12 @@ const config: CapacitorConfig = {
   appId: 'com.cristoferslotoroff.phillytrolleys',
   appName: 'Philly Trolleys',
   webDir: 'www',
+  plugins: {
+    PushNotifications: {
+      // Show alerts even while the app is open.
+      presentationOptions: ['banner', 'sound', 'list']
+    }
+  },
   ios: {
     // Dark green behind the web view so the notch and home-indicator areas match the app.
     backgroundColor: '#0D2818',

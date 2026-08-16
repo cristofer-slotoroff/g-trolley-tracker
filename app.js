@@ -3350,6 +3350,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (logo) { logo.src = 'Graphics/philly-trolleys-logo.png'; logo.alt = 'Philly Trolleys'; }
         if (h1) { h1.textContent = 'Philly Trolleys'; h1.classList.add('visually-hidden'); }
         if (sub) sub.textContent = 'PCC trolleys on the SEPTA G Line';
+        initAlerts();
     }
 
     // Show test mode indicator if enabled
@@ -6268,6 +6269,131 @@ function renderDayDetailInto(detailEl, data) {
         ${tripSummary}
         <div class="day-detail-vehicles">${vehicleList}</div>
     `;
+}
+
+// ==========================================
+// Trolley alerts (iPhone app only). Added 2026-08-15.
+// Talks to the Capacitor PushNotifications plugin, which the native shell
+// exposes on window.Capacitor.Plugins. The website never runs this.
+// ==========================================
+
+const ALERT_PREF_KEY = 'pcc_alert_start';
+const PUSH_TOKEN_KEY = 'pcc_push_token';
+
+function getPushPlugin() {
+    const cap = window.Capacitor;
+    return (cap && cap.Plugins && cap.Plugins.PushNotifications) || null;
+}
+
+function setAlertStatus(text, isError = false) {
+    const el = document.getElementById('alert-status');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle('error', !!isError);
+}
+
+function alertsWanted() {
+    return localStorage.getItem(ALERT_PREF_KEY) === 'on';
+}
+
+async function initAlerts() {
+    const toggle = document.getElementById('alert-start-toggle');
+    if (!toggle) return;
+    toggle.checked = alertsWanted();
+
+    const push = getPushPlugin();
+    if (!push) {
+        // Browser preview of native mode: no plugin, so explain and disable.
+        toggle.disabled = true;
+        setAlertStatus('Alerts work in the iPhone app.');
+        return;
+    }
+
+    push.addListener('registration', (token) => {
+        saveSubscription(token.value, alertsWanted());
+    });
+    push.addListener('registrationError', (err) => {
+        console.error('Push registration error:', err);
+        localStorage.setItem(ALERT_PREF_KEY, 'off');
+        toggle.checked = false;
+        setAlertStatus('Could not set up alerts on this phone. Try again later.', true);
+    });
+    // A tap on an alert, or an alert arriving while the app is open: refresh the live data.
+    push.addListener('pushNotificationReceived', () => refreshData());
+    push.addListener('pushNotificationActionPerformed', () => refreshData());
+
+    if (alertsWanted()) {
+        // Re-register on every launch so the phone's token stays current.
+        try {
+            const perm = await push.checkPermissions();
+            if (perm.receive === 'granted') {
+                await push.register();
+            } else {
+                localStorage.setItem(ALERT_PREF_KEY, 'off');
+                toggle.checked = false;
+                setAlertStatus('Notifications are turned off for this app in iPhone Settings. Turn them on there, then flip this switch again.', true);
+            }
+        } catch (e) {
+            console.error('Alert init error:', e);
+        }
+    }
+}
+
+async function setStartAlert(on) {
+    const toggle = document.getElementById('alert-start-toggle');
+    const push = getPushPlugin();
+    if (!push) {
+        toggle.checked = false;
+        setAlertStatus('Alerts work in the iPhone app.');
+        return;
+    }
+
+    if (!on) {
+        localStorage.setItem(ALERT_PREF_KEY, 'off');
+        const token = localStorage.getItem(PUSH_TOKEN_KEY);
+        if (token) await saveSubscription(token, false);
+        else setAlertStatus('No alerts will be sent.');
+        return;
+    }
+
+    setAlertStatus('Setting up alerts...');
+    try {
+        let perm = await push.checkPermissions();
+        if (perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') {
+            perm = await push.requestPermissions();
+        }
+        if (perm.receive !== 'granted') {
+            localStorage.setItem(ALERT_PREF_KEY, 'off');
+            toggle.checked = false;
+            setAlertStatus('Notifications are turned off for this app in iPhone Settings. Turn them on there, then flip this switch again.', true);
+            return;
+        }
+        localStorage.setItem(ALERT_PREF_KEY, 'on');
+        await push.register(); // the 'registration' listener saves the token
+    } catch (e) {
+        console.error('Alert setup error:', e);
+        localStorage.setItem(ALERT_PREF_KEY, 'off');
+        toggle.checked = false;
+        setAlertStatus('Could not set up alerts. Try again later.', true);
+    }
+}
+
+async function saveSubscription(token, enabled) {
+    localStorage.setItem(PUSH_TOKEN_KEY, token);
+    try {
+        const res = await fetch(`${FUNCTIONS_BASE}/push-subscription`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, platform: 'ios', enabled })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setAlertStatus(enabled
+            ? 'You are set. The first PCC of each day will trigger an alert.'
+            : 'No alerts will be sent.');
+    } catch (e) {
+        console.error('Subscription save error:', e);
+        setAlertStatus('Could not reach the server to save your alert setting. It will retry next time you open the app.', true);
+    }
 }
 
 // ==========================================
