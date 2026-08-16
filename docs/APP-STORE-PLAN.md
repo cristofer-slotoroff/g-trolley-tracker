@@ -65,6 +65,10 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 - Duplicate app rule 4.3. No other app tracks PCC cars specifically. Low risk (inferred).
 - The real-time API has no published license of its own (verified). Many paid SEPTA apps use it and no record of SEPTA objecting was found (inferred).
 
+## SUBMITTED 2026-08-16, 2:34 PM ET
+
+Version 1.0 with build 2 is Waiting for Review (review submission 431caa3b). Release is manual: when Apple approves, say "release" and it goes live (API), or click Release in App Store Connect. Typical review: 1 to 3 days. If Apple rejects, the message arrives by email and in App Store Connect; paste it here and it gets fixed and resubmitted.
+
 ## Status 2026-08-16 afternoon: build 1 uploaded, listing filled by API
 
 Done through the App Store Connect API (key PWRCG89KNQ, App Manager role, in ~/.appstoreconnect/private_keys):

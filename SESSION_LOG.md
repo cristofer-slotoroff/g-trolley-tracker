@@ -49,9 +49,13 @@ Newest entry first. The plan and its short progress log live in `docs/APP-STORE-
 - APNs sender now tries production first and falls back to sandbox per token; tokens dead in both are disabled. Verified with a 3-phone test send.
 - Redesigned alerts card (master switch, three checkboxes, several saved stops), alert wording per Cris, share button with the App Store link, About page, support form via Netlify Forms, new logo everywhere, lock screen widgets, safe-area fix on the site.
 
+### Submitted
+
+- 2026-08-16, 2:34 PM ET: version 1.0 (build 2, widgets refresh on alerts) submitted for App Review through the API. TestFlight verified on Cris's iPhone, including a real alert through the production path. Manual release after approval.
+
 ### Pick up next session
 
-1. Cris in App Store Connect: add himself to the internal TestFlight group, answer App Privacy (Identifiers, Device ID, app functionality, not linked, no tracking), enter the review contact phone. Then say "submit".
+1. Watch for Apple's review result (email). Approved: say "release". Rejected: paste the reason.
 2. Sign in to Xcode with the Apple ID once (Xcode, Settings, Accounts) so signing and TestFlight work.
 2. Capture 6.9-inch store screenshots on the iPhone 17 Pro Max Simulator on a weekday between 10am and 4pm Eastern, when PCC cars are out (list in `docs/APP-STORE-LISTING.md`).
 3. TestFlight build to Cris's phone, confirm a real alert arrives, then submit.
