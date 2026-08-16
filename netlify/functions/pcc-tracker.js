@@ -2,7 +2,7 @@
 // Runs every 5 minutes, records active PCC trolleys AND buses to Supabase
 
 import { createClient } from '@supabase/supabase-js';
-import { apnsConfigFromEnv, sendPushes, serviceStartedMessage } from '../lib/apns.js';
+import { runAlerts } from '../lib/alerts.js';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -31,104 +31,6 @@ function getDirection(destination) {
     }
 
     return 'Unknown';
-}
-
-// ---------- Daily "trolleys are out" push alert (added 2026-08-15) ----------
-
-// Calendar date in Philadelphia for a given instant, as YYYY-MM-DD.
-function easternDateString(date) {
-    return date.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-}
-
-// The instant Philadelphia's day began, as an ISO string (handles DST via the current offset).
-function easternMidnightIso(date) {
-    const dateStr = easternDateString(date);
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' })
-        .formatToParts(date);
-    const tz = (parts.find(p => p.type === 'timeZoneName') || {}).value || 'GMT-5';
-    const m = tz.match(/GMT([+-]\d+)/);
-    const offsetHours = m ? parseInt(m[1], 10) : -5;
-    const [y, mo, d] = dateStr.split('-').map(Number);
-    return new Date(Date.UTC(y, mo - 1, d, -offsetHours, 0, 0)).toISOString();
-}
-
-// Sends at most one alert per day: the first time a PCC car shows up on the G Line.
-// Never throws; tracking must keep working even if alerts break.
-async function maybeSendServiceStartedAlert(pccObs, observedAt) {
-    if (!pccObs.length) return;
-    try {
-        const config = apnsConfigFromEnv();
-        if (!config) {
-            console.log('Push alerts: APNs not configured yet, skipping');
-            return;
-        }
-
-        // Was any PCC already seen earlier today? Then this is not the first sighting.
-        const { data: earlier, error: earlierErr } = await supabase
-            .from('pcc_samples')
-            .select('sampled_at')
-            .gte('sampled_at', easternMidnightIso(observedAt))
-            .lt('sampled_at', observedAt.toISOString())
-            .gt('pcc_count', 0)
-            .limit(1);
-        if (earlierErr) { console.error('Push alerts: sample lookup failed', earlierErr); return; }
-        if (earlier && earlier.length) {
-            console.log('Push alerts: a PCC was already seen today, no alert');
-            return;
-        }
-        console.log(`Push alerts: first PCC sighting today (${pccObs.map(o => o.vehicle_id).join(', ')}), sending`);
-
-        const vehicleIds = [...new Set(pccObs.map(o => o.vehicle_id))];
-        const alertDate = easternDateString(observedAt);
-
-        // Claim today's alert. A duplicate key here means another run already sent it.
-        const { error: claimErr } = await supabase
-            .from('push_alerts_sent')
-            .insert({ alert_date: alertDate, alert_type: 'service_started', vehicle_ids: vehicleIds });
-        if (claimErr) {
-            if (claimErr.code === '23505') console.log('Push alerts: already sent today');
-            else console.error('Push alerts: claim insert failed', claimErr);
-            return;
-        }
-
-        const { data: subs, error: subsErr } = await supabase
-            .from('push_subscriptions')
-            .select('token')
-            .eq('enabled', true)
-            .eq('platform', 'ios');
-        if (subsErr) { console.error('Push alerts: subscription lookup failed', subsErr); return; }
-        const tokens = (subs || []).map(s => s.token);
-        console.log(`Push alerts: first PCC of ${alertDate}, ${tokens.length} phones opted in`);
-
-        const message = serviceStartedMessage(vehicleIds);
-        const payload = {
-            aps: {
-                alert: { title: message.title, body: message.body },
-                sound: 'default',
-                'thread-id': 'service-started'
-            },
-            type: 'service_started',
-            vehicles: vehicleIds
-        };
-        const result = tokens.length
-            ? await sendPushes({ tokens, payload, config })
-            : { sent: 0, failed: 0, unregistered: [], errors: [] };
-        console.log(`Push alerts: sent ${result.sent}, failed ${result.failed}`, result.errors.slice(0, 5));
-
-        if (result.unregistered.length) {
-            await supabase
-                .from('push_subscriptions')
-                .update({ enabled: false, last_error: 'unregistered', updated_at: new Date().toISOString() })
-                .in('token', result.unregistered);
-        }
-        await supabase
-            .from('push_alerts_sent')
-            .update({ recipients: result.sent, failed: result.failed, notes: result.errors.slice(0, 5).join('; ') || null })
-            .eq('alert_date', alertDate)
-            .eq('alert_type', 'service_started');
-    } catch (err) {
-        console.error('Push alerts: unexpected error', err);
-    }
 }
 
 export const handler = async (event) => {
@@ -194,8 +96,8 @@ export const handler = async (event) => {
 
         console.log(`PCC Tracker: Found ${pccObs.length} PCC trolleys, ${busObs.length} buses`);
 
-        // Daily alert check runs before this run's sample is saved, so "earlier today" excludes it.
-        await maybeSendServiceStartedAlert(pccObs, observedAt);
+        // Alert decisions run before this run's sample is saved, so "earlier today" excludes it. See lib/alerts.js.
+        await runAlerts({ supabase, pccObs, observedAt });
 
         // Always record a sample (even if nothing found) to track gaps/uptime
         const sampleRecord = {

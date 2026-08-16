@@ -6382,7 +6382,28 @@ function renderDayDetailInto(detailEl, data) {
 // ==========================================
 
 const ALERT_PREF_KEY = 'pcc_alert_start';
+const ALERT_MODE_KEY = 'pcc_alert_mode'; // 'first' or 'each' (added 2026-08-16)
 const PUSH_TOKEN_KEY = 'pcc_push_token';
+
+function alertMode() {
+    return localStorage.getItem(ALERT_MODE_KEY) === 'each' ? 'each' : 'first';
+}
+
+// Show the mode picker only while alerts are on, and reflect the saved choice.
+function syncAlertModeUI() {
+    const modes = document.getElementById('alert-modes');
+    if (!modes) return;
+    modes.hidden = !alertsWanted();
+    const chosen = alertMode();
+    modes.querySelectorAll('input[name="alert-mode"]').forEach(r => { r.checked = r.value === chosen; });
+}
+
+async function setAlertMode(mode) {
+    localStorage.setItem(ALERT_MODE_KEY, mode === 'each' ? 'each' : 'first');
+    syncAlertModeUI();
+    const token = localStorage.getItem(PUSH_TOKEN_KEY);
+    if (alertsWanted() && token) await saveSubscription(token, true);
+}
 
 function getPushPlugin() {
     const cap = window.Capacitor;
@@ -6404,6 +6425,7 @@ async function initAlerts() {
     const toggle = document.getElementById('alert-start-toggle');
     if (!toggle) return;
     toggle.checked = alertsWanted();
+    syncAlertModeUI();
 
     const push = getPushPlugin();
     if (!push) {
@@ -6420,6 +6442,7 @@ async function initAlerts() {
         console.error('Push registration error:', err);
         localStorage.setItem(ALERT_PREF_KEY, 'off');
         toggle.checked = false;
+        syncAlertModeUI();
         setAlertStatus('Could not set up alerts on this phone. Try again later.', true);
     });
     // A tap on an alert, or an alert arriving while the app is open: refresh the live data.
@@ -6454,6 +6477,7 @@ async function setStartAlert(on) {
 
     if (!on) {
         localStorage.setItem(ALERT_PREF_KEY, 'off');
+        syncAlertModeUI();
         const token = localStorage.getItem(PUSH_TOKEN_KEY);
         if (token) await saveSubscription(token, false);
         else setAlertStatus('No alerts will be sent.');
@@ -6473,6 +6497,7 @@ async function setStartAlert(on) {
             return;
         }
         localStorage.setItem(ALERT_PREF_KEY, 'on');
+        syncAlertModeUI();
         await push.register(); // the 'registration' listener saves the token
     } catch (e) {
         console.error('Alert setup error:', e);
@@ -6488,11 +6513,13 @@ async function saveSubscription(token, enabled) {
         const res = await fetch(`${FUNCTIONS_BASE}/push-subscription`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, platform: 'ios', enabled })
+            body: JSON.stringify({ token, platform: 'ios', enabled, alertMode: alertMode() })
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         setAlertStatus(enabled
-            ? 'All set! PCC Trolley Alerts Confirmed.'
+            ? (alertMode() === 'each'
+                ? 'All set! PCC Trolley Alerts Confirmed. Every Trolley that starts running gets its own alert.'
+                : 'All set! PCC Trolley Alerts Confirmed. One alert a day, for the first Trolley.')
             : 'No alerts will be sent.');
     } catch (e) {
         console.error('Subscription save error:', e);

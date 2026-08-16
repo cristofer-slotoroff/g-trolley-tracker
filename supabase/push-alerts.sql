@@ -28,3 +28,6 @@ CREATE TABLE IF NOT EXISTS public.push_alerts_sent (
 -- anonymous keys get nothing.
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_alerts_sent   ENABLE ROW LEVEL SECURITY;
+
+-- 2026-08-16: alert mode per phone. 'first' = one alert a day, 'each' = every car that starts running.
+ALTER TABLE public.push_subscriptions ADD COLUMN IF NOT EXISTS alert_mode text NOT NULL DEFAULT 'first';

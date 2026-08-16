@@ -49,6 +49,16 @@
                 <input type="checkbox" id="alert-start-toggle" onchange="setStartAlert(this.checked)">
                 <span>Alert me when PCC Trolleys start running</span>
             </label>
+            <div class="alert-modes" id="alert-modes" hidden>
+                <label class="alert-mode">
+                    <input type="radio" name="alert-mode" value="first" checked onchange="setAlertMode('first')">
+                    <span>First Trolley of the day</span>
+                </label>
+                <label class="alert-mode">
+                    <input type="radio" name="alert-mode" value="each" onchange="setAlertMode('each')">
+                    <span>Every Trolley that starts running</span>
+                </label>
+            </div>
             <p class="alert-status" id="alert-status">One alert a day, when the first Trolley appears on the G Line.</p>
         </section>
 

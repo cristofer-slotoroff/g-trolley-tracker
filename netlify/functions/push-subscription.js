@@ -34,6 +34,8 @@ export const handler = async (event) => {
     const token = String(body.token || '').trim();
     const platform = String(body.platform || 'ios');
     const enabled = body.enabled !== false;
+    // 'first' = one alert a day; 'each' = every car that comes out. Added 2026-08-16.
+    const alertMode = body.alertMode === 'each' ? 'each' : 'first';
 
     // Apple device tokens are hex strings (64 characters today; allow longer in case Apple changes it).
     if (!/^[a-f0-9]{32,256}$/i.test(token)) {
@@ -49,6 +51,7 @@ export const handler = async (event) => {
             token: token.toLowerCase(),
             platform,
             enabled,
+            alert_mode: alertMode,
             updated_at: new Date().toISOString(),
             last_error: null
         }, { onConflict: 'token' });
@@ -58,5 +61,5 @@ export const handler = async (event) => {
         return { statusCode: 500, headers, body: JSON.stringify({ error: 'Could not save' }) };
     }
 
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, enabled }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, enabled, alertMode }) };
 };
