@@ -76,5 +76,6 @@ def submit():
     if st == 200: print('SUBMITTED. state:', res['data']['attributes']['state'])
     else: print('submit FAILED', st); print(json.dumps(res, indent=1))
 
+cmd = sys.argv[1] if len(sys.argv) > 1 else 'status'
 DEFAULT_VIDEO = os.path.expanduser('~/Downloads/philly-trolleys-review.mp4')  # 2026-08-17: 2.5 Mbps re-encode of the phone recording (40 MB)
 {'attach': lambda: attach(sys.argv[2] if len(sys.argv) > 2 else DEFAULT_VIDEO), 'status': status, 'submit': submit}[cmd]()
