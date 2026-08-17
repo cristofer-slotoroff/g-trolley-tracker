@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Attach the screen recording and resubmit version 1.0. Added 2026-08-17.
 Usage:
-  python3 scripts/asc_submit.py attach /path/to/recording.mp4     (uploads an App Review attachment)
+  python3 scripts/asc_submit.py attach [/path/to/recording.mp4]   (uploads an App Review attachment; default ~/Downloads/philly-trolleys-review.mp4)
   python3 scripts/asc_submit.py status                            (attachments and submission state)
   python3 scripts/asc_submit.py submit                            (resubmits the review submission)"""
 import sys, os, json, hashlib, subprocess
@@ -89,4 +89,5 @@ def submit():
     if add_item(sid): try_submit(sid)
 
 cmd = sys.argv[1] if len(sys.argv) > 1 else 'status'
-{'attach': lambda: attach(sys.argv[2]), 'status': status, 'submit': submit}[cmd]()
+DEFAULT_VIDEO = os.path.expanduser('~/Downloads/philly-trolleys-review.mp4')  # 2026-08-17: 2.5 Mbps re-encode of the phone recording (40 MB)
+{'attach': lambda: attach(sys.argv[2] if len(sys.argv) > 2 else DEFAULT_VIDEO), 'status': status, 'submit': submit}[cmd]()
