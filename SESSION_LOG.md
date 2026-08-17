@@ -10,9 +10,11 @@ Newest entry first. The plan and its short progress log live in `docs/APP-STORE-
 - Drafted the full reply in `docs/APP-REVIEW-REPLY.md`: a recording shot list for Cris's iPhone 15 Pro (iOS 26.6, checked with devicectl) and the answer text (devices, description, setup, external services, regions, third-party material). Listing doc's review notes now point there, with a short version for the Notes field.
 - Checked live status at 6:38 AM: PCC cars 2332 and 2337 out, so the recording can be made any time today during service.
 
+- Bug found by Cris before recording: Route Options showed "#block_9013_schedBasedVehicle to arrive at 7:33 AM". Root cause (verified against SEPTA's TransitView and TransitViewAll): SEPTA publishes a placeholder "vehicle" named block_NNNN_schedBasedVehicle for a scheduled trip with no live vehicle; 1 of 10 G1 entries at 6:38 AM, 7 system-wide at 6:52 AM. The other lines already filtered these; the G1 loop did not. This is also the "over-long vehicle id" the tracker had been rejecting since 2026-08-16. Fixed in the app, tracker, and widget feed; website live and verified; build 3 archived and exported (IPA at native/ios/App/build/export3), upload waiting on Cris.
+
 ### Where this falls in the plan
 
-- Still the last step before release. One reply closes it; no code changes.
+- Still the last step before release. Reply (or resubmit with build 3), then wait.
 
 ### Roadblocks and challenges
 
