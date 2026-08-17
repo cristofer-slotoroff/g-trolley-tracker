@@ -76,6 +76,11 @@ export const handler = async (event) => {
                 if (!label || label === 'None' || label === '0' || label === '') {
                     continue;
                 }
+                // SEPTA's schedule-based placeholders ("block_9013_schedBasedVehicle") are scheduled trips with no
+                // real vehicle; they were the over-long labels found 2026-08-17. Skip quietly.
+                if (label.includes('schedBased')) {
+                    continue;
+                }
                 // vehicle_id is varchar(10) in the database; log and skip anything longer (2026-08-16).
                 if (label.length > 10) {
                     console.warn('PCC Tracker: skipping vehicle with an unexpectedly long label:', JSON.stringify(vehicle).slice(0, 300));

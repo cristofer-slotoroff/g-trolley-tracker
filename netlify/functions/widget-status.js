@@ -33,7 +33,7 @@ export const handler = async () => {
         let busCount = 0;
         for (const v of list) {
             const label = String(v.label || v.VehicleID || '');
-            if (!label || label === 'None' || label === '0') continue;
+            if (!label || label === 'None' || label === '0' || label.includes('schedBased')) continue;
             if (isPCCTrolley(label)) {
                 vehicles.push({
                     id: label,

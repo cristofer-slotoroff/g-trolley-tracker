@@ -3574,6 +3574,12 @@ async function fetchTrolleyData() {
                             vehicle.next_stop_sequence == null) {
                             continue;
                         }
+                        // Skip SEPTA's schedule-based placeholders ("block_9013_schedBasedVehicle"): a scheduled
+                        // trip with no real vehicle on it. Seen live on G1 on 2026-08-17; it showed up in Route
+                        // Options as a "bus" with that string as its number. The other lines already filter these.
+                        if (label.includes('schedBased')) {
+                            continue;
+                        }
 
                         // Always fetch all vehicles; display logic will filter based on isPCC and user preferences
                         const isPCC = label.startsWith('23') && label.length === 4;
