@@ -65,6 +65,10 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 - Duplicate app rule 4.3. No other app tracks PCC cars specifically. Low risk (inferred).
 - The real-time API has no published license of its own (verified). Many paid SEPTA apps use it and no record of SEPTA objecting was found (inferred).
 
+## RESUBMITTED 2026-08-17, 7:59 AM ET
+
+Submission 796656fe is Waiting for Review: version 1.0, build 4 (schedBased placeholder fix, widget refresh button), full review notes, 4:37 screen recording attached. Release is manual. Approved: say "release". Otherwise paste the message here.
+
 ## APPLE ASKED FOR INFORMATION 2026-08-16, 11:54 PM ET
 
 Guideline 2.1, Information Needed (not a rule violation). Apple wants a screen recording from a physical iPhone plus written answers (devices tested, description, setup, external services, regions, regulated material). Everything is drafted in `docs/APP-REVIEW-REPLY.md`: Part A is the recording shot list for Cris's iPhone 15 Pro (iOS 26.6), Part B is the reply text. Reply in the App Store Connect message thread with the text and the video. Same morning, Cris found the schedBasedVehicle placeholder bug (see SESSION_LOG 2026-08-17); build 3 fixed it, build 4 adds the widget refresh button (tap the "Updated" line). Decision: resubmit with build 4, notes from `docs/app-review-notes.txt`, video attached. Cris runs `./native/upload.sh`, `scripts/asc_stage.py 4`, `scripts/asc_submit.py attach <video>`, `scripts/asc_submit.py submit` (with the `!` prefix). Next time, paste the notes file into App Review notes before submitting.
