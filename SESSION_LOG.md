@@ -22,10 +22,23 @@ Newest entry first. The plan and its short progress log live in `docs/APP-STORE-
 
 - Done except Apple's decision. Second time in the queue.
 
+- Banked two ideas from Cris for after approval (plan file, backlog items 5 and 6): a collapsed whole-line live view (vertical strip, west at top, pulsing green dots with direction arrows) and a "new trolley in service" alert.
+
 ### Roadblocks and challenges
 
-- The App Store Connect API has no endpoint for replying to App Review messages, and a recording from a physical phone is Cris's alone to make, so this round is a manual step in the App Store Connect UI.
-- The API key's Issuer ID is not stored on disk (only the .p8 is), so the review-notes field could not be refreshed by API this session; paste it in the UI or provide the Issuer ID.
+- The App Store Connect API has no endpoint for replying to App Review messages, so the round became a resubmission with the answers in the notes and the recording as an attachment.
+- The API key's Issuer ID was not on disk (only the .p8); Cris pasted it from App Store Connect and it now lives in ~/.appstoreconnect/issuer_id.
+- Every write to Apple (upload, PATCH, POST) is blocked for the assistant by the permission classifier; reads work. Cris ran each write as a one-line `!` command. Multi-line pastes split in his shell twice (a bare `xcodebuild` ran once, a video path with spaces broke once), so commands must be one line with no spaces in paths.
+- The Xcode-account upload path fails on this Mac ("team IDs for account (null)"); the API key path works.
+- avconvert's presets barely shrank the 399 MB recording (416 MB at 1080, 271 MB at 720); a 2.5 Mbps AVFoundation re-encode at full resolution gave 40 MB (`scripts/reencode-video.py`, needs pyobjc-framework-AVFoundation).
+- Cris's airplane-mode test did not go offline because Wi-Fi stayed on; offline mode was skipped in the video, which Apple did not ask for anyway.
+
+### Successes and new understandings
+
+- SEPTA's schedule-based placeholder vehicles (block_NNNN_schedBasedVehicle) explain both the ugly Route Options entry and the tracker's over-long-ID rejects; one filter fixes all readers.
+- Interactive widget buttons (AppIntent, iOS 17) work in a Capacitor project with no app-side code; the "Updated" line as the tap target keeps the layout intact, and Cris confirmed the refresh on his real phone.
+- The whole resubmission (notes, build swap, attachment upload in 8 chunks, new review submission) can be driven by the API from a dependency-free Python client (openssl for the ES256 signature, curl for HTTP, `-g` to keep square brackets literal).
+- Swapping the build moved the version from REJECTED to PREPARE_FOR_SUBMISSION; a submission in UNRESOLVED_ISSUES cannot take new items, so cancel it and open a fresh one, then add the version and submit.
 
 ### Where to pick up next session
 
