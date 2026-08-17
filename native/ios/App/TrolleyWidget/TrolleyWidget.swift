@@ -1,9 +1,25 @@
 // TrolleyWidget.swift - Philly Trolleys home screen widget. Added 2026-08-15.
 // Shows how many PCC trolleys are out on the G Line right now, and which cars.
-// Reads a small JSON feed from the live site every 15 minutes; tapping opens the app.
+// Reads a small JSON feed from the live site about every 10 minutes; tapping opens the app.
+// The "Updated" line is a refresh button (2026-08-17).
 
 import WidgetKit
 import SwiftUI
+import AppIntents
+
+// MARK: - Refresh button (added 2026-08-17)
+// iOS budgets widget refreshes, so the 10-minute timeline can lag behind the feed (Cris saw 3 cars on the
+// widget with 4 out). Tapping the "Updated" line runs this intent; iOS reloads the widget when it finishes.
+
+struct RefreshTrolleyWidgetIntent: AppIntent {
+    static var title: LocalizedStringResource = "Refresh PCC Trolleys"
+    static var description = IntentDescription("Reloads the PCC Trolleys widget now.")
+
+    func perform() async throws -> some IntentResult {
+        WidgetCenter.shared.reloadTimelines(ofKind: "TrolleyWidget")
+        return .result()
+    }
+}
 
 // MARK: - Data
 
@@ -185,6 +201,7 @@ struct TrolleyWidgetView: View {
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundStyle(TrolleyColors.gold)
                     .minimumScaleFactor(0.6)
+                    .invalidatableContent()
                 Text("out on the G Line")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(TrolleyColors.cream)
@@ -197,11 +214,27 @@ struct TrolleyWidgetView: View {
                     .foregroundStyle(TrolleyColors.creamDim)
             }
             Spacer(minLength: 0)
-            Text("Updated \(timeText)")
-                .font(.caption2)
-                .foregroundStyle(TrolleyColors.creamDim.opacity(0.8))
+            refreshLine
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+
+    // "Updated h:mm" doubles as the refresh button. The whole line is the tap target.
+    private var refreshLine: some View {
+        Button(intent: RefreshTrolleyWidgetIntent()) {
+            HStack(spacing: 3) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 9, weight: .bold))
+                Text("Updated \(timeText)")
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .foregroundStyle(TrolleyColors.creamDim.opacity(0.9))
+            .padding(.vertical, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // Medium: number on the left, the cars on the right.
@@ -224,14 +257,13 @@ struct TrolleyWidgetView: View {
                     Text("\(s.pccCount)")
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundStyle(TrolleyColors.gold)
+                        .invalidatableContent()
                     Text(s.pccCount == 0 ? "out right now" : "out on the G Line")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(TrolleyColors.cream)
                 }
                 Spacer(minLength: 0)
-                Text("Updated \(timeText)")
-                    .font(.caption2)
-                    .foregroundStyle(TrolleyColors.creamDim.opacity(0.8))
+                refreshLine
             }
             .frame(width: 118, alignment: .leading)
 

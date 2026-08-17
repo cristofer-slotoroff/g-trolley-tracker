@@ -67,7 +67,7 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 
 ## APPLE ASKED FOR INFORMATION 2026-08-16, 11:54 PM ET
 
-Guideline 2.1, Information Needed (not a rule violation). Apple wants a screen recording from a physical iPhone plus written answers (devices tested, description, setup, external services, regions, regulated material). Everything is drafted in `docs/APP-REVIEW-REPLY.md`: Part A is the recording shot list for Cris's iPhone 15 Pro (iOS 26.6), Part B is the reply text. Reply in the App Store Connect message thread with the text and the video. Same morning, Cris found the schedBasedVehicle placeholder bug (see SESSION_LOG 2026-08-17); build 3 fixes it and is exported, so the choice is: reply and keep build 2 (bug ships in 1.0), or remove from review, attach build 3 with the notes and video, and resubmit. Next time, paste Part B into the App Review notes before submitting.
+Guideline 2.1, Information Needed (not a rule violation). Apple wants a screen recording from a physical iPhone plus written answers (devices tested, description, setup, external services, regions, regulated material). Everything is drafted in `docs/APP-REVIEW-REPLY.md`: Part A is the recording shot list for Cris's iPhone 15 Pro (iOS 26.6), Part B is the reply text. Reply in the App Store Connect message thread with the text and the video. Same morning, Cris found the schedBasedVehicle placeholder bug (see SESSION_LOG 2026-08-17); build 3 fixed it, build 4 adds the widget refresh button (tap the "Updated" line). Decision: resubmit with build 4, notes from `docs/app-review-notes.txt`, video attached. Cris runs `./native/upload.sh`, `scripts/asc_stage.py 4`, `scripts/asc_submit.py attach <video>`, `scripts/asc_submit.py submit` (with the `!` prefix). Next time, paste the notes file into App Review notes before submitting.
 
 ## SUBMITTED 2026-08-16, 2:34 PM ET
 
@@ -106,7 +106,7 @@ Claude: capture store screenshots during service hours (weekday, about 10am to 4
 ## Widget, how it works (built 2026-08-15)
 
 - "PCC Trolleys Now" home screen widget, small and medium. Small: count out now (or "None out"). Medium: count plus up to three cars with direction. Tap opens the app.
-- Data: `/.netlify/functions/widget-status`, a 60-second-cached feed of PCC cars on G1. The widget refreshes about every 15 minutes and whenever the app opens.
+- Data: `/.netlify/functions/widget-status`, a 60-second-cached feed of PCC cars on G1. The widget refreshes about every 10 minutes, whenever the app opens, when an alert lands, and when the "Updated" line is tapped (interactive AppIntent button, added 2026-08-17; iOS budgets background refreshes, so the tap is the fix for a stale count).
 - Code: `native/ios/App/TrolleyWidget/TrolleyWidget.swift`. The extension target was added to the Xcode project by script (xcodeproj gem). App and widget target iOS 17.
 - Verified on the Simulator: gallery listing, both previews, both sizes live on the home screen with real data.
 

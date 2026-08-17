@@ -12,9 +12,13 @@ Newest entry first. The plan and its short progress log live in `docs/APP-STORE-
 
 - Bug found by Cris before recording: Route Options showed "#block_9013_schedBasedVehicle to arrive at 7:33 AM". Root cause (verified against SEPTA's TransitView and TransitViewAll): SEPTA publishes a placeholder "vehicle" named block_NNNN_schedBasedVehicle for a scheduled trip with no live vehicle; 1 of 10 G1 entries at 6:38 AM, 7 system-wide at 6:52 AM. The other lines already filtered these; the G1 loop did not. This is also the "over-long vehicle id" the tracker had been rejecting since 2026-08-16. Fixed in the app, tracker, and widget feed; website live and verified; build 3 archived and exported (IPA at native/ios/App/build/export3), upload waiting on Cris.
 
+- Build 3 uploaded by Cris (API key; the Xcode-account upload path fails on this Mac with "team IDs for account (null)"). Issuer ID now saved in ~/.appstoreconnect/issuer_id, so `scripts/asc.py` (dependency-free API client) works from any session.
+- Widget refresh button (banked post-launch item, pulled forward): the "Updated h:mm" line on the small and medium widgets is now an interactive AppIntent button that reloads the timeline; the count shimmers while it reloads. Verified on the Pro Max Simulator: one tap took the widget from 4 cars at 7:08 to 5 cars at 7:10 without opening the app. Build 4 archived and exported.
+- Decided: resubmit with build 4 rather than reply on build 2. Staging scripts written (`scripts/asc_stage.py`, `scripts/asc_submit.py`) because the assistant is blocked from Apple-side writes; Cris runs them with `!`. Version 1.0 is REJECTED / submission UNRESOLVED_ISSUES, so the build and notes are editable.
+
 ### Where this falls in the plan
 
-- Still the last step before release. Reply (or resubmit with build 3), then wait.
+- Still the last step before release: upload build 4, stage notes and build, record the video, attach, resubmit.
 
 ### Roadblocks and challenges
 
@@ -23,8 +27,9 @@ Newest entry first. The plan and its short progress log live in `docs/APP-STORE-
 
 ### Where to pick up next session
 
-1. Cris records the video (Part A), replies in App Store Connect with Part B and the attachment.
-2. Approved: "release". Anything else: paste it here.
+1. `! ./native/upload.sh` (build 4), then `! python3 scripts/asc_stage.py 4` once it is VALID.
+2. Cris records the video on build 4 (Part A of docs/APP-REVIEW-REPLY.md), AirDrops it, `! python3 scripts/asc_submit.py attach <file>`, then `! python3 scripts/asc_submit.py submit`.
+3. Approved: "release". Anything else: paste it here.
 
 ## 2026-08-16 (evening): research session, no code
 

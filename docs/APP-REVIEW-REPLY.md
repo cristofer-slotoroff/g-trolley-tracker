@@ -1,8 +1,12 @@
 # App Review reply: Guideline 2.1, Information Needed
 
-Apple asked for this on 2026-08-16 (submission 431caa3b). Reply in App Store Connect
-(Philly Trolleys, version 1.0, the message thread from App Review): paste Part B, attach the
-screen recording from Part A. No new build or resubmission is needed unless Apple asks.
+Apple asked for this on 2026-08-16 (submission 431caa3b). Decided 2026-08-17: resubmit with build 4
+(schedBased placeholder fix, widget refresh button) instead of replying on build 2. The answers go in
+the App Review notes (`docs/app-review-notes.txt`, the under-4000-character version of Part B), the
+recording goes in as an App Review attachment, then the submission is resubmitted. Scripts, all run
+by Cris with the `!` prefix because Apple-side writes are blocked for the assistant:
+`./native/upload.sh` (newest IPA), `python3 scripts/asc_stage.py 4` (notes plus build),
+`python3 scripts/asc_submit.py attach <video>`, `python3 scripts/asc_submit.py submit`.
 
 Facts below were checked on 2026-08-17: Cris's phone is an iPhone 15 Pro on iOS 26.6 (23G71),
 the Simulators run iOS 26.5, Xcode is 26.6, the app targets iOS 17.0, iPhone only.
@@ -13,8 +17,8 @@ Record during service hours (PCC cars usually run about 6 AM to 8 PM Eastern; tw
 at 6:38 AM on 2026-08-17). Aim for 90 seconds to 2 minutes. Keep it under about 100 MB.
 
 Setup, before recording:
-1. Delete Philly Trolleys from the phone, then reinstall build 2 from TestFlight (same build
-   Apple is reviewing). This resets notification permission so the prompt appears on camera.
+1. Delete Philly Trolleys from the phone, then reinstall the newest build from TestFlight (build 4,
+   the one going to Apple). This resets notification permission so the prompt appears on camera.
 2. Add the screen recorder to Control Center if it is not there (Settings, Control Center).
 3. Turn on Do Not Disturb so nothing else pops in.
 
@@ -30,7 +34,8 @@ Shot list, in this order:
 5. Scroll to Analytics: typical hours, today's trolleys, roster, service history.
 6. Footer: tap Share (show the share sheet, then dismiss). Tap About, scroll a little, go back.
 7. Widget: go to the home screen, long press, add the Philly Trolleys widget (small or medium),
-   show it with the live count. Tap the widget to show it opens the app.
+   show it with the live count. Tap the "Updated" line to show it refresh, then tap the widget
+   body to show it opens the app.
 8. Offline: turn on Airplane Mode in Control Center, pull to refresh or reopen the app, show
    the "Offline, showing ... data" label. Turn Airplane Mode off.
 9. Stop recording (tap the red status bar, Stop). The video lands in Photos.
@@ -83,8 +88,8 @@ positions from SEPTA's feeds within a few seconds. Notes for review:
   notification permission (the only permission the app requests). Choose "first car of the
   day" or "every car", and optionally save a stop, direction, and distance for stop alerts.
 - Widget: long press the home screen, tap the plus button, search "Philly Trolleys", add the
-  small or medium widget. It shows how many PCC cars are out and refreshes about every 15
-  minutes and when the app opens.
+  small or medium widget. It shows how many PCC cars are out and refreshes about every 10
+  minutes, when the app opens, and when the "Updated" line on the widget is tapped.
 - Offline mode: with no connection the app shows the last positions and analytics it saw,
   labeled with their time.
 - Share, About, Privacy, and Support are in the footer.
