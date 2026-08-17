@@ -39,3 +39,6 @@ node_modules.nosync
 # Native app (Capacitor) build outputs
 native/node_modules/
 native/www/
+
+# Stray SPM build output from a bare xcodebuild run (2026-08-17)
+native/ios/App/CapApp-SPM/build/
