@@ -56,38 +56,25 @@ def submit():
     if not done:
         print('STOP: no completed screen-recording attachment on the review detail. Run: asc_submit.py attach <file>'); sys.exit(1)
     open_subs = [s for s in subs if s['attributes']['state'] in ('UNRESOLVED_ISSUES', 'READY_FOR_REVIEW')]
-
-    def try_submit(sid):
-        st, res = asc.call('PATCH', f'/v1/reviewSubmissions/{sid}', {'data': {'type': 'reviewSubmissions', 'id': sid, 'attributes': {'submitted': True}}})
-        ok = st == 200
-        print('resubmit', sid[:8] + ':', 'SUBMITTED, state ' + res['data']['attributes']['state'] if ok else f'not accepted ({st}) ' + json.dumps(res)[:400])
-        return ok
-
-    def add_item(sid):
+    if open_subs:
+        sid = open_subs[0]['id']
+    else:
+        st, res = asc.call('POST', '/v1/reviewSubmissions', {'data': {'type': 'reviewSubmissions', 'attributes': {'platform': 'IOS'},
+            'relationships': {'app': {'data': {'type': 'apps', 'id': APP}}}}})
+        if st != 201: print('new submission failed', st, json.dumps(res, indent=1)); sys.exit(1)
+        sid = res['data']['id']; print('new submission', sid[:8])
+    st, items = asc.call('GET', f'/v1/reviewSubmissions/{sid}/items?include=appStoreVersion')
+    has_version = any(x['type'] == 'appStoreVersions' and x['id'] == vid for x in items.get('included', []))
+    if not has_version:
         st, res = asc.call('POST', '/v1/reviewSubmissionItems', {'data': {'type': 'reviewSubmissionItems',
             'relationships': {'reviewSubmission': {'data': {'type': 'reviewSubmissions', 'id': sid}},
                               'appStoreVersion': {'data': {'type': 'appStoreVersions', 'id': vid}}}}})
-        print('add version 1.0 to submission:', 'ok' if st == 201 else f'failed ({st}) ' + json.dumps(res)[:400])
-        return st == 201
+        if st != 201:
+            print('add version 1.0 to submission FAILED', st); print(json.dumps(res, indent=1)); sys.exit(1)
+        print('version 1.0 added to submission', sid[:8])
+    st, res = asc.call('PATCH', f'/v1/reviewSubmissions/{sid}', {'data': {'type': 'reviewSubmissions', 'id': sid, 'attributes': {'submitted': True}}})
+    if st == 200: print('SUBMITTED. state:', res['data']['attributes']['state'])
+    else: print('submit FAILED', st); print(json.dumps(res, indent=1))
 
-    if open_subs:
-        sid = open_subs[0]['id']
-        if try_submit(sid): return
-        # Fallback 1: refresh the item (drop the rejected one, add the version again), then submit.
-        st, items = asc.call('GET', f'/v1/reviewSubmissions/{sid}/items')
-        for it in items.get('data', []):
-            st, res = asc.call('DELETE', f'/v1/reviewSubmissionItems/{it["id"]}')
-            print('remove old item:', st)
-        if add_item(sid) and try_submit(sid): return
-        # Fallback 2: cancel this submission and open a fresh one.
-        st, res = asc.call('PATCH', f'/v1/reviewSubmissions/{sid}', {'data': {'type': 'reviewSubmissions', 'id': sid, 'attributes': {'canceled': True}}})
-        print('cancel old submission:', st)
-    st, res = asc.call('POST', '/v1/reviewSubmissions', {'data': {'type': 'reviewSubmissions', 'attributes': {'platform': 'IOS'},
-        'relationships': {'app': {'data': {'type': 'apps', 'id': APP}}}}})
-    if st != 201: print('new submission failed', st, json.dumps(res)[:600]); sys.exit(1)
-    sid = res['data']['id']; print('new submission', sid[:8])
-    if add_item(sid): try_submit(sid)
-
-cmd = sys.argv[1] if len(sys.argv) > 1 else 'status'
 DEFAULT_VIDEO = os.path.expanduser('~/Downloads/philly-trolleys-review.mp4')  # 2026-08-17: 2.5 Mbps re-encode of the phone recording (40 MB)
 {'attach': lambda: attach(sys.argv[2] if len(sys.argv) > 2 else DEFAULT_VIDEO), 'status': status, 'submit': submit}[cmd]()
