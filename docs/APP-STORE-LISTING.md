@@ -61,14 +61,18 @@ Nothing else is collected in the app: no analytics, no location, no contact info
 
 ## App Review notes
 
+Full answers to Apple's Guideline 2.1 "Information Needed" request (2026-08-16) live in
+`docs/APP-REVIEW-REPLY.md`. Paste Part B of that file into the Notes field of App Review
+Information for every future submission, and keep the device list there current.
+
+Short version:
+
 ```
-Philly Trolleys is an independent tracker for SEPTA's vintage PCC trolley cars on the G Line in Philadelphia. It is not affiliated with SEPTA. Data comes from SEPTA's public open-data feeds (www3.septa.org/api).
+Philly Trolleys is an independent tracker for SEPTA's vintage PCC trolley cars on the G Line in Philadelphia. It is not affiliated with SEPTA. Data comes from SEPTA's public developer feeds (www3.septa.org/api) through our Netlify functions; Supabase stores the sighting log and, only after a user opts in, push tokens and saved stop alerts. Notifications go straight to APNs from our server. No login, accounts, purchases, subscriptions, ads, or user content. The only permission requested is notifications, when the user turns on Trolley Alerts.
 
-The PCC cars run roughly 6am to 8pm Eastern on most days. Outside those hours the app shows the buses covering the route and says so. Analytics, the widget, and the alert toggle work at any hour.
+PCC cars run roughly 6 AM to 8 PM Eastern on most days. Outside those hours the home screen says so and shows the buses covering the route. Route directions, alerts, the widget, analytics, and offline mode work at any hour.
 
-Trolley alerts are optional. Turning on the toggle requests notification permission and sends one alert per day when the first PCC car appears.
-
-No login is needed. The app works offline by showing the last data it saw, labeled with its time.
+Tested on iPhone 15 Pro (iOS 26.6) and iPhone 17 Pro and Pro Max Simulators (iOS 26.5, Xcode 26.6). Minimum iOS 17. iPhone only. United States only; no regional differences.
 ```
 
 ## Screenshots

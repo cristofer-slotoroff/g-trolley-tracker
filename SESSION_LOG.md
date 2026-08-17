@@ -2,6 +2,28 @@
 
 Newest entry first. The plan and its short progress log live in `docs/APP-STORE-PLAN.md`; store copy in `docs/APP-STORE-LISTING.md`.
 
+## 2026-08-17: Apple asked for more information
+
+### Work completed
+
+- Apple's reply (11:54 PM on 2026-08-16) was Guideline 2.1, Information Needed: a physical-device screen recording plus seven written answers. Not a rule violation.
+- Drafted the full reply in `docs/APP-REVIEW-REPLY.md`: a recording shot list for Cris's iPhone 15 Pro (iOS 26.6, checked with devicectl) and the answer text (devices, description, setup, external services, regions, third-party material). Listing doc's review notes now point there, with a short version for the Notes field.
+- Checked live status at 6:38 AM: PCC cars 2332 and 2337 out, so the recording can be made any time today during service.
+
+### Where this falls in the plan
+
+- Still the last step before release. One reply closes it; no code changes.
+
+### Roadblocks and challenges
+
+- The App Store Connect API has no endpoint for replying to App Review messages, and a recording from a physical phone is Cris's alone to make, so this round is a manual step in the App Store Connect UI.
+- The API key's Issuer ID is not stored on disk (only the .p8 is), so the review-notes field could not be refreshed by API this session; paste it in the UI or provide the Issuer ID.
+
+### Where to pick up next session
+
+1. Cris records the video (Part A), replies in App Store Connect with Part B and the attachment.
+2. Approved: "release". Anything else: paste it here.
+
 ## 2026-08-16 (evening): research session, no code
 
 ### Work completed

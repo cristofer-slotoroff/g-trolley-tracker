@@ -65,6 +65,10 @@ Estimate: 5 to 7 working sessions. Shell 1 to 2, push 1 to 2, widget 1 to 2, sto
 - Duplicate app rule 4.3. No other app tracks PCC cars specifically. Low risk (inferred).
 - The real-time API has no published license of its own (verified). Many paid SEPTA apps use it and no record of SEPTA objecting was found (inferred).
 
+## APPLE ASKED FOR INFORMATION 2026-08-16, 11:54 PM ET
+
+Guideline 2.1, Information Needed (not a rule violation). Apple wants a screen recording from a physical iPhone plus written answers (devices tested, description, setup, external services, regions, regulated material). Everything is drafted in `docs/APP-REVIEW-REPLY.md`: Part A is the recording shot list for Cris's iPhone 15 Pro (iOS 26.6), Part B is the reply text. Reply in the App Store Connect message thread with the text and the video; no new build needed. Next time, paste Part B into the App Review notes before submitting.
+
 ## SUBMITTED 2026-08-16, 2:34 PM ET
 
 Version 1.0 with build 2 is Waiting for Review (review submission 431caa3b). Release is manual: when Apple approves, say "release" and it goes live (API), or click Release in App Store Connect. Typical review: 1 to 3 days. If Apple rejects, the message arrives by email and in App Store Connect; paste it here and it gets fixed and resubmitted.
