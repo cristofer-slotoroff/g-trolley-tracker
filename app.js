@@ -6719,7 +6719,8 @@ async function removeStopAlert(id) {
     const CACHE = 'pcc_app_live';
     if (localStorage.getItem(CACHE) === 'yes') { promo.hidden = false; return; }
     // Apple's public lookup answers with the app record only when it is live in the store.
-    fetch('https://itunes.apple.com/lookup?id=6802036569&country=us')
+    // 2026-08-19: country must be uppercase US. Lowercase "us" answered 0 results for hours after release while "US" answered 1, so the button stayed hidden. Do not lowercase this.
+    fetch('https://itunes.apple.com/lookup?id=6802036569&country=US')
         .then(r => r.json())
         .then(d => {
             if (d && d.resultCount > 0) {
