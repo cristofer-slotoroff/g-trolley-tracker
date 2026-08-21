@@ -2,6 +2,43 @@
 
 Newest entry first. The plan and its short progress log live in `docs/APP-STORE-PLAN.md`; store copy in `docs/APP-STORE-LISTING.md`.
 
+## 2026-08-19 to 2026-08-20: released, and the launch-day outage
+
+### Work completed
+
+- Version 1.0 released manually in App Store Connect at 12:34 PM ET on 2026-08-19. Approved on build 4, priced $4.99, United States only.
+- Website promo gate fixed. The "Get the app" button queried Apple with `country=us` (lowercase), which returned 0 results for hours while `country=US` returned the record. A control app (WhatsApp) answered on both, so the casing was specific to a freshly released record, not a general API rule. Dated note added in `app.js` so it is not changed back.
+- Launch-day outage found and fixed. Every Supabase-backed function returned HTTP 502, `Cannot find module '@supabase/supabase-js'`: push-subscription, push-stop-alert, push-status, pcc-stats, log-visit. Cause: a `netlify deploy --prod --dir .` from a working tree with no `node_modules`, which landed on top of a good git build. `netlify.toml` marks Supabase external, so the CLI shipped the functions without it. Fixed with `npm install` and a redeploy.
+- Deploy rule written into `README.md` with a four-line health check, and saved to auto-memory. Deploys go through a push to `main` from now on, because the connected Netlify build runs `npm install`.
+- Cris bought the app himself and confirmed the purchase path, the download, and alert saving after the fix.
+
+### Where this falls in the plan
+
+- The App Store phase is finished: scoping, shell, native features, listing, submission, approval, release. The app is on sale.
+- What remains is post-launch: search visibility, first real users, and the banked ideas (whole-line vertical live view, new-trolley-in-service alert, Google Play).
+
+### Roadblocks and challenges
+
+- Roughly five hours of "not available in your region" on Cris's iPhone while every server-side check said the app was live. App Store Connect read READY_FOR_DISTRIBUTION, the US territory read `available: true` and `AVAILABLE`, the web page returned 200, all six screenshots returned 200, and the buy offer was intact. Apple propagates per device and per account, and no setting was ever wrong.
+- Two wrong calls made along the way, both corrected with evidence in the same session. First, "cannot connect" was blamed on the home network; Cris pointed out every other listing loaded instantly, which killed it. Second, the app was reported at position 4 for "philly trolleys" and Cris was told to scroll; the public iTunes Search API had it at 4, but the device search backend did not have it at all. Two different indexes.
+- The outage was self-inflicted and hit on the day the app went on sale. The CLI deploy that broke it was made to ship the promo-gate fix.
+- The only symptom that pointed anywhere useful was Cris noticing that a misspelling ("philly trollehs") surfaced the app while the correct spelling did not.
+
+### Successes and new understandings
+
+- The storefront endpoint iPhones actually query can be reached from the terminal: `itunes.apple.com/WebObjects/MZStore.woa/wa/viewSoftware?id=<id>` and `search.itunes.apple.com/WebObjects/MZStore.woa/wa/search?...`, both with `X-Apple-Store-Front: 143441-1,29` and an `AppStore/3.0 iOS/17.0` user agent. That is the difference between guessing about a device and reading what the device reads.
+- The public `itunes.apple.com/lookup` and `/search` APIs are a different index from device search. A record can sit in one and not the other for hours. Never report device behavior from the public API alone.
+- A misspelled query bypasses the ranked search index and falls back to a catalog lookup, so it can surface an app that search cannot find. That is a usable diagnostic for whether an app is indexed or merely present.
+- The EU trader disclosure only governs EU storefronts. It explains `TRADER_STATUS_NOT_PROVIDED` and `CANNOT_SELL` on the European territories and has no bearing on the United States.
+- Search indexing landed about 7 hours after release. Verified 2026-08-20: "philly trolleys" and "philly trolley" both return the app at position 8 of 8; "pcc trolley" and "septa trolley" do not return it.
+
+### Pick up next session
+
+1. Re-run the four searches ("philly trolleys", "philly trolley", "pcc trolley", "septa trolley") against the device search backend. If the SEPTA and PCC terms are still empty 48 hours after release, the keyword field is the lever and the change should be drafted with the search evidence attached.
+2. Confirm the fiancee's phone can reach the listing, which is the last unclosed thread from launch day.
+3. Watch the first real alerts go out to paying users, and check push-status and Netlify credits.
+4. Then pick up the banked ideas: whole-line vertical live view, new-trolley-in-service alert, Google Play.
+
 ## 2026-08-17: Apple asked for more information
 
 ### Work completed
