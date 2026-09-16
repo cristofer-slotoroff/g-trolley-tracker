@@ -49,7 +49,16 @@
             <span class="app-promo-arrow">&rarr;</span>
         </a>
 
-        <section class="card intro-card">
+        <!-- Website tabs (added 2026-09-16): one screen per job. The iPhone app
+             keeps the single scroll (tabs only start when IS_NATIVE is false). -->
+        <nav class="site-tabs web-only" id="site-tabs" role="tablist" hidden>
+            <button type="button" class="site-tab" data-tab="now" role="tab" onclick="showTab('now')">Running Now</button>
+            <button type="button" class="site-tab" data-tab="ride" role="tab" onclick="showTab('ride')">Ride a Trolley</button>
+            <button type="button" class="site-tab" data-tab="stats" role="tab" onclick="showTab('stats')">Trolley Analytics</button>
+            <button type="button" class="site-tab" data-tab="fellow" role="tab" onclick="showTab('fellow')">Fellow Trackers</button>
+        </nav>
+
+        <section class="card intro-card" data-tab="now">
             <p>Track and ride vintage PCC Trolleys running on the SEPTA Metro G (Rt. 15) Line. Get directions to ride a PCC Trolley from anyplace within the SEPTA Metro / Regional Rail Network.</p>
             <p>PCC Trolleys tend to run from early morning into early evening. When no trolleys are running, you will see buses servicing the route. Tap "See Trolley Analytics" to explore service patterns, the trolley roster, and the record books.</p>
         </section>
@@ -108,7 +117,7 @@
         </section>
 
         <!-- Collapsible Stats Section -->
-        <section class="card stats-card">
+        <section class="card stats-card" data-tab="stats">
             <button class="stats-toggle" onclick="toggleStats()" aria-expanded="false" aria-controls="stats-content">
                 <span class="stats-toggle-text">See Trolley Analytics</span>
                 <span class="stats-toggle-icon">▼</span>
@@ -163,12 +172,17 @@
                         </div>
                     </div>
 
-                    <!-- PCC Trolley Roster (always visible) -->
-                    <div class="stats-section roster-section">
-                        <h3>PCC Trolley Roster</h3>
-                        <p class="stats-note">Ranked by days in service. Tap a trolley for stats.</p>
-                        <div id="vehicle-roster" class="vehicle-roster"></div>
-                        <div id="roster-detail" class="roster-detail" style="display: none;"></div>
+                    <!-- Subsection: PCC Trolley Roster (collapsed by default on the website) -->
+                    <div class="stats-subsection" id="subsection-roster">
+                        <button class="subsection-toggle" onclick="toggleSubsection('subsection-roster')" aria-expanded="false" aria-controls="subsection-roster-content">
+                            <span>PCC Trolley Roster</span>
+                            <span class="subsection-icon">&#9660;</span>
+                        </button>
+                        <div class="subsection-content" id="subsection-roster-content">
+                            <p class="stats-note">Ranked by days in service. Tap a trolley for stats.</p>
+                            <div id="vehicle-roster" class="vehicle-roster"></div>
+                            <div id="roster-detail" class="roster-detail" style="display: none;"></div>
+                        </div>
                     </div>
 
                     <!-- Subsection: Service History (open by default) -->
@@ -191,13 +205,13 @@
             </div>
         </section>
 
-        <div id="status-bar" class="status-bar">
+        <div id="status-bar" class="status-bar" data-tab="now">
             <span id="last-update">Loading...</span>
             <button id="refresh-btn" class="refresh-btn" onclick="refreshData()">↻ Refresh</button>
         </div>
 
         <!-- Live Trolley Positions - TOP -->
-        <section class="card" id="trolley-details">
+        <section class="card" id="trolley-details" data-tab="now">
             <h2 class="section-title" id="trolley-section-title">PCC Trolleys Running Now</h2>
             <label id="show-buses-toggle" class="show-buses-label" style="display: none;">
                 <input type="checkbox" id="show-buses-checkbox" onchange="toggleBusVisibility()">
@@ -212,7 +226,7 @@
         <!-- Fellow Philly Trolley Trackers (2026-09-16): web only. Live visitor
              counts from this free site, plus a share button for the free tracker.
              The iPhone app never shows this (body.native hides .web-only). -->
-        <section class="card web-only fellow-card" id="fellow-card" hidden>
+        <section class="card web-only fellow-card" id="fellow-card" data-tab="fellow" hidden>
             <h2 class="section-title">Fellow Philly Trolley Trackers</h2>
             <p class="stats-intro">Philly &lt;3s PCC Trolleys. Check the Stats:</p>
             <div class="stats-summary fellow-grid">
@@ -229,7 +243,7 @@
             <p class="alert-status" id="fellow-share-status"></p>
         </section>
 
-        <section class="card" id="station-section">
+        <section class="card" id="station-section" data-tab="ride">
             <h2 class="section-title">Direct Me to a PCC Trolley</h2>
             <div class="station-selector">
                 <div class="mode-selector">
@@ -248,7 +262,7 @@
         </section>
 
         <!-- Route Options -->
-        <section class="card" id="connections-section" style="display: none;">
+        <section class="card" id="connections-section" data-tab="ride" style="display: none;">
             <h2 id="connections-title" class="section-title">Route Options</h2>
             <div id="connections-list" class="connections-list"></div>
         </section>

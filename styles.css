@@ -3191,3 +3191,17 @@ body.native img {
 .fellow-card .stats-note { margin-top: 4px; }
 .fellow-card .stats-note { text-align: center; }
 .fellow-card .stats-intro { text-align: center; }
+
+/* Website tabs (added 2026-09-16). body.tabbed is set by app.js on the web only. */
+.site-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.site-tab {
+    font: inherit; font-weight: 700; font-size: 0.9rem;
+    background: rgba(0, 0, 0, 0.3); color: var(--pcc-cream);
+    border: 1px solid rgba(245, 241, 227, 0.25); border-radius: 10px;
+    padding: 12px 8px; cursor: pointer; min-height: 44px;
+}
+.site-tab.active { background: var(--pcc-gold); color: #1a1a1a; border-color: var(--pcc-cream); }
+body.tabbed [data-tab]:not(.tab-visible):not(.site-tab) { display: none !important; }
+body.tabbed .stats-toggle { display: none; }          /* the tab is the toggle */
+body.tabbed .stats-content[hidden] { display: block; } /* analytics always open in its tab */
+body.tabbed .intro-card p + p { display: none; }       /* one intro paragraph on the web */

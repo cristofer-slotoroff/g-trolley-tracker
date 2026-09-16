@@ -6758,6 +6758,47 @@ async function sharePhillyTrolleys() {
     }
 }
 
+// ---------- Website tabs (added 2026-09-16). WEB ONLY. ----------
+// One screen per job: Running Now / Ride a Trolley / Trolley Analytics / Fellow
+// Trackers. The iPhone app keeps its single scroll: nothing here runs when
+// IS_NATIVE is true, and the tab bar carries web-only.
+const TAB_KEY = 'site_tab';
+function showTab(name) {
+    document.querySelectorAll('[data-tab]').forEach((el) => {
+        if (el.classList.contains('site-tab')) {
+            const on = el.dataset.tab === name;
+            el.classList.toggle('active', on);
+            el.setAttribute('aria-selected', on ? 'true' : 'false');
+        } else {
+            el.classList.toggle('tab-visible', el.dataset.tab === name);
+        }
+    });
+    if (name === 'stats') {
+        const content = document.getElementById('stats-content');
+        if (content) content.hidden = false;
+        if (!statsLoaded) loadStats();
+    }
+    try { localStorage.setItem(TAB_KEY, name); } catch (_) {}
+}
+(function initTabs() {
+    if (IS_NATIVE) return;
+    const bar = document.getElementById('site-tabs');
+    if (!bar) return;
+    document.body.classList.add('tabbed');
+    bar.hidden = false;
+    // Website: analytics subsections start collapsed so the tab is not a wall.
+    ['subsection-usual', 'subsection-history'].forEach((id) => {
+        const sub = document.getElementById(id);
+        if (!sub) return;
+        sub.classList.remove('expanded');
+        const btn = sub.querySelector('.subsection-toggle');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+    });
+    let saved = null;
+    try { saved = localStorage.getItem(TAB_KEY); } catch (_) {}
+    showTab(['now', 'ride', 'stats', 'fellow'].includes(saved) ? saved : 'now');
+})();
+
 // ---------- Fellow Philly Trolley Trackers (added 2026-09-16). WEB ONLY. ----------
 // Shows live visitor counts from this site's own visit log (visitor-stats
 // function, cached an hour) and shares the free tracker's URL. The native app
