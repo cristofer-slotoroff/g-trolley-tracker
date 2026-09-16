@@ -3183,3 +3183,11 @@ body.native img {
         height: 4px;
     }
 }
+
+/* Fellow Philly Trolley Trackers card (2026-09-16, web only). Seven tiles:
+   last-row tiles stretch to fill the row so nothing is stranded. */
+.fellow-grid .stat-box { flex: 1 1 140px; }
+.fellow-card .share-row { margin-top: 14px; text-align: center; }
+.fellow-card .stats-note { margin-top: 4px; }
+.fellow-card .stats-note { text-align: center; }
+.fellow-card .stats-intro { text-align: center; }

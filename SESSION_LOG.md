@@ -240,3 +240,8 @@ Newest entry first. The plan and its short progress log live in `docs/APP-STORE-
 2. Sign in to Xcode with the Apple ID once (Xcode, Settings, Accounts) so signing and TestFlight work.
 2. Capture 6.9-inch store screenshots on the iPhone 17 Pro Max Simulator on a weekday between 10am and 4pm Eastern, when PCC cars are out (list in `docs/APP-STORE-LISTING.md`).
 3. TestFlight build to Cris's phone, confirm a real alert arrives, then submit.
+
+## 2026-09-16: Fellow Philly Trolley Trackers card (website only)
+- New card between G Line Status and the renamed "Direct Me to a PCC Trolley" section: seven visitor counts from the site's own visit log, plus "Share the Free Tracker" (shares the site URL). Hidden in the iPhone app (web-only class + IS_NATIVE guard); no TestFlight build wanted or needed.
+- Backend: `netlify/functions/visitor-stats.js` reads the new `visitor_public_stats` view (supabase/analytics-views.sql, View 4). Cached an hour. The card stays hidden until the view exists and returns visits > 0.
+- Next, approved in principle, screenshots first: web-only tabs (Running Now / Ride a Trolley / Trolley Analytics / Fellow Trackers) to shorten the scroll.

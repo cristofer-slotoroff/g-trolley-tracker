@@ -6758,6 +6758,50 @@ async function sharePhillyTrolleys() {
     }
 }
 
+// ---------- Fellow Philly Trolley Trackers (added 2026-09-16). WEB ONLY. ----------
+// Shows live visitor counts from this site's own visit log (visitor-stats
+// function, cached an hour) and shares the free tracker's URL. The native app
+// never runs this: IS_NATIVE returns early and body.native hides the card.
+const FELLOW_SHARE_TEXT = "Free Philly Trolley Tracker: see where SEPTA's vintage PCC Trolleys are running right now.";
+
+function renderFellowTrackers(s) {
+    const n = (v) => (v == null ? '--' : Number(v).toLocaleString('en-US'));
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('fellow-visits-all', n(s.visitsAllTime));
+    set('fellow-people-all', n(s.visitorsAllTime));
+    set('fellow-visits-30', n(s.visits30Days));
+    set('fellow-people-30', n(s.visitors30Days));
+    set('fellow-per-day', s.visitsPerDay30 == null ? '--' : Number(s.visitsPerDay30).toFixed(1));
+    set('fellow-returning', n(s.returningVisitors));
+    set('fellow-returning-pct', s.returningSharePct == null ? '--' : `${Math.round(s.returningSharePct)}%`);
+    const card = document.getElementById('fellow-card');
+    if (card) card.hidden = false;
+}
+
+async function shareFreeTracker() {
+    const status = document.getElementById('fellow-share-status');
+    const say = (t) => { if (status) status.textContent = t; };
+    try {
+        if (navigator.share) {
+            await navigator.share({ title: 'Philly Trolley Tracker', text: FELLOW_SHARE_TEXT, url: WEB_ORIGIN });
+            return;
+        }
+        await navigator.clipboard.writeText(`${FELLOW_SHARE_TEXT} ${WEB_ORIGIN}`);
+        say('Link copied. Paste it anywhere.');
+    } catch (e) {
+        if (e && (e.name === 'AbortError' || /cancel/i.test(String(e.message || '')))) return;
+        say(`Share this link: ${WEB_ORIGIN}`);
+    }
+}
+
+(function loadFellowTrackers() {
+    if (IS_NATIVE) return;
+    fetch(`${FUNCTIONS_BASE}/visitor-stats`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((s) => { if (s && s.visitsAllTime > 0) renderFellowTrackers(s); })
+        .catch(() => { /* stays hidden */ });
+})();
+
 // ==========================================
 // Simple Analytics - Log page visits
 // ==========================================

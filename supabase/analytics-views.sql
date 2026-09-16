@@ -108,3 +108,28 @@ FROM public.pcc_samples
 WHERE EXTRACT(HOUR FROM sampled_at AT TIME ZONE 'America/New_York') BETWEEN 7 AND 22
   AND (pcc_count > 0 OR bus_count > 0)
 GROUP BY 1;
+
+-- ============================================================
+-- View 4: visitor_public_stats — the seven public numbers for the website's
+-- "Fellow Philly Trolley Trackers" card (2026-09-16). One row, counts only.
+-- Mirrors Query 1 in docs/RESUME-METRICS.sql.
+-- ============================================================
+CREATE OR REPLACE VIEW public.visitor_public_stats
+WITH (security_invoker = true) AS
+WITH per_visitor AS (
+    SELECT visitor_id, COUNT(*) AS sessions
+    FROM public.page_views
+    WHERE visitor_id IS NOT NULL
+    GROUP BY visitor_id
+)
+SELECT (SELECT COUNT(*) FROM public.page_views)                                   AS visits_all_time,
+       (SELECT COUNT(*) FROM per_visitor)                                         AS visitors_all_time,
+       (SELECT COUNT(*) FROM public.page_views
+         WHERE visited_at >= now() - interval '30 days')                          AS visits_30_days,
+       (SELECT COUNT(DISTINCT visitor_id) FROM public.page_views
+         WHERE visited_at >= now() - interval '30 days')                          AS visitors_30_days,
+       (SELECT ROUND(COUNT(*) / 30.0, 1) FROM public.page_views
+         WHERE visited_at >= now() - interval '30 days')                          AS visits_per_day_30,
+       (SELECT COUNT(*) FILTER (WHERE sessions >= 2) FROM per_visitor)            AS returning_visitors,
+       (SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE sessions >= 2)
+                     / NULLIF(COUNT(*), 0), 1) FROM per_visitor)                  AS returning_share_pct;

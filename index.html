@@ -209,8 +209,28 @@
         </section>
 
         <!-- Station Selector -->
+        <!-- Fellow Philly Trolley Trackers (2026-09-16): web only. Live visitor
+             counts from this free site, plus a share button for the free tracker.
+             The iPhone app never shows this (body.native hides .web-only). -->
+        <section class="card web-only fellow-card" id="fellow-card" hidden>
+            <h2 class="section-title">Fellow Philly Trolley Trackers</h2>
+            <p class="stats-intro">Philly &lt;3s PCC Trolleys. Check the Stats:</p>
+            <div class="stats-summary fellow-grid">
+                <div class="stat-box"><span class="stat-value" id="fellow-visits-all">--</span><span class="stat-label">Visits, All Time</span></div>
+                <div class="stat-box"><span class="stat-value" id="fellow-people-all">--</span><span class="stat-label">Trackers, All Time</span></div>
+                <div class="stat-box"><span class="stat-value" id="fellow-visits-30">--</span><span class="stat-label">Visits, Last 30 Days</span></div>
+                <div class="stat-box"><span class="stat-value" id="fellow-people-30">--</span><span class="stat-label">Trackers, Last 30 Days</span></div>
+                <div class="stat-box"><span class="stat-value" id="fellow-per-day">--</span><span class="stat-label">Visits Per Day</span></div>
+                <div class="stat-box"><span class="stat-value" id="fellow-returning">--</span><span class="stat-label">Came Back For More</span></div>
+                <div class="stat-box"><span class="stat-value" id="fellow-returning-pct">--</span><span class="stat-label">Returning Share</span></div>
+            </div>
+            <p class="stats-note">Know someone who&rsquo;d want to track PCCs on the G?<br>Share this + the Philly Trolleys iPhone App.</p>
+            <p class="share-row"><button type="button" class="share-btn" onclick="shareFreeTracker()">Share the Free Tracker</button></p>
+            <p class="alert-status" id="fellow-share-status"></p>
+        </section>
+
         <section class="card" id="station-section">
-            <h2 class="section-title">SEPTA Origin Point</h2>
+            <h2 class="section-title">Direct Me to a PCC Trolley</h2>
             <div class="station-selector">
                 <div class="mode-selector">
                     <button class="mode-btn metro active" onclick="setMode('metro')">Metro Lines</button>
