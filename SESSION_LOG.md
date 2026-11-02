@@ -2,6 +2,39 @@
 
 Newest entry first. The plan and its short progress log live in `docs/APP-STORE-PLAN.md`; store copy in `docs/APP-STORE-LISTING.md`.
 
+## 2026-11-01: Supabase "unhealthy" warning, no fix needed
+
+### Work completed
+
+- Cris saw the Supabase dashboard call the project unhealthy. Cris then reported that the warning named Realtime only, and that the warning cleared without any change.
+- Verified: no code in this repo calls Supabase Realtime (no `.channel(`, `postgres_changes`, or `removeChannel`). `@supabase/realtime-js` appears only as a dependency of `supabase-js`. The `isRealTime` names in `app.js` describe SEPTA data.
+- Verified on the live site, about 10:46 PM ET: `pcc-stats`, `visitor-stats`, `push-status`, `widget-status`, and `pcc-day-detail` returned 200.
+- Verified: the last database write was a stop alert at 8:30 PM ET (`lastStopAlert` in `push-status`). 2026-11-01 holds 316 observations.
+- Verified: the Supabase public status page read "All Systems Operational" at check time.
+- No code changed. No deploy.
+
+### Where this falls in the plan
+
+- Post-launch watch duty. The app needs no follow-up for this warning.
+- Rule: If a Supabase warning names only Realtime then the warning does not affect this app.
+
+### Roadblocks and challenges
+
+- The dashboard needed a sign-in in the built-in browser, so the assistant never saw the warning. The wording of the warning comes from Cris.
+- The cause of the warning is unknown.
+- The permission system denied `netlify env:list`. The assistant did not retry and did not read the keys.
+
+### Successes and new understandings
+
+- The app has one path to Supabase: the Netlify functions, with no front-end Supabase client. A check of those functions covers what riders depend on.
+- A Gmail search of `cris@newsreel.co` found no notice for this project. The search found an Oct 27 notice for the Newsreel project (`auth_users_exposed`, a critical issue). Cris was told to send that notice to Brij. The assistant did not check whether Newsreel still has the issue.
+
+### Where to pick up
+
+- This session leaves nothing open for this project.
+- This entry sits on the local branch `claude/trolley-tracker-supabase-health-a0b340` and on `session-backups` on GitHub, not on `main`. Merge the entry with the next deliberate push to `main`.
+- The permission system denied a push of the session branch to GitHub, so the backup uses `session-backups`, the branch that the git backup check names.
+
 ## 2026-08-25: health check, and the day-detail timezone fix
 
 ### Work completed
