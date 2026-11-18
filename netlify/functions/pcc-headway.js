@@ -87,11 +87,24 @@ export const handler = async (event) => {
             });
         }
 
-        const out = points.map(p => ({ name: p.name, lng: p.lng, eastbound: [], westbound: [] }));
+        const out = points.map(p => ({ name: p.name, lng: p.lng, eastbound: [], westbound: [], skippedEast: 0, skippedWest: 0 }));
+        // Reading-gap counts per vehicle: how often a vehicle drops from the saved data between two readings.
+        const gapCounts = { upTo6: 0, upTo12: 0, upTo30: 0, upTo60: 0 };
         for (const readings of Object.values(byVehicle)) {
             for (let i = 1; i < readings.length; i++) {
                 const a = readings[i - 1], b = readings[i];
                 const gap = b.t - a.t;
+                if (gap > 0 && gap <= 6) gapCounts.upTo6++;
+                else if (gap <= 12) gapCounts.upTo12++;
+                else if (gap <= 30) gapCounts.upTo30++;
+                else if (gap <= 60) gapCounts.upTo60++;
+                // A crossing between two readings 12 to 60 minutes apart is a pass the counter does not record.
+                if (gap > MAX_GAP_MIN && gap <= 60) {
+                    points.forEach((p, idx) => {
+                        if (a.lng < p.lng && b.lng >= p.lng) out[idx].skippedEast++;
+                        else if (a.lng > p.lng && b.lng <= p.lng) out[idx].skippedWest++;
+                    });
+                }
                 if (gap <= 0 || gap > MAX_GAP_MIN || a.lng === b.lng) continue;
                 points.forEach((p, idx) => {
                     const crossedEast = a.lng < p.lng && b.lng >= p.lng;
@@ -108,11 +121,48 @@ export const handler = async (event) => {
             p.westbound.sort((x, y) => x[0] - y[0]);
         }
 
+        // Batch check (added 2026-11-18): the tracker saves one pcc_samples row per run, apart from the readings.
+        // A sample that counted vehicles while no reading holds its timestamp is a batch the database rejected.
+        // Before 2026-08-16 one rejected row cost the whole batch (see pcc-tracker.js).
+        let batches = null;
+        if (q.diag) {
+            const { data: samples, error: sErr } = await supabase
+                .from('pcc_samples')
+                .select('sampled_at, pcc_count, bus_count')
+                .gte('sampled_at', startOfDay)
+                .lte('sampled_at', endOfDay)
+                .order('sampled_at', { ascending: true })
+                .limit(1000);
+            if (sErr) throw sErr;
+            const rowsAt = {};
+            for (const r of rows) {
+                const k = new Date(r.observed_at).getTime();
+                rowsAt[k] = (rowsAt[k] || 0) + 1;
+            }
+            batches = { samples: 0, withVehicles: 0, lost: 0, lostByHour: {}, expectedRows: 0, storedRows: rows.length, hasBusCount: 0 };
+            for (const s of (samples || [])) {
+                batches.samples++;
+                if (s.bus_count != null) batches.hasBusCount++;
+                const expected = (s.pcc_count || 0) + (s.bus_count || 0);
+                batches.expectedRows += expected;
+                if (expected === 0) continue;
+                batches.withVehicles++;
+                const t = new Date(s.sampled_at).getTime();
+                if (!rowsAt[t]) {
+                    batches.lost++;
+                    const hour = Math.floor((t - dayStartMs) / 3600000);
+                    batches.lostByHour[hour] = (batches.lostByHour[hour] || 0) + 1;
+                }
+            }
+        }
+
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
                 date,
+                batches,
+                gapCounts,
                 totalRows: rows.length,
                 truncated,
                 noPosition,
