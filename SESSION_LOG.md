@@ -246,3 +246,10 @@ Newest entry first. The plan and its short progress log live in `docs/APP-STORE-
 - Backend: `netlify/functions/visitor-stats.js` reads the new `visitor_public_stats` view (supabase/analytics-views.sql, View 4). Cached an hour. The card stays hidden until the view exists and returns visits > 0.
 - Next, approved in principle, screenshots first: web-only tabs (Running Now / Ride a Trolley / Trolley Analytics / Fellow Trackers) to shorten the scroll.
 - Website tabs shipped (approved from phone-size screenshots): Running Now / Ride a Trolley / Trolley Analytics / Fellow Trackers. Sections carry data-tab; app.js showTab() runs only when IS_NATIVE is false, so the iPhone app keeps its single scroll. Analytics subsections start collapsed on the web; the roster is now its own collapsed subsection. Last tab remembered in localStorage (site_tab).
+
+## 2026-11-18 to 2026-11-21: SEPTA RFI analysis and draft response
+- SEPTA RFI 26-00295-AXJC (real-time passenger information, L and B lines), due 2026-12-11 4:00 PM EST. Cris answers Layer 3 only.
+- Two new counts-only endpoints: `pcc-lateness` and `pcc-headway` (commits 4f31bfc, a9fd8ea, 2928af0). Both live.
+- Draft response: https://claude.ai/artifact/7sJ8UhNpF7fBkjTsLTg9Qu. Nine open items wait for Cris.
+- The data has three eras; Feb 16 to Aug 15 lost 9.8% of batches. Use Aug 17 onward for wait figures.
+- Full record: `docs/HANDOFF-2026-11-21-SEPTA-RFI.md`.
